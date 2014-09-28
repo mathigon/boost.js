@@ -85,7 +85,7 @@
 	};
 
 
-	// -------------------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------
 	// POINTER EVENTS
 
 	M.$.prototype.pointerStart = function(fn) {
@@ -142,7 +142,7 @@
 
 	})();
 
-	// -------------------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------
 	// SPECIAL EVENTS
 
 	M.$.prototype.transitionEnd = function(callback) {
@@ -225,114 +225,6 @@
 	    });
 	};
 
-	M.$.prototype.scroll = function(fns) {
-	    var _this = this;
-
-	    var scrollTimeout = null;
-	    var scrolling = false;
-	    var initialScroll = 0;
-
-	    function start() {
-	        initialScroll = _this.$el.scrollTop;
-	        if (fns.start) fns.start();
-	        scrolling = true;
-	    }
-
-	    function move() {
-	        if (!scrolling) start();
-	        if (fns.move) fns.move();
-
-	        if (scrollTimeout) window.clearTimeout(scrollTimeout);
-	        scrollTimeout = window.setTimeout(end, 100);
-	    }
-
-	    function end() {
-	        if (fns.end) fns.end();
-	        scrolling = false;
-	    }
-
-	    // --------------------------------------------------------------------
-	    // Add Event Listeners
-
-	    var $el = this.$el;
-
-	    function touchEnd() {
-	        window.removeEventListener('touchmove', move);
-	        window.removeEventListener('touchend', touchEnd);
-	    }
-
-	    this.on('wheel mousewheel DOMMouseScroll', move);
-
-	    this.on('touchstart', function(){
-	        // This ensures that overflow bounces happen within container
-	        var top = $el.scrollTop;
-	        if(top <= 0) $el.scrollTop = 1;
-	        if(top + $el.offsetHeight >= $el.scrollHeight) $el.scrollTop = $el.scrollHeight - $el.offsetHeight - 1;
-
-	        start();
-	        window.addEventListener('touchmove', move);
-	        window.addEventListener('touchend', touchEnd);
-	    });
-	};
-
-	/*
-	M.$.prototype.scroll = function(fns) {
-	    var _this = this;
-
-	    var posn = 0;
-	    var scrolling = false;
-	    var scrollEndTimeout = null;
-	    var blocked = false;
-
-	    function start() {
-	        if (scrolling) return;
-	        scrolling = true;
-	        if (fns.start) fns.start();
-	        move();
-	    }
-
-	    function move() {
-	        if (!scrolling) return;
-	        requestAnimationFrame(move);
-	        var oldPosn = posn;
-	        posn = _this.$el.scrollTop;
-	        if (fns.move) fns.move(posn);
-	        if (!FM.equals(oldPosn, posn, 1)) {
-	            clearTimeout(scrollEndTimeout);
-	        } else {
-	            scrollEndTimeout = setTimeout(function() { end(); }, 100);
-	        }
-	    }
-
-	    function end() {
-	        if (blocked || !scrolling) return;
-	        scrolling = false;
-	        if (fns.end) fns.end();
-	    }
-
-	    // --------------------------------------------------------------------
-	    // Add Event Listeners
-
-	    var $el = this.$el;
-
-	    this.on('wheel mousewheel DOMMouseScroll', start);
-
-	    this.on('touchstart', function(){
-	        // This ensures that overflow bounces happen within container
-	        var top = $el.scrollTop;
-	        if(top <= 0) $el.scrollTop = 1;
-	        if(top + $el.offsetHeight >= $el.scrollHeight) $el.scrollTop = $el.scrollHeight - $el.offsetHeight - 1;
-
-	        blocked = true;
-	        start();
-	    });
-
-	    this.on('touchend', function(){
-	        blocked = false;
-	    });
-	};
-	*/
-
 	(function () {
 	    var shortcuts = ('blur focus keyup keydown keypress submit').split(' ');
 
@@ -349,7 +241,7 @@
 
 
 
-	// -------------------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------
 	// KEYBOARD EVENTS
 
 	M.activeInput = function() {
@@ -395,90 +287,103 @@
 	};
 
 
+	// ---------------------------------------------------------------------------------------------
+	// Scroll Events
 
-	// =================================================================================================
-	// SCROLLING
-	// =================================================================================================
+	M.$.prototype.scrollTo = function(pos, time, easing) {
+		var _this = this;
 
+		if (pos < 0) pos = 0;
+		if (time == null) time = 1000;
+		if (!easing) easing = 'cubic';
 
-	(function() {
-	    function easeIn(type, t, s) {
-	        switch (type) {
+		var startPosition = this.$el.scrollTop;
+		var distance = pos - startPosition;
 
-	            case 'quad':   return t * t;
-	            case 'cubic':  return t * t * t;
-	            case 'quart':  return t * t * t * t;
-	            case 'quint':  return t * t * t * t * t;
-	            case 'circ':   return 1 - Math.sqrt(1 - t * t);
-	            case 'sine':   return 1 - Math.cos(t * Math.PI / 2);
-	            case 'exp':    return (t <= 0) ? 0 : Math.pow(2, 10 * (t - 1));
+		var callback = function(t) {
+			var x = startPosition + distance * M.easing(easing, t);
+			_this.$el.scrollTop = x;
+			_this.trigger('scroll');
+		};
 
-	            case 'back':
-	                if (s == null) s = 1.70158;
-	                return t * t * ((s + 1) * t - s);
+		var animation = M.animate(callback, time);
 
-	            case 'elastic':
-	                if (s == null) s = 0.3;
-	                return - Math.pow(2, 10 * (t - 1)) * Math.sin(((t - 1) * 2 / s - 0.5) * Math.PI );
-
-	            case 'bounce':
-	                     if (t < 1/11) return 1/64 - 7.5625 * (.5/11 - t) * (.5/11 - t);  // 121/16 = 7.5625
-	                else if (t < 3/11) return 1/16 - 7.5625 * ( 2/11 - t) * ( 2/11 - t);
-	                else if (t < 7/11) return 1/4  - 7.5625 * ( 5/11 - t) * ( 5/11 - t);
-	                else               return 1    - 7.5625 * (    1 - t) * (    1 - t);
-
-	            default:
-	                return t;
-	        }
-	    }
-
-	    M.easing = function(type, t, s) {
-
-	        if (t==0) return 0;
-	        if (t==1) return 1;
-
-	        type = type.split('-');
-
-	        if (type[1] == 'in') {
-	            return easeIn(type[0], t, s);
-
-	        } else if (type[1] == 'out') {
-	            return 1 - easeIn(type[0], 1 - t, s)
-
-	        } else {
-	            if (t <= 0.5) return     easeIn(type[0], 2 * t,     s) / 2;
-	                          return 1 - easeIn(type[0], 2 * (1-t), s) / 2;
-	        }
-	    };
-	})();
-
-	M.$.prototype.scrollTo = function(pos, time, easing, callback) {
-	    var _this = this;
-
-	    if (pos < 0) pos = 0;
-	    if (!easing) easing = 'cubic';
-	    var cancel = false;
-	    this.scroll({ scroll: function() { cancel = true; } });
-	    this.on('touchstart', function() { cancel = true; });
-
-	    var t = 0;
-	    var startPosition = this.$el.scrollTop;
-	    var distance = pos-startPosition;
-	    var startTime = +new Date;
-
-	    function setScroll() {
-	        t = +new Date - startTime;
-	        var x = startPosition + distance * M.easing(easing, t / time);
-	        _this.$el.scrollTop = x
-	        if (callback) callback(x);
-	    }
-
-	    function animate() {
-	        if (!cancel && t<time) M.animationFrame(animate)
-	        setScroll();
-	    }
-
-	    animate();
+		this.scroll({ scroll: function() { animation.cancel(); } });
+		this.on('touchstart', function() { animation.cancel(); });
 	};
+
+	M.$.prototype.scroll = function(fns) {
+		var _this = this;
+
+		var scrollTimeout = null;
+		var scrolling = false;
+		var initialScroll = 0;
+
+		function start() {
+			initialScroll = _this.$el.scrollTop;
+			if (fns.start) fns.start();
+			scrolling = true;
+		}
+
+		function move() {
+			if (!scrolling) start();
+			if (fns.move) fns.move();
+
+			if (scrollTimeout) window.clearTimeout(scrollTimeout);
+			scrollTimeout = window.setTimeout(end, 100);
+		}
+
+		function end() {
+			if (fns.end) fns.end();
+			scrolling = false;
+		}
+
+		// Add Event Listeners
+
+		var $el = this.$el;
+
+		function touchEnd() {
+			window.removeEventListener('touchmove', move);
+			window.removeEventListener('touchend', touchEnd);
+		}
+
+		this.on('wheel mousewheel DOMMouseScroll', move);
+
+		this.on('touchstart', function(){
+			// This ensures that overflow bounces happen within container
+			var top = $el.scrollTop;
+			if(top <= 0) $el.scrollTop = 1;
+			if(top + $el.offsetHeight >= $el.scrollHeight) $el.scrollTop = $el.scrollHeight - $el.offsetHeight - 1;
+
+			start();
+			window.addEventListener('touchmove', move);
+			window.addEventListener('touchend', touchEnd);
+		});
+	};
+
+	/*
+	M.$.prototype.onScroll = function(fn) {
+
+		var scrolled = false;
+
+		function scrollCallback() {
+			fn();
+			scrolled = false;
+		};
+
+		function scrollHandle(e) {
+			if (!scrolled) {
+				scrolled = true;
+				M.animationFrame(scrollCallback);
+			}
+		};
+
+		this.$el.addEventListener('scroll', scrollHandle, false);
+	};
+	*/
+
+
+
+
 
 })();

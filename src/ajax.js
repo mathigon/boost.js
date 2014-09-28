@@ -6,7 +6,7 @@
 
 (function() {
 
-	// -------------------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------
 	// String Conversions
 
 	M.toQueryString = function(data) {
@@ -38,7 +38,7 @@
 	};
 
 
-	// -------------------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------
 	// AJAX
 
 	M.ajax = function(url, options) {
@@ -57,7 +57,7 @@
 	                doc.open();
 	                doc.write(xhr.responseText);
 	                doc.close();
-	                /* NOTE Scripts in Ajax DOM
+	                /* TODO Scripts in Ajax DOM
 	                $T('script', doc).each(function(script){
 	                    var s = $N('script', { html: script.html() });
 	                    document.body.appendChild(s.$el);
@@ -98,7 +98,9 @@
 
 	    // Additional headers
 	    if (options.headers && xhr.setRequestHeader)
-	        M.each(options.headers, function(header, value) { xhr.setRequestHeader(header, value); });
+	        M.each(options.headers, function(header, value) {
+				xhr.setRequestHeader(header, value);
+			});
 
 	    // Check for crossDomain
 	    if (options.crossDomain == null) options.crossDomain =
@@ -129,11 +131,14 @@
 	                _data = _data.split('&');
 	                var _newData = [];
 	                for (var i = 0; i < _data.length; i++) {
-	                    _newData.push('Content-Disposition: form-data; name="' + _data[i].split('=')[0] + '"\r\n\r\n' + _data[i].split('=')[1] + '\r\n');
+	                    _newData.push('Content-Disposition: form-data; name="' +
+							_data[i].split('=')[0] + '"\r\n\r\n' + _data[i].split('=')[1] + '\r\n');
 	                }
-	                postData = '--' + boundary + '\r\n' + _newData.join('--' + boundary + '\r\n') + '--' + boundary + '--\r\n';
+	                postData = '--' + boundary + '\r\n' + _newData.join('--' + boundary + '\r\n') +
+						'--' + boundary + '--\r\n';
 	            } else {
-	                postData = options.contentType === 'application/x-www-form-urlencoded' ? _data : _data.replace(/&/g, '\r\n');
+	                postData = options.contentType === 'application/x-www-form-urlencoded' ?
+						_data : _data.replace(/&/g, '\r\n');
 	            }
 	        }
 	    }
@@ -143,7 +148,7 @@
 	};
 
 
-	// -------------------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------
 	// Request Wrappers
 
 	M.get = function (url, data, success) {

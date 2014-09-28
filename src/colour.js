@@ -40,7 +40,8 @@
 
     var makeRgb = function(c) {
         var alpha = (c[3] || (c[3] === 0));
-        return 'rgb' + (alpha ? 'a(' : '(') + c.slice(0,3).each(function(x) { return Math.round(x); }).join(',') + (alpha ? ',' + c[3] : '') + ')';
+        return 'rgb' + (alpha ? 'a(' : '(') + c.slice(0,3).each(function(x) {
+			return Math.round(x); }).join(',') + (alpha ? ',' + c[3] : '') + ')';
     };
 
     M.colour.toRgb = function(c) {
@@ -66,7 +67,7 @@
             p*c1[2]+(1-p)*c2[2],
             alpha ? p*c1[3]+(1-p)*c2[3] : null
         ]);
-    }
+    };
 
 	// Gets the colour of a multi-step gradient at a given percentage p
 	M.colour.getColourAt = function(gradient, p) {
@@ -78,25 +79,25 @@
 
     // Colour Schemes from http://www.sron.nl/~pault/colourschemes.pdf
 
-    var rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', '#63AD99', '#55A1B1',
-                   '#488BC2', '#4065B1', '#413B93', '#781C81'];
+    var rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', '#63AD99',
+	               '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
     M.colour.rainbow = function(steps) {
         var scale = (0.4 + 0.15 * steps).bound(0,1);
         return FM.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
     };
 
-    var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA', '#F9BD7E',
-                       '#ED875E', '#D24D3E', '#AE1C3E'];
+    var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA',
+                       '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
     M.colour.temperature = function(steps) {
         var scale = (0.1 * steps).bound(0,1);
         return FM.tabulate(function(x){
             return M.colour.getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
     };
 
-    var solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', '#EC7014', '#CC4C02', '#993404',
-                 '#662506'];
+    var solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', '#EC7014', '#CC4C02',
+                 '#993404', '#662506'];
     M.colour.solar = function(steps) {
         return FM.tabulate(function(x){ return M.colour.getColourAt(solar, x/(steps-1)); }, steps);
     };
-	
+
 })();

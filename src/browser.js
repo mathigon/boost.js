@@ -19,14 +19,11 @@
 	};
 
 	M.redraw = function() {
+		/*jshint -W030 */
 	    document.body.offsetHeight;
 	};
 
 	M.now = Date.now || function getTime () { return new Date().getTime(); };
-
-	M.onload = function(fn) {
-	    window.onload = fn;
-	};
 
 	M.toCamelCase = function(str) {
 	    return str.toLowerCase().replace(/^-/,'').replace(/-(.)/g, function(match, g) {
@@ -34,19 +31,15 @@
 	    });
 	};
 
+	// Generates a random ID string
+	M.uid = function(){
+	    return Math.random().toString(36).substr(2,10);
+	};
+
 	M.is3DTransform = (function(){
 	    var style = document.createElement('div').style;
 	    return ('webkitPerspective' in style || 'MozPerspective' in style ||
 	        'OPerspective' in style || 'MsPerspective' in style || 'perspective' in style);
-	})();
-
-	M.animationFrame = (function() {
-	    var rAF = window.requestAnimationFrame    ||
-	        window.webkitRequestAnimationFrame    ||
-	        window.mozRequestAnimationFrame        ||
-	        window.msRequestAnimationFrame        ||
-	        function (callback) { window.setTimeout(callback, 1000 / 60); };
-	    return function(fn) { rAF(fn); };
 	})();
 
 

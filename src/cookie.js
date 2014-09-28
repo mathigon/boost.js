@@ -6,10 +6,10 @@
 
 (function() {
 
-	M.Cookie = {
+	M.cookie = {
 
 	    get: function get(name) {
-	        return M.Cookie.has(name) ? M.Cookie.list()[name] : null;
+	        return M.cookie.has(name) ? M.cookie.list()[name] : null;
 	    },
 
 	    has: function has(name) {
@@ -27,11 +27,10 @@
 	    },
 
 	    remove: function remove(name, options) {
-	        var opt2 = {};
-	        for (var key in (options || {})) opt2[key] = options[key];
-	        opt2.expires = new Date(0);
-	        opt2.maxAge = -1;
-	        return M.Cookie.set(name, null, opt2);
+	        if (!options) options = {};
+	        options.expires = new Date(0);
+	        options.maxAge = -1;
+	        return M.cookie.set(name, null, options);
 	    },
 
 	    // Possible optional options:
@@ -48,11 +47,12 @@
 	        if (options.path)    cookie.push('path=' + options.path);
 	        if (options.domain)  cookie.push('domain=' + options.domain);
 	        if (options.maxAge)  cookie.push('max-age=' + parseFloat(options.maxAge));
-	        if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ? options.expires.toUTCString() : options.expires));
+	        if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ?
+				                 	         options.expires.toUTCString() : options.expires));
 	        if (options.secure)  cookie.push('secure');
 	        document.cookie = cookie.join(';');
 	    }
 
 	};
-	
+
 })();

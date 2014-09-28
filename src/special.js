@@ -7,11 +7,16 @@
 (function() {
 
 	M.$body = $(document.body);
-	M.$html = $(document.getElementsByTagName('html')[0]);
+	M.$html = $T('html');
 	M.$window = $(window);
+	M.$doc = $(window.document.documentElement);
 
-	M.$html.addClass( M.browser.isTouch ? 'touch' : 'no-touch' );
-	M.$html.addClass( M.browser.isMobile ? 'mobile' : 'no-mobile' );
+	M.$html.addClass( M.browser.isTouch ? 'is-touch' : 'not-touch' );
+	M.$html.addClass( M.browser.isMobile ? 'is-mobile' : 'not-mobile' );
+
+
+	// ---------------------------------------------------------------------------------------------
+	// RESIZE EVENTS
 
     // Multiple queues, to allow ordering of resize events
     var events = [[], [], []];
@@ -20,9 +25,9 @@
         var size = [window.innerWidth, window.innerHeight];
         events.each(function(queue) {
             queue.each(function(fn) {
-                fn(size);
+                fn.call(null, size);
             });
-        })
+        });
     };
 
     M.resize = function(fn, queue) {
@@ -30,20 +35,37 @@
             events[queue||0].push(fn);
         } else {
             trigger();
-        };
+        }
     };
 
-    M.offResize = function(fn) {
-        var index = events.indexOf(fn);
-        if (index >= 0) events.splice(index, 1);
-    };
+	// TODO remove resize events
 
     var timeout = null;
     M.$window.on('resize', function() {
         clearTimeout(timeout);
         timeout = setTimeout(function() {
             trigger();
-        }, 100);
+        }, 50);
     });
+
+
+	// ---------------------------------------------------------------------------------------------
+	// LOAD EVENTS
+
+	var loadQueue = [];
+	var loaded = false;
+
+	window.onload = function() {
+		loaded = true;
+		for (var i=0; i<loadQueue.length; ++i) loadQueue[i]();
+	};
+
+	M.onload = function(fn) {
+		if (loaded) {
+			fn();
+		} else {
+			loadQueue.push(fn);
+		}
+	};
 
 })();

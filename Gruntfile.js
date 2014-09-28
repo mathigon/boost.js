@@ -14,6 +14,9 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-nodeunit');
     grunt.loadNpmTasks('grunt-markdown');
+    grunt.loadNpmTasks('grunt-contrib-less');
+    grunt.loadNpmTasks('grunt-autoprefixer');
+    grunt.loadNpmTasks('grunt-contrib-cssmin');
 
     var index = grunt.file.readJSON('src/index.json');
     var jsFiles = index.map(function(x) { return 'src/'+x+'.js'; });
@@ -95,15 +98,51 @@ module.exports = function(grunt) {
                         var m = (/^###\s+(.*)/g).exec(line);
                         return m ? ['### <a name="', '"></a>[M.', '](#', ')'].join(m[1]) : line;
                     }).join('\n');
-                }
+                },
+                template: 'docs/template.jst'
             },
             docs: {
                 files: { 'dist/docs.html': 'dist/docs.html' }
             }
-        }
+        },
+
+        less: {
+            options: {
+                cleancss: true,
+                modifyVars: { }
+            },
+            all: {
+                files: [{
+                    src: 'src/css/*.less',
+                    dest: 'dist/global.js'
+                }]
+            }
+        },
+
+        autoprefixer: {
+            all: {
+                files: [{
+                    src: 'dist/global.js',
+                    dest: 'dist/global.js'
+                }]
+            }
+        },
+
+        cssmin: {
+            options: {
+                banner: '<%= project.banner %>'
+            },
+            all: {
+                files: [{
+                    src: 'dist/global.js',
+                    dest: 'dist/global.js'
+                }]
+            }
+        },
 
     });
 
     grunt.registerTask('default', ['jshint:before', 'concat:dev', 'jshint:after', 'nodeunit:all',
-        'uglify:prod', 'concat:docs', 'markdown:docs']);
+        'uglify:prod', 'less:all', 'autoprefixer:all', 'cssmin:all', 'concat:docs',
+        'markdown:docs']);
 };

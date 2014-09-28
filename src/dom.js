@@ -6,38 +6,66 @@
 
 (function() {
 
-	// Creates a M.$ elements based in an id selector or a DOM node
+	M.$ = function ($el) {
+		this.data = {};
+		this.events = {};
+		this.$el = $el;
+	};
+
+
+	// ---------------------------------------------------------------------------------------------
+	// Constructors and Query Selectors
+
+	// Creates a single M.$ element from an arbitrary query string or a Node element
 	function $(selector) {
 	    if (typeof selector === 'string') {
-	        var $el = document.getElementById(selector);
-	        if ($el) return new M.$($el);
+	        context = context ? context.$el : document;
+			var $el = context.querySelector(selector);
+			return $el ? new M.$($el) : null;
 	    } else if (selector instanceof Node || selector === window) {
 	        return new M.$(selector);
 	    }
 	}
 
-	// Creates an array of M.$ elements based on a class name
+	// Returns a single M.$ element by id
+	function $I(selector) {
+		var $el = document.getElementById(selector);
+		if ($el) return new M.$($el);
+	}
+
+	// Returns a single M.$ element by class name
 	function $C(selector, context) {
 	    context = context ? context.$el : document;
 	    var $els = context.getElementsByClassName(selector);
-	    return M.each($els, function($el) { return new M.$($el); });
+	    return $els.length ? new M.$($els[0]) : null;
 	}
 
-	// Creates an array of M.$ elements based on a tag name
+	// Returns a single M.$ element by tag name
 	function $T(selector, context) {
 	    context = context ? (context.$el || context) : document;
 	    var $els = context.getElementsByTagName(selector);
-	    window.X = $els;
-	    var t = M.each($els, function($el) { return new M.$($el); });
-	    window.Y = t;
-	    return t;
+		return $els.length ? new M.$($els[0]) : null;
 	}
 
-	// Creates an array of M.$ elements based on a query selector
+	// Returns an array of M.$ elements based on an arbitrary query string
 	function $$(selector, context) {
 	    context = context ? context.$el : document;
 	    var $els = context.querySelectorAll(selector);
 	    return M.each($els, function($el) { return new M.$($el); });
+	}
+
+	// Returns an array of M.$ elements with a given class name
+	function $$C(selector, context) {
+		context = context ? context.$el : document;
+		var $els = context.getElementsByClassName(selector);
+		return M.each($els, function($el) { return new M.$($el); });
+	}
+
+	// Returns an array of M.$ elements with a given tag name
+	function $$T(selector, context) {
+		context = context ? (context.$el || context) : document;
+		var $els = context.getElementsByTagName(selector);
+		return M.each($els, function($el) { return new M.$($el); });
 	}
 
 	// Creates a new DOM node and M.$ element
@@ -67,11 +95,6 @@
 	    return tempDiv.children();
 	}
 
-	M.$ = function ($el) {
-	    this.data = {};
-	    this.$el = $el;
-	};
-
 
 	// ---------------------------------------------------------------------------------------------
 	// Basic Functionality
@@ -91,7 +114,7 @@
 	};
 
 	M.$.prototype.hasClass = function(className) {
-	    return (' ' + this.$el.className + ' ').indexOf(' ' + className + ' ') >= 0;
+	    return (' ' + this.$el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
 	};
 
 	M.$.prototype.toggleClass = function(className) {
@@ -112,7 +135,7 @@
 	M.$.prototype.attr = function(attr, value) {
 	    if (value == null) {
 	        return this.$el.getAttribute(attr);
-	    } else if (value === '') {
+	    } else if (value === null) {
 	        this.$el.removeAttribute(attr);
 	    } else {
 	        this.$el.setAttribute(attr, value);
@@ -192,6 +215,7 @@
 
 	    if ($parent === 'parent') $parent = this.parent();
 	    if ($parent === 'body') $parent = M.$body;
+		var box;
 
 	    // Get offset from immediate parent
 	    if ($parent && $parent.$el === this.$el.offsetParent) {
@@ -204,13 +228,13 @@
 	    // Get offset based on any other element including $(document.body)
 	    } else if ($parent) {
 	        var parentBox = $parent.$el.getBoundingClientRect();
-	        var box = this.$el.getBoundingClientRect();
+	        box = this.$el.getBoundingClientRect();
 	        return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
 	                 bottom: box.bottom - parentBox.top, right: box.right - parentBox.left };
 
 	    // Get offset based on viewport
 	    } else {
-	        var box = this.$el.getBoundingClientRect();
+	        box = this.$el.getBoundingClientRect();
 	        return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
 	    }
 	};
@@ -237,19 +261,17 @@
 	};
 
 	M.$.prototype.transform = function(transform) {
-	    this.$el.style[M.prefix('transform')] = transform;
+	    this.$el.style[M.prefix('transform')] = (transform || '');
 	};
 
-	M.$.prototype.transformX = function(x) {
-	    x = Math.round(x);
-	    this.$el.style[M.prefix('transform')] = M.is3DTransform ?
-	        'translate3d('+x+'px,0,0)' : 'translate('+x+'px,0)';
+	M.$.prototype.translateX = function(x) {
+	    x = Math.round(+x || 0);
+	    this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,0)';
 	};
 
-	M.$.prototype.transformY = function(y) {
-	    y = Math.round(y);
-	    this.$el.style[M.prefix('transform')] = M.is3DTransform ?
-	        'translate3d(0px,'+y+'px,0px)' : 'translate(0px,'+y+'px)';
+	M.$.prototype.translateY = function(y) {
+	    y = Math.round(+y || 0);
+	    this.$el.style[M.prefix('transform')] = 'translate(0px,'+y+'px)';
 	};
 
 	M.$.prototype.hide = function() {
@@ -265,6 +287,20 @@
 
 	// ---------------------------------------------------------------------------------------------
 	// DOM Manipulation
+
+    // Removes an element from the DOM for more performant node manipulation. The element
+    // is placed back into the DOM at the place it was taken from.
+    M.$.prototype.manipulate = function(fn){
+      	var next = this.$el.nextSibling;
+        var parent = this.$el.parentNode;
+        var frag = document.createDocumentFragment();
+        var returned = fn.call(frag.appendChild(element)) || element;
+      	if (next) {
+			parent.insertBefore(returned, next);
+		} else {
+			parent.appendChild(returned);
+		}
+    };
 
 	M.$.prototype.is = function(selector) {
 	    var compareWith = document.querySelectorAll(selector);
@@ -353,12 +389,12 @@
 	};
 
 	M.$.prototype.next = function () {
-	    var next = this.$el.nextElementSibling;
+	    var next = this.$el.nextSibling;
 	    return next ? $(next) : false;
 	};
 
 	M.$.prototype.prev = function () {
-	    var prev = this.$el.previousElementSibling;
+	    var prev = this.$el.previousSibling;
 	    return prev ? $(prev) : false;
 	};
 

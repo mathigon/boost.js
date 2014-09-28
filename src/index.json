@@ -1,9 +1,12 @@
 [
-    "setup",
-    "object",
-    "type",
-    "clone",
-    "class",
-    "string",
-    "array"
+    "browser",
+    "ajax",
+    "colour",
+    "cookie",
+    "history",
+    "storage",
+    "dom",
+    "animations",
+    "events",
+    "special"
 ]
