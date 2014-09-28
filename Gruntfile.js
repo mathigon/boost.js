@@ -54,7 +54,7 @@ module.exports = function(grunt) {
                 options: {
                     banner: '<%= project.banner %> (function() {\n',
                     footer: '\n\n})();',
-                    separator: ';',
+                    separator: '\n',
                     stripBanners: { line: true }
                 },
                 src: jsFiles,
@@ -114,7 +114,7 @@ module.exports = function(grunt) {
             all: {
                 files: [{
                     src: 'src/css/*.less',
-                    dest: 'dist/global.js'
+                    dest: 'dist/global.css'
                 }]
             }
         },
@@ -122,20 +122,20 @@ module.exports = function(grunt) {
         autoprefixer: {
             all: {
                 files: [{
-                    src: 'dist/global.js',
-                    dest: 'dist/global.js'
+                    src: 'dist/global.css',
+                    dest: 'dist/global.css'
                 }]
             }
         },
 
         cssmin: {
             options: {
-                banner: '<%= project.banner %>'
+                banner: '/* <%= pkg.title %>\n// (c) 2014, Mathigon / Philipp Legner */'
             },
             all: {
                 files: [{
-                    src: 'dist/global.js',
-                    dest: 'dist/global.js'
+                    src: 'dist/global.css',
+                    dest: 'dist/global.css'
                 }]
             }
         },

@@ -7,6 +7,5 @@
     "storage",
     "dom",
     "animations",
-    "events",
-    "special"
+    "events"
 ]

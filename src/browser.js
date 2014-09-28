@@ -4,6 +4,12 @@
 // =================================================================================================
 
 
+
+if (typeof M !== 'object' || !M.core || !M.fermat)
+	throw new Error('volta.js requires core.js and fermat.js.');
+M.volta = true;
+
+
 (function() {
 
 	M.browser = {
@@ -44,6 +50,26 @@
 
 
 	// ---------------------------------------------------------------------------------------------
+	// ONLOAD EVENTS
+
+	var loadQueue = [];
+	var loaded = false;
+
+	window.onload = function() {
+		loaded = true;
+		for (var i=0; i<loadQueue.length; ++i) loadQueue[i]();
+	};
+
+	M.onload = function(fn) {
+		if (loaded) {
+			fn();
+		} else {
+			loadQueue.push(fn);
+		}
+	};
+
+
+	// ---------------------------------------------------------------------------------------------
 	// CSS
 
 	M.cssTimeToNumber = function(cssTime) {
@@ -65,8 +91,11 @@
 	};
 
     var cache = {};
-    var style = document.body.style;
+    var style;
     var prefixes = {'webkit': 'webkit', 'moz': 'Moz', 'ms': 'ms'};
+
+	// document.body doesn't exist if this file is included in the <head> of an html file
+	M.onload(function(){ style = document.body.style; });
 
     var findCssPrefix = function(name) {
         var rule = M.toCamelCase(name);

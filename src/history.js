@@ -9,7 +9,7 @@
     var hasHistory = !!window.history;
     var id = 0;
 
-    var origin = window.location.origin + window.location.port;
+    var root = window.location.origin + window.location.port;
     var path = window.location.pathname.replace(root, '');
     var hash = window.location.hash.replace(/^#/, '');
 

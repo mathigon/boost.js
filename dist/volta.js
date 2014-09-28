@@ -3,6 +3,11 @@
 // MIT License (https://github.com/Mathigon/volta.js/blob/master/LICENSE)
 
  (function() {
+if (typeof M !== 'object' || !M.core || !M.fermat)
+	throw new Error('volta.js requires core.js and fermat.js.');
+M.volta = true;
+
+
 (function() {
 
 	M.browser = {
@@ -43,6 +48,26 @@
 
 
 	// ---------------------------------------------------------------------------------------------
+	// ONLOAD EVENTS
+
+	var loadQueue = [];
+	var loaded = false;
+
+	window.onload = function() {
+		loaded = true;
+		for (var i=0; i<loadQueue.length; ++i) loadQueue[i]();
+	};
+
+	M.onload = function(fn) {
+		if (loaded) {
+			fn();
+		} else {
+			loadQueue.push(fn);
+		}
+	};
+
+
+	// ---------------------------------------------------------------------------------------------
 	// CSS
 
 	M.cssTimeToNumber = function(cssTime) {
@@ -64,8 +89,11 @@
 	};
 
     var cache = {};
-    var style = document.body.style;
+    var style;
     var prefixes = {'webkit': 'webkit', 'moz': 'Moz', 'ms': 'ms'};
+
+	// document.body doesn't exist if this file is included in the <head> of an html file
+	M.onload(function(){ style = document.body.style; });
 
     var findCssPrefix = function(name) {
         var rule = M.toCamelCase(name);
@@ -85,193 +113,191 @@
     };
 
 })();
-;(function() {
 
-	// ---------------------------------------------------------------------------------------------
-	// String Conversions
+// -------------------------------------------------------------------------------------------------
+// String Conversions
 
-	M.toQueryString = function(data) {
-	    var pairs = [];
+M.toQueryString = function(data) {
+    var pairs = [];
 
-	    M.each(data, function(value, key) {
-	        key = encodeURIComponent(key);
-	        if (value == null) { pairs.push(key); return; }
-	        value = M.isArray(value) ? value.join(',') : '' + value;
-	        value = value.replace(/(\r)?\n/g, '\r\n');
-	        value = encodeURIComponent(value);
-	        value = value.replace(/%20/g, '+');
+    M.each(data, function(value, key) {
+        key = encodeURIComponent(key);
+        if (value == null) { pairs.push(key); return; }
+        value = M.isArray(value) ? value.join(',') : '' + value;
+        value = value.replace(/(\r)?\n/g, '\r\n');
+        value = encodeURIComponent(value);
+        value = value.replace(/%20/g, '+');
 
-	        pairs.push(key + '=' + value);
-	    });
+        pairs.push(key + '=' + value);
+    });
 
-	    return pairs.join('&');
-	};
+    return pairs.join('&');
+};
 
-	M.fromQueryString = function(string) {
-	    string = string.replace(/^[?,&]/,'');
-	    var pairs = decodeURIComponent(string).split('&');
-	    var result = {};
-	    pairs.each(function(pair) {
-	        var x = pair.split('=');
-	        result[x[0]] = x[1];
-	    });
-	    return result;
-	};
-
-
-	// ---------------------------------------------------------------------------------------------
-	// AJAX
-
-	M.ajax = function(url, options) {
-
-	    if (!options) options = {};
-	    var xhr = new XMLHttpRequest();
-
-	    var respond = function(xx) {
-	        var status = xhr.status;
-
-	        if (!status && xhr.responseText || status >= 200 && status < 300 || status === 304) {
-	            if (!options.success) return;
-
-	            if (options.dataType === 'html') {
-	                var doc = document.implementation.createHTMLDocument('');
-	                doc.open();
-	                doc.write(xhr.responseText);
-	                doc.close();
-	                /* TODO Scripts in Ajax DOM
-	                $T('script', doc).each(function(script){
-	                    var s = $N('script', { html: script.html() });
-	                    document.body.appendChild(s.$el);
-	                });
-	                */
-	                options.success(doc);
-	            } else if (options.dataType === 'json') {
-	                options.success(JSON.parse(xhr.responseText));
-	            } else {
-	                options.success(xhr.responseText);
-	            }
-
-	        } else {
-	            if (options.error) options.error(xhr);
-	        }
-	    };
-
-	    if (xhr.onload) {
-	        xhr.onload = xhr.onerror = respond;
-	    } else {
-	        xhr.onreadystatechange = function() { if (xhr.readyState === 4) respond(); };
-	    }
-
-	    // Default URL
-	    if (!options.url) options.url = window.location.toString();
-
-	    // GET Data
-	    if (options.method === 'GET' || options.method === 'HEAD') {
-	        url += (url.indexOf('?') >= 0 ? '&' : '?');
-	        if (options.data) url += M.toQueryString(options.data) + '&';
-	        if (options.cache === false) url += '_nocache=' + Date.now();
-	    }
-
-	    // Open XHR Request
-	    if (options.async == null) options.async = 'true';
-	    xhr.open(options.method ? options.method.toUpperCase() : 'GET',
-	             url, options.async, options.user, options.password);
-
-	    // Additional headers
-	    if (options.headers && xhr.setRequestHeader)
-	        M.each(options.headers, function(header, value) {
-				xhr.setRequestHeader(header, value);
-			});
-
-	    // Check for crossDomain
-	    if (options.crossDomain == null) options.crossDomain =
-	        /^([\w-]+:)?\/\/([^\/]+)/.test(options.url) && RegExp.$2 !== window.location.host;
-	    if (options.crossDomain) xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-	    // POST Data
-	    var postData = null;
-	    if (options.processData == null) options.processData = true;
-	    if (options.contentType == null) options.contentType = 'application/x-www-form-urlencoded';
-
-	    if (options.data && (options.method === 'POST' || options.method === 'PUT')) {
-	        var postDataInstances = [ArrayBuffer, Blob, Document, FormData];
-	        if (!options.processData || postDataInstances.indexOf(options.data.constructor) >= 0) {
-	            postData = options.data;
-	        } else {
-	            // NOTE Check Ajax Post Data
-	            var boundary = '---------------------------' + Date.now().toString(16);
-	            if (options.contentType === 'multipart\/form-data') {
-	                xhr.setRequestHeader('Content-Type', 'multipart\/form-data; boundary=' + boundary);
-	            } else {
-	                xhr.setRequestHeader('Content-Type', options.contentType);
-	            }
-	            postData = '';
-	            var _data = M.toQueryString(options.data);
-	            if (options.contentType === 'multipart\/form-data') {
-	                boundary = '---------------------------' + Date.now().toString(16);
-	                _data = _data.split('&');
-	                var _newData = [];
-	                for (var i = 0; i < _data.length; i++) {
-	                    _newData.push('Content-Disposition: form-data; name="' +
-							_data[i].split('=')[0] + '"\r\n\r\n' + _data[i].split('=')[1] + '\r\n');
-	                }
-	                postData = '--' + boundary + '\r\n' + _newData.join('--' + boundary + '\r\n') +
-						'--' + boundary + '--\r\n';
-	            } else {
-	                postData = options.contentType === 'application/x-www-form-urlencoded' ?
-						_data : _data.replace(/&/g, '\r\n');
-	            }
-	        }
-	    }
-
-	    // Send XHR Request
-	    xhr.send(postData);
-	};
+M.fromQueryString = function(string) {
+    string = string.replace(/^[?,&]/,'');
+    var pairs = decodeURIComponent(string).split('&');
+    var result = {};
+    pairs.each(function(pair) {
+        var x = pair.split('=');
+        result[x[0]] = x[1];
+    });
+    return result;
+};
 
 
-	// ---------------------------------------------------------------------------------------------
-	// Request Wrappers
+// -------------------------------------------------------------------------------------------------
+// AJAX
 
-	M.get = function (url, data, success) {
-	    return M.ajax(url, {
-	        method: 'GET',
-	        dataType: 'html',
-	        data: typeof data === 'function' ? null : data,
-	        success: typeof data === 'function' ? data : success
-	    });
-	};
+M.ajax = function(url, options) {
 
-	M.post = function (url, data, success) {
-	    return M.ajax(url, {
-	        method: 'POST',
-	        dataType: 'html',
-	        data: typeof data === 'function' ? null : data,
-	        success: typeof data === 'function' ? data : success
-	    });
-	};
+    if (!options) options = {};
+    var xhr = new XMLHttpRequest();
 
-	M.getJSON = function (url, data, success) {
-	    return M.ajax(url, {
-	        method: 'GET',
-	        dataType: 'json',
-	        data: typeof data === 'function' ? null : data,
-	        success: typeof data === 'function' ? data : success
-	    });
-	};
+    var respond = function(xx) {
+        var status = xhr.status;
 
-	M.getScript = function(src, success, error) {
-	    var script = document.createElement('script');
-	    script.type = 'text/javascript';
+        if (!status && xhr.responseText || status >= 200 && status < 300 || status === 304) {
+            if (!options.success) return;
 
-	    if (error) script.onerror = error;
-	    if (success) script.onload = success;
+            if (options.dataType === 'html') {
+                var doc = document.implementation.createHTMLDocument('');
+                doc.open();
+                doc.write(xhr.responseText);
+                doc.close();
+                /* TODO Scripts in Ajax DOM
+                $T('script', doc).each(function(script){
+                    var s = $N('script', { html: script.html() });
+                    document.body.appendChild(s.$el);
+                });
+                */
+                options.success(doc);
+            } else if (options.dataType === 'json') {
+                options.success(JSON.parse(xhr.responseText));
+            } else {
+                options.success(xhr.responseText);
+            }
 
-	    document.head.appendChild(script);
-	    script.src = src;
-	};
+        } else {
+            if (options.error) options.error(xhr);
+        }
+    };
 
-})();
-;(function() {
+    if (xhr.onload) {
+        xhr.onload = xhr.onerror = respond;
+    } else {
+        xhr.onreadystatechange = function() { if (xhr.readyState === 4) respond(); };
+    }
+
+    // Default URL
+    if (!options.url) options.url = window.location.toString();
+
+    // GET Data
+    if (options.method === 'GET' || options.method === 'HEAD') {
+        url += (url.indexOf('?') >= 0 ? '&' : '?');
+        if (options.data) url += M.toQueryString(options.data) + '&';
+        if (options.cache === false) url += '_nocache=' + Date.now();
+    }
+
+    // Open XHR Request
+    if (options.async == null) options.async = 'true';
+    xhr.open(options.method ? options.method.toUpperCase() : 'GET',
+             url, options.async, options.user, options.password);
+
+    // Additional headers
+    if (options.headers && xhr.setRequestHeader)
+        M.each(options.headers, function(header, value) {
+			xhr.setRequestHeader(header, value);
+		});
+
+    // Check for crossDomain
+    if (options.crossDomain == null) options.crossDomain =
+        /^([\w-]+:)?\/\/([^\/]+)/.test(options.url) && RegExp.$2 !== window.location.host;
+    if (options.crossDomain) xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+    // POST Data
+    var postData = null;
+    if (options.processData == null) options.processData = true;
+    if (options.contentType == null) options.contentType = 'application/x-www-form-urlencoded';
+
+    if (options.data && (options.method === 'POST' || options.method === 'PUT')) {
+        var postDataInstances = [ArrayBuffer, Blob, Document, FormData];
+        if (!options.processData || postDataInstances.indexOf(options.data.constructor) >= 0) {
+            postData = options.data;
+        } else {
+            // NOTE Check Ajax Post Data
+            var boundary = '---------------------------' + Date.now().toString(16);
+            if (options.contentType === 'multipart\/form-data') {
+                xhr.setRequestHeader('Content-Type', 'multipart\/form-data; boundary=' + boundary);
+            } else {
+                xhr.setRequestHeader('Content-Type', options.contentType);
+            }
+            postData = '';
+            var _data = M.toQueryString(options.data);
+            if (options.contentType === 'multipart\/form-data') {
+                boundary = '---------------------------' + Date.now().toString(16);
+                _data = _data.split('&');
+                var _newData = [];
+                for (var i = 0; i < _data.length; i++) {
+                    _newData.push('Content-Disposition: form-data; name="' +
+						_data[i].split('=')[0] + '"\r\n\r\n' + _data[i].split('=')[1] + '\r\n');
+                }
+                postData = '--' + boundary + '\r\n' + _newData.join('--' + boundary + '\r\n') +
+					'--' + boundary + '--\r\n';
+            } else {
+                postData = options.contentType === 'application/x-www-form-urlencoded' ?
+					_data : _data.replace(/&/g, '\r\n');
+            }
+        }
+    }
+
+    // Send XHR Request
+    xhr.send(postData);
+};
+
+
+// -------------------------------------------------------------------------------------------------
+// Request Wrappers
+
+M.get = function (url, data, success) {
+    return M.ajax(url, {
+        method: 'GET',
+        dataType: 'html',
+        data: typeof data === 'function' ? null : data,
+        success: typeof data === 'function' ? data : success
+    });
+};
+
+M.post = function (url, data, success) {
+    return M.ajax(url, {
+        method: 'POST',
+        dataType: 'html',
+        data: typeof data === 'function' ? null : data,
+        success: typeof data === 'function' ? data : success
+    });
+};
+
+M.getJSON = function (url, data, success) {
+    return M.ajax(url, {
+        method: 'GET',
+        dataType: 'json',
+        data: typeof data === 'function' ? null : data,
+        success: typeof data === 'function' ? data : success
+    });
+};
+
+M.getScript = function(src, success, error) {
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+
+    if (error) script.onerror = error;
+    if (success) script.onload = success;
+
+    document.head.appendChild(script);
+    script.src = src;
+};
+
+(function() {
 
 	M.colour = {
 	    red:    '#D90000',
@@ -368,64 +394,62 @@
     };
 
 })();
-;(function() {
 
-	M.cookie = {
+M.cookie = {
 
-	    get: function get(name) {
-	        return M.cookie.has(name) ? M.cookie.list()[name] : null;
-	    },
+    get: function get(name) {
+        return M.cookie.has(name) ? M.cookie.list()[name] : null;
+    },
 
-	    has: function has(name) {
-	        return new RegExp('(?:;\\s*|^)' + encodeURIComponent(name) + '=').test(document.cookie);
-	    },
+    has: function has(name) {
+        return new RegExp('(?:;\\s*|^)' + encodeURIComponent(name) + '=').test(document.cookie);
+    },
 
-	    list: function list() {
-	        var pairs = document.cookie.split(';'), pair, result = {};
-	        for (var i = 0, n = pairs.length; i < n; ++i) {
-	            pair = pairs[i].split('=');
-	            pair[0] = pair[0].replace(/^\s+|\s+$/, '');
-	            result[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-	        }
-	        return result;
-	    },
+    list: function list() {
+        var pairs = document.cookie.split(';'), pair, result = {};
+        for (var i = 0, n = pairs.length; i < n; ++i) {
+            pair = pairs[i].split('=');
+            pair[0] = pair[0].replace(/^\s+|\s+$/, '');
+            result[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+        }
+        return result;
+    },
 
-	    remove: function remove(name, options) {
-	        if (!options) options = {};
-	        options.expires = new Date(0);
-	        options.maxAge = -1;
-	        return M.cookie.set(name, null, options);
-	    },
+    remove: function remove(name, options) {
+        if (!options) options = {};
+        options.expires = new Date(0);
+        options.maxAge = -1;
+        return M.cookie.set(name, null, options);
+    },
 
-	    // Possible optional options:
-	    // path     Specify path within the current domain, for example '/'
-	    // domain   Specify the (sub)domain the cookie pertains to. Can range from the root domain
-	    //          ('mathigon.org') up to the current subdomain ('test.world.mathigon.org').
-	    // maxAge   Specify, in seconds, the lifespan of the cookie.
-	    // expires  Set cookie expiry using an absolute GMT date/time string with an RFC2822 format
-	    //          (e.g. 'Tue, 02 Feb 2010 22:04:47 GMT')or a JS Date object.
-	    // secure   Specify whether the cookie should only be passed through HTTPS connections.
-	    set: function set(name, value, options) {
-	        options = options || {};
-	        var cookie = [encodeURIComponent(name) + '=' + encodeURIComponent(value)];
-	        if (options.path)    cookie.push('path=' + options.path);
-	        if (options.domain)  cookie.push('domain=' + options.domain);
-	        if (options.maxAge)  cookie.push('max-age=' + parseFloat(options.maxAge));
-	        if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ?
-				                 	         options.expires.toUTCString() : options.expires));
-	        if (options.secure)  cookie.push('secure');
-	        document.cookie = cookie.join(';');
-	    }
+    // Possible optional options:
+    // path     Specify path within the current domain, for example '/'
+    // domain   Specify the (sub)domain the cookie pertains to. Can range from the root domain
+    //          ('mathigon.org') up to the current subdomain ('test.world.mathigon.org').
+    // maxAge   Specify, in seconds, the lifespan of the cookie.
+    // expires  Set cookie expiry using an absolute GMT date/time string with an RFC2822 format
+    //          (e.g. 'Tue, 02 Feb 2010 22:04:47 GMT')or a JS Date object.
+    // secure   Specify whether the cookie should only be passed through HTTPS connections.
+    set: function set(name, value, options) {
+        options = options || {};
+        var cookie = [encodeURIComponent(name) + '=' + encodeURIComponent(value)];
+        if (options.path)    cookie.push('path=' + options.path);
+        if (options.domain)  cookie.push('domain=' + options.domain);
+        if (options.maxAge)  cookie.push('max-age=' + parseFloat(options.maxAge));
+        if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ?
+			                 	         options.expires.toUTCString() : options.expires));
+        if (options.secure)  cookie.push('secure');
+        document.cookie = cookie.join(';');
+    }
 
-	};
+};
 
-})();
-;(function() {
+(function() {
 
     var hasHistory = !!window.history;
     var id = 0;
 
-    var origin = window.location.origin + window.location.port;
+    var root = window.location.origin + window.location.port;
     var path = window.location.pathname.replace(root, '');
     var hash = window.location.hash.replace(/^#/, '');
 
@@ -493,7 +517,8 @@
     });
 
 })();
-;(function() {
+
+(function() {
 
 	M.storage = {};
 
@@ -536,7 +561,8 @@
 	};
 
 })();
-;(function() {
+
+(function() {
 
 	M.$ = function ($el) {
 		this.data = {};
@@ -549,59 +575,59 @@
 	// Constructors and Query Selectors
 
 	// Creates a single M.$ element from an arbitrary query string or a Node element
-	function $(selector) {
+	window.$ = function(selector, context) {
 	    if (typeof selector === 'string') {
-	        context = context ? context.$el : document;
+	        context = context ? (context.$el || context) : document;
 			var $el = context.querySelector(selector);
 			return $el ? new M.$($el) : null;
 	    } else if (selector instanceof Node || selector === window) {
 	        return new M.$(selector);
 	    }
-	}
+	};
 
 	// Returns a single M.$ element by id
-	function $I(selector) {
+	window.$I = function(selector) {
 		var $el = document.getElementById(selector);
 		if ($el) return new M.$($el);
-	}
+	};
 
 	// Returns a single M.$ element by class name
-	function $C(selector, context) {
-	    context = context ? context.$el : document;
+	window.$C = function(selector, context) {
+	    context = context ? (context.$el || context) : document;
 	    var $els = context.getElementsByClassName(selector);
 	    return $els.length ? new M.$($els[0]) : null;
-	}
+	};
 
 	// Returns a single M.$ element by tag name
-	function $T(selector, context) {
+	window.$T = function(selector, context) {
 	    context = context ? (context.$el || context) : document;
 	    var $els = context.getElementsByTagName(selector);
 		return $els.length ? new M.$($els[0]) : null;
-	}
+	};
 
 	// Returns an array of M.$ elements based on an arbitrary query string
-	function $$(selector, context) {
-	    context = context ? context.$el : document;
+	window.$$ = function(selector, context) {
+	    context = context ? (context.$el || context) : document;
 	    var $els = context.querySelectorAll(selector);
 	    return M.each($els, function($el) { return new M.$($el); });
-	}
+	};
 
 	// Returns an array of M.$ elements with a given class name
-	function $$C(selector, context) {
-		context = context ? context.$el : document;
+	window.$$C = function(selector, context) {
+		context = context ? (context.$el || context) : document;
 		var $els = context.getElementsByClassName(selector);
 		return M.each($els, function($el) { return new M.$($el); });
-	}
+	};
 
 	// Returns an array of M.$ elements with a given tag name
-	function $$T(selector, context) {
+	window.$$T = function(selector, context) {
 		context = context ? (context.$el || context) : document;
 		var $els = context.getElementsByTagName(selector);
 		return M.each($els, function($el) { return new M.$($el); });
-	}
+	};
 
 	// Creates a new DOM node and M.$ element
-	function $N(tag, attributes, parent) {
+	window.$N = function(tag, attributes, parent) {
 	    var t = document.createElement(tag);
 
 	    for (var a in attributes) {
@@ -619,13 +645,13 @@
 	    var $el = new M.$(t);
 	    if (parent) parent.append($el);
 	    return $el;
-	}
+	};
 
 	// Converts an arbitrary html string into an array of M.$ elements
-	function $$N(html) {
+	window.$$N = function(html) {
 	    var tempDiv = $N('div', { html: html });
 	    return tempDiv.children();
-	}
+	};
 
 
 	// ---------------------------------------------------------------------------------------------
@@ -992,8 +1018,21 @@
 	    this.remove();
 	};
 
+
+	// ---------------------------------------------------------------------------------------------
+	// Special Elements
+
+	M.$body = $(document.body);
+	M.$html = $T('html');
+	M.$window = $(window);
+	M.$doc = $(window.document.documentElement);
+
+	M.$html.addClass( M.browser.isTouch ? 'is-touch' : 'not-touch' );
+	M.$html.addClass( M.browser.isMobile ? 'is-mobile' : 'not-mobile' );
+
 })();
-;(function() {
+
+(function() {
 
     M.animationFrame = (function() {
         var rAF = window.requestAnimationFrame ||
@@ -1225,7 +1264,8 @@
     };
 
 })();
-;(function() {
+
+(function() {
 
 	M.events = {};
 
@@ -1604,73 +1644,38 @@
 	*/
 
 
-
-
-
-})();
-;(function() {
-
-	M.$body = $(document.body);
-	M.$html = $T('html');
-	M.$window = $(window);
-	M.$doc = $(window.document.documentElement);
-
-	M.$html.addClass( M.browser.isTouch ? 'is-touch' : 'not-touch' );
-	M.$html.addClass( M.browser.isMobile ? 'is-mobile' : 'not-mobile' );
-
-
 	// ---------------------------------------------------------------------------------------------
 	// RESIZE EVENTS
 
-    // Multiple queues, to allow ordering of resize events
-    var events = [[], [], []];
+	// Multiple queues, to allow ordering of resize events
+	var events = [[], [], []];
 
-    var trigger = function() {
-        var size = [window.innerWidth, window.innerHeight];
-        events.each(function(queue) {
-            queue.each(function(fn) {
-                fn.call(null, size);
-            });
-        });
-    };
+	var trigger = function() {
+		var size = [window.innerWidth, window.innerHeight];
+		events.each(function(queue) {
+			queue.each(function(fn) {
+				fn.call(null, size);
+			});
+		});
+	};
 
-    M.resize = function(fn, queue) {
-        if (fn) {
-            events[queue||0].push(fn);
-        } else {
-            trigger();
-        }
-    };
+	M.resize = function(fn, queue) {
+		if (fn) {
+			events[queue||0].push(fn);
+		} else {
+			trigger();
+		}
+	};
 
 	// TODO remove resize events
 
-    var timeout = null;
-    M.$window.on('resize', function() {
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            trigger();
-        }, 50);
-    });
-
-
-	// ---------------------------------------------------------------------------------------------
-	// LOAD EVENTS
-
-	var loadQueue = [];
-	var loaded = false;
-
-	window.onload = function() {
-		loaded = true;
-		for (var i=0; i<loadQueue.length; ++i) loadQueue[i]();
-	};
-
-	M.onload = function(fn) {
-		if (loaded) {
-			fn();
-		} else {
-			loadQueue.push(fn);
-		}
-	};
+	var timeout = null;
+	M.$window.on('resize', function() {
+		clearTimeout(timeout);
+		timeout = setTimeout(function() {
+			trigger();
+		}, 50);
+	});
 
 })();
 

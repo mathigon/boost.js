@@ -383,7 +383,37 @@
 	*/
 
 
+	// ---------------------------------------------------------------------------------------------
+	// RESIZE EVENTS
 
+	// Multiple queues, to allow ordering of resize events
+	var events = [[], [], []];
 
+	var trigger = function() {
+		var size = [window.innerWidth, window.innerHeight];
+		events.each(function(queue) {
+			queue.each(function(fn) {
+				fn.call(null, size);
+			});
+		});
+	};
+
+	M.resize = function(fn, queue) {
+		if (fn) {
+			events[queue||0].push(fn);
+		} else {
+			trigger();
+		}
+	};
+
+	// TODO remove resize events
+
+	var timeout = null;
+	M.$window.on('resize', function() {
+		clearTimeout(timeout);
+		timeout = setTimeout(function() {
+			trigger();
+		}, 50);
+	});
 
 })();

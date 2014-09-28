@@ -17,59 +17,59 @@
 	// Constructors and Query Selectors
 
 	// Creates a single M.$ element from an arbitrary query string or a Node element
-	function $(selector) {
+	window.$ = function(selector, context) {
 	    if (typeof selector === 'string') {
-	        context = context ? context.$el : document;
+	        context = context ? (context.$el || context) : document;
 			var $el = context.querySelector(selector);
 			return $el ? new M.$($el) : null;
 	    } else if (selector instanceof Node || selector === window) {
 	        return new M.$(selector);
 	    }
-	}
+	};
 
 	// Returns a single M.$ element by id
-	function $I(selector) {
+	window.$I = function(selector) {
 		var $el = document.getElementById(selector);
 		if ($el) return new M.$($el);
-	}
+	};
 
 	// Returns a single M.$ element by class name
-	function $C(selector, context) {
-	    context = context ? context.$el : document;
+	window.$C = function(selector, context) {
+	    context = context ? (context.$el || context) : document;
 	    var $els = context.getElementsByClassName(selector);
 	    return $els.length ? new M.$($els[0]) : null;
-	}
+	};
 
 	// Returns a single M.$ element by tag name
-	function $T(selector, context) {
+	window.$T = function(selector, context) {
 	    context = context ? (context.$el || context) : document;
 	    var $els = context.getElementsByTagName(selector);
 		return $els.length ? new M.$($els[0]) : null;
-	}
+	};
 
 	// Returns an array of M.$ elements based on an arbitrary query string
-	function $$(selector, context) {
-	    context = context ? context.$el : document;
+	window.$$ = function(selector, context) {
+	    context = context ? (context.$el || context) : document;
 	    var $els = context.querySelectorAll(selector);
 	    return M.each($els, function($el) { return new M.$($el); });
-	}
+	};
 
 	// Returns an array of M.$ elements with a given class name
-	function $$C(selector, context) {
-		context = context ? context.$el : document;
+	window.$$C = function(selector, context) {
+		context = context ? (context.$el || context) : document;
 		var $els = context.getElementsByClassName(selector);
 		return M.each($els, function($el) { return new M.$($el); });
-	}
+	};
 
 	// Returns an array of M.$ elements with a given tag name
-	function $$T(selector, context) {
+	window.$$T = function(selector, context) {
 		context = context ? (context.$el || context) : document;
 		var $els = context.getElementsByTagName(selector);
 		return M.each($els, function($el) { return new M.$($el); });
-	}
+	};
 
 	// Creates a new DOM node and M.$ element
-	function $N(tag, attributes, parent) {
+	window.$N = function(tag, attributes, parent) {
 	    var t = document.createElement(tag);
 
 	    for (var a in attributes) {
@@ -87,13 +87,13 @@
 	    var $el = new M.$(t);
 	    if (parent) parent.append($el);
 	    return $el;
-	}
+	};
 
 	// Converts an arbitrary html string into an array of M.$ elements
-	function $$N(html) {
+	window.$$N = function(html) {
 	    var tempDiv = $N('div', { html: html });
 	    return tempDiv.children();
-	}
+	};
 
 
 	// ---------------------------------------------------------------------------------------------
@@ -459,5 +459,17 @@
 	    this.insertAfter(newEl);
 	    this.remove();
 	};
+
+
+	// ---------------------------------------------------------------------------------------------
+	// Special Elements
+
+	M.$body = $(document.body);
+	M.$html = $T('html');
+	M.$window = $(window);
+	M.$doc = $(window.document.documentElement);
+
+	M.$html.addClass( M.browser.isTouch ? 'is-touch' : 'not-touch' );
+	M.$html.addClass( M.browser.isMobile ? 'is-mobile' : 'not-mobile' );
 
 })();
