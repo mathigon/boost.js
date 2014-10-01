@@ -1,16 +1,16 @@
 {
-  "name": "volta",
-  "title": "Volta Browser and DOM Tools",
-  "description": "General purpose JavaScript library.",
+  "name": "boost",
+  "title": "Boost Browser and DOM Tools",
+  "description": "DOM, events and animations library for modern browsers.",
   "version": "0.1.0",
-  "homepage": "http://mathigon.io/volta",
+  "homepage": "http://mathigon.io/boost",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mathigon/volta.js.git"
+    "url": "https://github.com/mathigon/boost.js.git"
   },
   "license": {
     "type": "MIT",
-    "url": "https://github.com/Mathigon/volta.js/blob/master/LICENSE"
+    "url": "https://github.com/Mathigon/boost.js/blob/master/LICENSE"
   },
   "devDependencies": {
     "grunt": "~0.4.5",

@@ -1,4 +1,4 @@
-# volta.js
+# Boost.js
 
 TODO
 

@@ -1,11 +1,11 @@
-// Volta Browser and DOM Tools
+// Boost Browser and DOM Tools
 // (c) 2014, Mathigon / Philipp Legner
-// MIT License (https://github.com/Mathigon/volta.js/blob/master/LICENSE)
+// MIT License (https://github.com/Mathigon/boost.js/blob/master/LICENSE)
 
  (function() {
 if (typeof M !== 'object' || !M.core || !M.fermat)
-	throw new Error('volta.js requires core.js and fermat.js.');
-M.volta = true;
+	throw new Error('boost.js requires core.js and fermat.js.');
+M.boost = true;
 
 
 (function() {

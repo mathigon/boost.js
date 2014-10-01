@@ -1,13 +1,13 @@
 // =================================================================================================
-// Volta.js | TODO
+// Boost.js | Browser Utilities
 // (c) 2014 Mathigon / Philipp Legner
 // =================================================================================================
 
 
 
 if (typeof M !== 'object' || !M.core || !M.fermat)
-	throw new Error('volta.js requires core.js and fermat.js.');
-M.volta = true;
+	throw new Error('boost.js requires core.js and fermat.js.');
+M.boost = true;
 
 
 (function() {
