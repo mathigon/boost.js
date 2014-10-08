@@ -256,6 +256,7 @@
 	};
 
 	M.$.prototype.transition = function(property, duration, curve) {
+		if (arguments.length === 1) this.$el.style[M.prefix('transition')] = property;
 	    if (typeof duration !== 'string') duration = duration + 'ms';
 	    this.$el.style[M.prefix('transition')] = property + ' ' + duration + (curve ? ' ' + curve : '');
 	};

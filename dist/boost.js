@@ -453,7 +453,7 @@ M.cookie = {
     var path = window.location.pathname.replace(root, '');
     var hash = window.location.hash.replace(/^#/, '');
 
-    M.History = new M.Class.extend({
+    var History = M.Class.extend({
 
         back: function() {
             if(hasHistory) window.history.back();
@@ -480,7 +480,9 @@ M.cookie = {
 
     });
 
-    Object.defineProperty(M.History, 'hash', {
+    M.history = new History();
+
+    Object.defineProperty(M.history, 'hash', {
         enumerable: true,
         configurable : true,
         get: function() {
@@ -510,9 +512,9 @@ M.cookie = {
 
         if (!e.state) return;
         var newId = e.state.id;
-        M.History.trigger('change', e.state.state);
-        if (newId < id) M.History.trigger('back', e.state.state);
-        if (newId > id) M.History.trigger('forward', e.state.state);
+        M.history.trigger('change', e.state.state);
+        if (newId < id) M.history.trigger('back', e.state.state);
+        if (newId > id) M.history.trigger('forward', e.state.state);
         id = newId;
     });
 
@@ -814,6 +816,7 @@ M.cookie = {
 	};
 
 	M.$.prototype.transition = function(property, duration, curve) {
+		if (arguments.length === 1) this.$el.style[M.prefix('transition')] = property;
 	    if (typeof duration !== 'string') duration = duration + 'ms';
 	    this.$el.style[M.prefix('transition')] = property + ' ' + duration + (curve ? ' ' + curve : '');
 	};
@@ -1196,8 +1199,8 @@ M.cookie = {
         this.animate({ css: 'opacity', from: 0, to: 1, duration: time });
     };
 
-    M.$.prototype.fadeOut = function() {
-        this.animate({ css: 'opacity', from: 0, to: 1, duration: time },
+    M.$.prototype.fadeOut = function(time) {
+        this.animate({ css: 'opacity', from: 1, to: 0, duration: time },
             function() { this.hide(); });
     };
 

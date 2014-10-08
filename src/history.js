@@ -13,7 +13,7 @@
     var path = window.location.pathname.replace(root, '');
     var hash = window.location.hash.replace(/^#/, '');
 
-    M.History = new M.Class.extend({
+    var History = M.Class.extend({
 
         back: function() {
             if(hasHistory) window.history.back();
@@ -40,7 +40,9 @@
 
     });
 
-    Object.defineProperty(M.History, 'hash', {
+    M.history = new History();
+
+    Object.defineProperty(M.history, 'hash', {
         enumerable: true,
         configurable : true,
         get: function() {
@@ -70,9 +72,9 @@
 
         if (!e.state) return;
         var newId = e.state.id;
-        M.History.trigger('change', e.state.state);
-        if (newId < id) M.History.trigger('back', e.state.state);
-        if (newId > id) M.History.trigger('forward', e.state.state);
+        M.history.trigger('change', e.state.state);
+        if (newId < id) M.history.trigger('back', e.state.state);
+        if (newId > id) M.history.trigger('forward', e.state.state);
         id = newId;
     });
 

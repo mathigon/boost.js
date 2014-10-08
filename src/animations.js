@@ -168,8 +168,8 @@
         this.animate({ css: 'opacity', from: 0, to: 1, duration: time });
     };
 
-    M.$.prototype.fadeOut = function() {
-        this.animate({ css: 'opacity', from: 0, to: 1, duration: time },
+    M.$.prototype.fadeOut = function(time) {
+        this.animate({ css: 'opacity', from: 1, to: 0, duration: time },
             function() { this.hide(); });
     };
 
