@@ -435,7 +435,7 @@ M.cookie = {
         var cookie = [encodeURIComponent(name) + '=' + encodeURIComponent(value)];
         if (options.path)    cookie.push('path=' + options.path);
         if (options.domain)  cookie.push('domain=' + options.domain);
-        if (options.maxAge)  cookie.push('max-age=' + parseFloat(options.maxAge));
+        if (options.maxAge)  cookie.push('max-age=' + options.maxAge);
         if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ?
 			                 	         options.expires.toUTCString() : options.expires));
         if (options.secure)  cookie.push('secure');
@@ -567,8 +567,8 @@ M.cookie = {
 (function() {
 
 	M.$ = function ($el) {
-		this.data = {};
-		this.events = {};
+		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
+		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
 		this.$el = $el;
 	};
 
@@ -1061,9 +1061,9 @@ M.cookie = {
 		var running = true;
 
         function getFrame() {
-            if (running && time <= duration) M.animationFrame(getFrame);
+            if (running && (!duration || time <= duration)) M.animationFrame(getFrame);
             time = +new Date() - startTime;
-            callback(time / duration);
+            callback(duration ? time/duration : time);
         }
 
         getFrame();
@@ -1137,6 +1137,7 @@ M.cookie = {
 
         // Remove new transition values
         this.transitionEnd(function() {
+            console.log('transitoon end');
             _this.css(M.prefix('transition'), oldTransition);
             M.redraw();
             if (callback) callback.call(_this);
@@ -1270,6 +1271,9 @@ M.cookie = {
 
 (function() {
 
+	// =============================================================================================
+	// EVENT UTILITIES
+
 	M.events = {};
 
 	M.events.isSupported = function(event) {
@@ -1282,39 +1286,6 @@ M.cookie = {
 	    }
 	    $el.delete();
 	    return isSupported;
-	};
-
-	M.$.prototype.on = function(events, callback) {
-	    events = events.split(' ');
-	    for (var i = 0; i < events.length; ++i)
-	        this.$el.addEventListener(events[i], callback, false);
-	};
-
-	M.$.prototype.off = function(events, callback) {
-	    events = events.split(' ');
-	    for (var i = 0; i < events.length; ++i)
-	        this.$el.removeEventListener(events[i], callback, false);
-	};
-
-	M.$.prototype.one = function(events, fn) {
-	    var _this = this;
-	    function callback() {
-	        _this.off(events, callback);
-	        fn(arguments);
-	    }
-	    this.on(events, callback);
-	};
-
-	M.$.prototype.trigger = function(eventName, eventData) {
-	    var evt;
-	    try {
-	        evt = new CustomEvent(eventName, {detail: eventData, bubbles: true, cancelable: true});
-	    } catch (e) {
-	        evt = document.createEvent('Event');
-	        evt.initEvent(eventName, true, true);
-	        evt.detail = eventData;
-	    }
-	    this.$el.dispatchEvent(evt);
 	};
 
 	M.events.pointerOffset = function(event, parent) {
@@ -1336,120 +1307,43 @@ M.cookie = {
 	    };
 	};
 
-	M.events.getWheelDelta = function (e) {
+	M.events.getWheelDelta = function(e) {
 	    var delta = 0;
-	    if (e.wheelDelta) delta = e.wheelDelta / 120;
-	    if (e.detail) delta = -e.detail / 3;
+	    if (e.wheelDelta) delta = e.wheelDelta / 40;
+	    if (e.detail) delta = -e.detail / 3.5;
 	    return delta;
 	};
 
-	M.events.stop = function (e) {
+	M.events.stop = function(e) {
 	    e.preventDefault();
 	    e.stopPropagation();
 	};
 
 
-	// ---------------------------------------------------------------------------------------------
-	// POINTER EVENTS
+	// =============================================================================================
+	// CLICK EVENTS
+	// TODO Add ability to remove click events
 
-	M.$.prototype.pointerStart = function(fn) {
-	    this.on('mousedown touchstart', fn);
-	};
-
-	M.$.prototype.pointerMove = function(fn) {
-	    this.on('mousemove touchmove', fn);
-	};
-
-	M.$.prototype.pointerEnd = function(fn) {
-	    this.on('mouseup touchend mousecancel touchcancel', fn);
-	};
-
-	(function() {
-
-	    var checkInside = function($el, event) {
-	        var c = M.events.pointerPosition(event);
-	        return ($el.$el === document.elementFromPoint(c.x, c.y));
-	    };
-
-	    // TODO Make pointer more efficient more efficient using *enter and *leave
-
-	    M.$.prototype.pointerEnter = function(fn, $parent) {
-	        var _this = this;
-	        var isInside = null;
-
-	        $parent.pointerEnd(function(e) { isInside = null; });
-
-	        $parent.pointerMove(function(e) {
-	            var wasInside = isInside;
-	            isInside = checkInside(_this, e);
-	            if (wasInside != null && isInside && !wasInside) fn(e);
-	        });
-	    };
-
-	    M.$.prototype.pointerLeave = function(fn, $parent) {
-	        var _this = this;
-	        var isInside = null;
-
-	        $parent.pointerMove(function(e) {
-	            var wasInside = isInside;
-	            isInside = checkInside(_this, e);
-	            if (!isInside && wasInside) fn(e);
-	        });
-	    };
-
-	    M.$.prototype.pointerMoveOver = function(fn, $parent) {
-	        var _this = this;
-	        $parent.on('touchmove mousemove', function(e) {
-	            if (checkInside(_this, e)) fn(e);
-	        });
-	    };
-
-	})();
-
-	// ---------------------------------------------------------------------------------------------
-	// SPECIAL EVENTS
-
-	M.$.prototype.transitionEnd = function(callback) {
-	    var events = ['webkitTransitionEnd', 'transitionend', 'oTransitionEnd', 'MSTransitionEnd', 'msTransitionEnd'];
-	    this.one(events.join(' '), callback);
-	};
-
-	M.$.prototype.animationEnd = function(callback) {
-	    var events = ['webkitAnimationEnd', 'OAnimationEnd', 'MSAnimationEnd', 'animationend'].join(' ');
-	    var _this = this;
-
-	    function fireCallBack(e) {
-	        callback.call(_this, e);
-	        _this.off(events, fireCallBack);
-	    }
-
-	    this.on(events, fireCallBack);
-	};
-
-	M.$.prototype.change = function(callback) {
-	    this.on('propertychange keyup input paste', callback);
-	};
-
-	M.$.prototype.click = function(callback) {
+	function makeClickEvent($el) {
+		if ($el._events._click) return;
+		$el._events._click = true;
 
 	    var waitForEvent = false;
 	    var startX, startY;
-	    var _this = this;
 	    var preventMouse = false;
 
-	    /* NOTE PreventDefault for Click Events
-	    this.on('click', function(e){
+	    $el.addEventListener('click', function(e){
 	        e.preventDefault();
-	    });*/
+	    });
 
-	    this.on('mousedown', function(e){
+	    $el.addEventListener('mousedown', function(e){
 	        if (preventMouse) return;
 	        waitForEvent = true;
 	        startX = e.clientX;
 	        startY = e.clientY;
 	    });
 
-	    this.on('mouseup', function(e){
+	    $el.addEventListener('mouseup', function(e){
 	        if (preventMouse) {
 	            preventMouse = false;
 	            return;
@@ -1458,13 +1352,13 @@ M.cookie = {
 	            var endX = e.clientX;
 	            var endY = e.clientY;
 	            if (Math.abs(endX - startX) < 2 && Math.abs(endY - startY) < 2) {
-	                callback.call(_this, e);
+	                $el.trigger('click', e);
 	            }
 	        }
 	        waitForEvent = false;
 	    });
 
-	    this.on('touchstart', function(e){
+	    $el.addEventListener('touchstart', function(e){
 	        preventMouse = true;
 	        if (e.touches.length === 1) {
 	            waitForEvent = true;
@@ -1473,40 +1367,262 @@ M.cookie = {
 	        }
 	    });
 
-	    this.on('touchend', function(e){
+	    $el.addEventListener('touchend', function(e){
 	        if (waitForEvent && e.changedTouches.length === 1) {
 	            var endX = e.changedTouches[0].clientX;
 	            var endY = e.changedTouches[0].clientY;
 	            if (Math.abs(endX - startX) < 5 && Math.abs(endY - startY) < 5) {
-	                callback.call(_this, e);
+	                $el.trigger('click', e);
 	            }
 	        }
 	        waitForEvent = false;
 	    });
 
-	    this.on('touchcancel', function(){
+	    $el.addEventListener('touchcancel', function(){
 	        waitForEvent = false;
 	    });
+	}
+
+
+	// =============================================================================================
+	// POINTER EVENTS
+	// TODO Make pointer more efficient more efficient using *enter and *leave
+	// TODO Add ability to remove pointer events
+
+	var checkInside = function($el, event) {
+		var c = M.events.pointerPosition(event);
+		return ($el.$el === document.elementFromPoint(c.x, c.y));
 	};
 
-	(function () {
-	    var shortcuts = ('blur focus keyup keydown keypress submit').split(' ');
+	function makePointerPositionEvents($el) {
+		if ($el._events._pointer) return;
+		$el._events._pointer = true;
 
-	    shortcuts.each( function(event) {
-	        M.$.prototype[event] = function(callback) {
-	            if (callback == null) {
-	                this.trigger(event);
-	            } else {
-	                this.on(event, callback);
-	            }
-	        };
-	    });
-	})();
+		var $parent = $el.$el.offsetParent;
+		var isInside = null;
+		$parent.on('pointerEnd', function(e) { isInside = null; });
+
+		$parent.on('pointerMove', function(e) {
+			var wasInside = isInside;
+			isInside = checkInside($el, e);
+			if (wasInside != null && isInside && !wasInside) $el.trigger('pointerEnter', e);
+			if (!isInside && wasInside) $el.trigger('pointerLeave', e);
+			if (isInside) $el.trigger('pointerOver', e);
+		});
+	}
 
 
+	// =============================================================================================
+	// SCROLL EVENTS
+	// TODO Add ability to remove scroll events
 
-	// ---------------------------------------------------------------------------------------------
+	M.$.prototype.fixOverflowScroll = function() {
+		if (this._events.fixOverflowScroll) return;
+		this._events.fixOverflowScroll = true;
+		_this = this;
+
+		this.addEventListener('touchstart', function(){
+			// This ensures that overflow bounces happen within container
+			var top = _this.$el.scrollTop;
+			var bottom = _this.$el.scrollHeight - _this.$el.offsetHeight;
+
+			if(top <= 0) _this.$el.scrollTop = 1;
+			if(top >= bottom) _this.$el.scrollTop = bottom - 1;
+		});
+	};
+
+	M.$.prototype.scrollTo = function(pos, time, easing, force) {
+		var _this = this;
+
+		if (pos < 0) pos = 0;
+		if (time == null) time = 1000;
+		if (!easing) easing = 'cubic';
+
+		var startPosition = this.$el.scrollTop;
+		var distance = pos - startPosition;
+
+		var callback = function(t) {
+			var x = startPosition + distance * M.easing(easing, t);
+			_this.$el.scrollTop = x;
+			_this.trigger('scroll', { top: x });
+		};
+
+		_this.trigger('scrollstart', {});
+		var animation = M.animate(callback, time);
+
+		if (!force) {
+			this.on('scroll', function() { animation.cancel(); });
+			this.on('touchstart', function() { animation.cancel(); });
+		}
+	};
+
+	function makeScrollEvents($el) {
+		if ($el._events._scroll) return;
+		$el._events._scroll = true;
+
+		var scrollTimeout = null;
+		var scrolling = false;
+		var initialScroll = 0;
+
+		function start() {
+			initialScroll = _this.$el.scrollTop;
+			$el.trigger('scrollstart', {});
+			scrolling = true;
+		}
+
+		function move() {
+			if (!scrolling) start();
+			$el.trigger('scroll', { top: $el.$el.scrollTop, left: $el.$el.scrollLeft });
+
+			if (scrollTimeout) window.clearTimeout(scrollTimeout);
+			scrollTimeout = window.setTimeout(end, 100);
+		}
+
+		function end() {
+			$el.trigger('scrollend', {});
+			scrolling = false;
+		}
+
+		function touchEnd() {
+			window.removeEventListener('touchmove', move);
+			window.removeEventListener('touchend', touchEnd);
+		}
+
+		$el.addEventListener('wheel mousewheel DOMMouseScroll', move);
+		$el.fixOverflowScroll();
+
+		$el.on('touchstart', function(){
+			start();
+			window.addEventListener('touchmove', move);
+			window.addEventListener('touchend', touchEnd);
+		});
+	}
+
+
+	// =============================================================================================
+	// CUSTOM EVENTS
+
+	var customEvents = {
+
+		pointerStart: 'mousedown touchstart',
+		pointerMove:  'mousemove touchmove',
+		pointerEnd:   'mouseup touchend mousecancel touchcancel',
+
+		animationEnd:   'webkitAnimationEnd oAnimationEnd animationend',
+		transitionEnd:  'webkitTransitionEnd oTransitionEnd transitionend',
+
+		change: 'propertychange keyup input paste',
+
+		scrollwheel: 'DOMMouseScroll mousewheel',
+
+		click: makeClickEvent,  // no capture!
+
+		pointerEnter: makePointerPositionEvents,  // no capture!
+		pointerLeave: makePointerPositionEvents,  // no capture!
+		pointerOver: makePointerPositionEvents,  // no capture!
+
+		scrollStart: makeScrollEvents,  // no capture!
+		scroll: makeScrollEvents,  // no capture!
+		scrollEnd: makeScrollEvents  // no capture!
+	};
+
+	var shortcuts = ('click scroll change transitionEnd').split(' ');
+
+	shortcuts.each(function(event) {
+		M.$.prototype[event] = function(callback) {
+			if (callback == null) {
+				this.trigger(event);
+			} else {
+				this.on(event, callback);
+			}
+		};
+	});
+
+
+	// =============================================================================================
+	// EVENT BINDINGS
+
+	function createEvent($el, event, fn, useCapture) {
+		var custom = customEvents[name];
+
+		if (M.isString(custom)) {
+			$el.on(custom, fn, useCapture);
+			return;
+		} else if (custom) {
+			custom($el);
+		} else {
+			$el.$el.addEventListener(event, fn, !!useCapture);
+		}
+
+		if ($el._events[event]) {
+            if (!$el._events[event].has(fn)) $el._events[event].push(fn);
+        } else {
+            $el._events[event] = [fn];
+        }
+	}
+
+	function removeEvent($el, event, fn, useCapture) {
+		var custom = customEvents[name];
+
+		if (M.isString(custom)) {
+			$el.off(custom, fn, useCapture);
+			return;
+		} else if (!custom) {
+			$el.$el.removeEventListener(event, fn, !!useCapture);
+		}
+
+		if ($el._events[event]) $el._events[event] = $el._events[event].without(fn);
+	}
+
+	M.$.prototype.on = function(type, fn, useCapture) {
+		var _this = this;
+		if (arguments.length > 1) {
+			type.words().each(function(event) {
+				createEvent(_this, event, fn, useCapture);
+			});
+		} else {
+			M.each(type, function(callback, event) {
+				createEvent(_this, event, callback);
+			});
+		}
+	};
+
+	M.$.prototype.one = function(events, fn, useCapture) {
+		var _this = this;
+		function callback() {
+			_this.off(events, callback, useCapture);
+			fn(arguments);
+		}
+		this.on(events, callback, useCapture);
+	};
+
+	M.$.prototype.off = function(type, fn, useCapture) {
+		var _this = this;
+		type.words().each(function(event) {
+			removeEvent(_this, event, fn, useCapture);
+		});
+	};
+
+	M.$.prototype.trigger = function(name, args) {
+		if (!this._events[event]) return;
+		var _this = this;
+		M.each(this._events[event], function(fn) { fn.call(_this, args); });
+	};
+
+	// var evt;
+	// try {
+	//     evt = new CustomEvent(eventName, {detail: eventData, bubbles: true, cancelable: true});
+	// } catch (e) {
+	//     evt = document.createEvent('Event');
+	//     evt.initEvent(eventName, true, true);
+	//     evt.detail = eventData;
+	// }
+	// this.$el.dispatchEvent(evt);
+
+
+	// =============================================================================================
 	// KEYBOARD EVENTS
+	// TODO Make keyboard events follow .on syntax
 
 	M.activeInput = function() {
 	    return document.activeElement === document.body ? undefined : document.activeElement;
@@ -1551,104 +1667,10 @@ M.cookie = {
 	};
 
 
-	// ---------------------------------------------------------------------------------------------
-	// Scroll Events
-
-	M.$.prototype.scrollTo = function(pos, time, easing) {
-		var _this = this;
-
-		if (pos < 0) pos = 0;
-		if (time == null) time = 1000;
-		if (!easing) easing = 'cubic';
-
-		var startPosition = this.$el.scrollTop;
-		var distance = pos - startPosition;
-
-		var callback = function(t) {
-			var x = startPosition + distance * M.easing(easing, t);
-			_this.$el.scrollTop = x;
-			_this.trigger('scroll');
-		};
-
-		var animation = M.animate(callback, time);
-
-		this.scroll({ scroll: function() { animation.cancel(); } });
-		this.on('touchstart', function() { animation.cancel(); });
-	};
-
-	M.$.prototype.scroll = function(fns) {
-		var _this = this;
-
-		var scrollTimeout = null;
-		var scrolling = false;
-		var initialScroll = 0;
-
-		function start() {
-			initialScroll = _this.$el.scrollTop;
-			if (fns.start) fns.start();
-			scrolling = true;
-		}
-
-		function move() {
-			if (!scrolling) start();
-			if (fns.move) fns.move();
-
-			if (scrollTimeout) window.clearTimeout(scrollTimeout);
-			scrollTimeout = window.setTimeout(end, 100);
-		}
-
-		function end() {
-			if (fns.end) fns.end();
-			scrolling = false;
-		}
-
-		// Add Event Listeners
-
-		var $el = this.$el;
-
-		function touchEnd() {
-			window.removeEventListener('touchmove', move);
-			window.removeEventListener('touchend', touchEnd);
-		}
-
-		this.on('wheel mousewheel DOMMouseScroll', move);
-
-		this.on('touchstart', function(){
-			// This ensures that overflow bounces happen within container
-			var top = $el.scrollTop;
-			if(top <= 0) $el.scrollTop = 1;
-			if(top + $el.offsetHeight >= $el.scrollHeight) $el.scrollTop = $el.scrollHeight - $el.offsetHeight - 1;
-
-			start();
-			window.addEventListener('touchmove', move);
-			window.addEventListener('touchend', touchEnd);
-		});
-	};
-
-	/*
-	M.$.prototype.onScroll = function(fn) {
-
-		var scrolled = false;
-
-		function scrollCallback() {
-			fn();
-			scrolled = false;
-		};
-
-		function scrollHandle(e) {
-			if (!scrolled) {
-				scrolled = true;
-				M.animationFrame(scrollCallback);
-			}
-		};
-
-		this.$el.addEventListener('scroll', scrollHandle, false);
-	};
-	*/
-
-
-	// ---------------------------------------------------------------------------------------------
+	// =============================================================================================
 	// RESIZE EVENTS
+	// TODO Add ability to remove resize events
+	// TODO Use M.Queue to store resize events
 
 	// Multiple queues, to allow ordering of resize events
 	var events = [[], [], []];
@@ -1669,8 +1691,6 @@ M.cookie = {
 			trigger();
 		}
 	};
-
-	// TODO remove resize events
 
 	var timeout = null;
 	M.$window.on('resize', function() {

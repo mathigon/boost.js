@@ -30,9 +30,9 @@
 		var running = true;
 
         function getFrame() {
-            if (running && time <= duration) M.animationFrame(getFrame);
+            if (running && (!duration || time <= duration)) M.animationFrame(getFrame);
             time = +new Date() - startTime;
-            callback(time / duration);
+            callback(duration ? time/duration : time);
         }
 
         getFrame();

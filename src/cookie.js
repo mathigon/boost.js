@@ -44,7 +44,7 @@ M.cookie = {
         var cookie = [encodeURIComponent(name) + '=' + encodeURIComponent(value)];
         if (options.path)    cookie.push('path=' + options.path);
         if (options.domain)  cookie.push('domain=' + options.domain);
-        if (options.maxAge)  cookie.push('max-age=' + parseFloat(options.maxAge));
+        if (options.maxAge)  cookie.push('max-age=' + options.maxAge);
         if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ?
 			                 	         options.expires.toUTCString() : options.expires));
         if (options.secure)  cookie.push('secure');

@@ -7,8 +7,8 @@
 (function() {
 
 	M.$ = function ($el) {
-		this.data = {};
-		this.events = {};
+		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
+		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
 		this.$el = $el;
 	};
 
