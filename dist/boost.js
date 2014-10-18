@@ -588,9 +588,10 @@ M.cookie = {
 	};
 
 	// Returns a single M.$ element by id
-	window.$I = function(selector) {
-		var $el = document.getElementById(selector);
-		if ($el) return new M.$($el);
+	window.$I = function(selector, parent) {
+		if (!parent || !parent.getElementById) parent = document;
+		var $el = parent.getElementById(selector);
+		return $el ? new M.$($el) : null;
 	};
 
 	// Returns a single M.$ element by class name
@@ -1137,7 +1138,6 @@ M.cookie = {
 
         // Remove new transition values
         this.transitionEnd(function() {
-            console.log('transitoon end');
             _this.css(M.prefix('transition'), oldTransition);
             M.redraw();
             if (callback) callback.call(_this);
