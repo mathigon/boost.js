@@ -923,14 +923,14 @@ M.cookie = {
 	    if (typeof newChild === 'string') {
 	        var newChildren = $$N(newChild);
 	        newChildren.each(function(child) {
-	            parent.$el.insertAfter(child.$el, _this.$el);
+	            parent.$el.insertAfter(_this.$el, child.$el);
 	        });
 	    } else {
 	        var next = _this.$el.nextSibling;
 	        if (next) {
-	            parent.insertBefore(newChild.$el, next);
+	            parent.$el.insertBefore(newChild.$el, next);
 	        } else {
-	            parent.appendChild(newChild.$el);
+	            parent.$el.appendChild(newChild.$el);
 	        }
 	    }
 	};
@@ -1433,7 +1433,7 @@ M.cookie = {
 		});
 	};
 
-	M.$.prototype.scrollTo = function(pos, time, easing, force) {
+	M.$.prototype.scrollTo = function(pos, time, easing) {
 		var _this = this;
 
 		if (pos < 0) pos = 0;
@@ -1452,10 +1452,9 @@ M.cookie = {
 		_this.trigger('scrollstart', {});
 		var animation = M.animate(callback, time);
 
-		if (!force) {
-			this.on('scroll', function() { animation.cancel(); });
-			this.on('touchstart', function() { animation.cancel(); });
-		}
+		// TODO cancel scroll events
+		// this.on('scroll', function() { animation.cancel(); });
+		// this.on('touchstart', function() { animation.cancel(); });
 	};
 
 	function makeScrollEvents($el) {
@@ -1491,9 +1490,10 @@ M.cookie = {
 
 		$el.fixOverflowScroll();
 
-		$el.$el.addEventListener('wheel', move);
-		$el.$el.addEventListener('mousewheel', move);
-		$el.$el.addEventListener('DOMMouseScroll', move);
+		var $target = ($el.$el === M.$body.$el) ? M.$window.$el : $el.$el;
+		$target.addEventListener('wheel', move);
+		$target.addEventListener('mousewheel', move);
+		$target.addEventListener('DOMMouseScroll', move);
 
 		$el.$el.addEventListener('touchstart', function(){
 			start();

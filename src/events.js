@@ -168,7 +168,7 @@
 		});
 	};
 
-	M.$.prototype.scrollTo = function(pos, time, easing, force) {
+	M.$.prototype.scrollTo = function(pos, time, easing) {
 		var _this = this;
 
 		if (pos < 0) pos = 0;
@@ -187,10 +187,9 @@
 		_this.trigger('scrollstart', {});
 		var animation = M.animate(callback, time);
 
-		if (!force) {
-			this.on('scroll', function() { animation.cancel(); });
-			this.on('touchstart', function() { animation.cancel(); });
-		}
+		// TODO cancel scroll events
+		// this.on('scroll', function() { animation.cancel(); });
+		// this.on('touchstart', function() { animation.cancel(); });
 	};
 
 	function makeScrollEvents($el) {
@@ -226,9 +225,10 @@
 
 		$el.fixOverflowScroll();
 
-		$el.$el.addEventListener('wheel', move);
-		$el.$el.addEventListener('mousewheel', move);
-		$el.$el.addEventListener('DOMMouseScroll', move);
+		var $target = ($el.$el === M.$body.$el) ? M.$window.$el : $el.$el;
+		$target.addEventListener('wheel', move);
+		$target.addEventListener('mousewheel', move);
+		$target.addEventListener('DOMMouseScroll', move);
 
 		$el.$el.addEventListener('touchstart', function(){
 			start();

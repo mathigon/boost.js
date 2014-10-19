@@ -363,14 +363,14 @@
 	    if (typeof newChild === 'string') {
 	        var newChildren = $$N(newChild);
 	        newChildren.each(function(child) {
-	            parent.$el.insertAfter(child.$el, _this.$el);
+	            parent.$el.insertAfter(_this.$el, child.$el);
 	        });
 	    } else {
 	        var next = _this.$el.nextSibling;
 	        if (next) {
-	            parent.insertBefore(newChild.$el, next);
+	            parent.$el.insertBefore(newChild.$el, next);
 	        } else {
-	            parent.appendChild(newChild.$el);
+	            parent.$el.appendChild(newChild.$el);
 	        }
 	    }
 	};
