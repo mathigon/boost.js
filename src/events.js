@@ -68,18 +68,18 @@
 	    var startX, startY;
 	    var preventMouse = false;
 
-	    $el.addEventListener('click', function(e){
+	    $el.$el.addEventListener('click', function(e){
 	        e.preventDefault();
 	    });
 
-	    $el.addEventListener('mousedown', function(e){
+	    $el.$el.addEventListener('mousedown', function(e){
 	        if (preventMouse) return;
 	        waitForEvent = true;
 	        startX = e.clientX;
 	        startY = e.clientY;
 	    });
 
-	    $el.addEventListener('mouseup', function(e){
+	    $el.$el.addEventListener('mouseup', function(e){
 	        if (preventMouse) {
 	            preventMouse = false;
 	            return;
@@ -94,7 +94,7 @@
 	        waitForEvent = false;
 	    });
 
-	    $el.addEventListener('touchstart', function(e){
+	    $el.$el.addEventListener('touchstart', function(e){
 	        preventMouse = true;
 	        if (e.touches.length === 1) {
 	            waitForEvent = true;
@@ -103,7 +103,7 @@
 	        }
 	    });
 
-	    $el.addEventListener('touchend', function(e){
+	    $el.$el.addEventListener('touchend', function(e){
 	        if (waitForEvent && e.changedTouches.length === 1) {
 	            var endX = e.changedTouches[0].clientX;
 	            var endY = e.changedTouches[0].clientY;
@@ -114,7 +114,7 @@
 	        waitForEvent = false;
 	    });
 
-	    $el.addEventListener('touchcancel', function(){
+	    $el.$el.addEventListener('touchcancel', function(){
 	        waitForEvent = false;
 	    });
 	}
@@ -134,7 +134,7 @@
 		if ($el._events._pointer) return;
 		$el._events._pointer = true;
 
-		var $parent = $el.$el.offsetParent;
+		var $parent = $($el.$el.offsetParent);
 		var isInside = null;
 		$parent.on('pointerEnd', function(e) { isInside = null; });
 
@@ -155,9 +155,10 @@
 	M.$.prototype.fixOverflowScroll = function() {
 		if (this._events.fixOverflowScroll) return;
 		this._events.fixOverflowScroll = true;
-		_this = this;
 
-		this.addEventListener('touchstart', function(){
+		var _this = this;
+
+		this.$el.addEventListener('touchstart', function(){
 			// This ensures that overflow bounces happen within container
 			var top = _this.$el.scrollTop;
 			var bottom = _this.$el.scrollHeight - _this.$el.offsetHeight;
@@ -198,17 +199,16 @@
 
 		var scrollTimeout = null;
 		var scrolling = false;
-		var initialScroll = 0;
+		var $parent = ($el.$el === window) ? M.$body.$el : $el.$el;
 
 		function start() {
-			initialScroll = _this.$el.scrollTop;
 			$el.trigger('scrollstart', {});
 			scrolling = true;
 		}
 
 		function move() {
 			if (!scrolling) start();
-			$el.trigger('scroll', { top: $el.$el.scrollTop, left: $el.$el.scrollLeft });
+			$el.trigger('scroll', { top: $parent.scrollTop, left: $parent.scrollLeft });
 
 			if (scrollTimeout) window.clearTimeout(scrollTimeout);
 			scrollTimeout = window.setTimeout(end, 100);
@@ -224,10 +224,13 @@
 			window.removeEventListener('touchend', touchEnd);
 		}
 
-		$el.addEventListener('wheel mousewheel DOMMouseScroll', move);
 		$el.fixOverflowScroll();
 
-		$el.on('touchstart', function(){
+		$el.$el.addEventListener('wheel', move);
+		$el.$el.addEventListener('mousewheel', move);
+		$el.$el.addEventListener('DOMMouseScroll', move);
+
+		$el.$el.addEventListener('touchstart', function(){
 			start();
 			window.addEventListener('touchmove', move);
 			window.addEventListener('touchend', touchEnd);
@@ -279,11 +282,10 @@
 	// EVENT BINDINGS
 
 	function createEvent($el, event, fn, useCapture) {
-		var custom = customEvents[name];
+		var custom = customEvents[event];
 
 		if (M.isString(custom)) {
 			$el.on(custom, fn, useCapture);
-			return;
 		} else if (custom) {
 			custom($el);
 		} else {
@@ -298,7 +300,7 @@
 	}
 
 	function removeEvent($el, event, fn, useCapture) {
-		var custom = customEvents[name];
+		var custom = customEvents[event];
 
 		if (M.isString(custom)) {
 			$el.off(custom, fn, useCapture);
@@ -339,7 +341,7 @@
 		});
 	};
 
-	M.$.prototype.trigger = function(name, args) {
+	M.$.prototype.trigger = function(event, args) {
 		if (!this._events[event]) return;
 		var _this = this;
 		M.each(this._events[event], function(fn) { fn.call(_this, args); });

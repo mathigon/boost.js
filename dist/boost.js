@@ -154,7 +154,7 @@ M.ajax = function(url, options) {
     if (!options) options = {};
     var xhr = new XMLHttpRequest();
 
-    var respond = function(xx) {
+    var respond = function() {
         var status = xhr.status;
 
         if (!status && xhr.responseText || status >= 200 && status < 300 || status === 304) {
@@ -376,21 +376,21 @@ M.getScript = function(src, success, error) {
 	               '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
     M.colour.rainbow = function(steps) {
         var scale = (0.4 + 0.15 * steps).bound(0,1);
-        return FM.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
+        return M.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
     };
 
     var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA',
                        '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
     M.colour.temperature = function(steps) {
         var scale = (0.1 * steps).bound(0,1);
-        return FM.tabulate(function(x){
+        return M.tabulate(function(x){
             return M.colour.getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
     };
 
     var solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', '#EC7014', '#CC4C02',
                  '#993404', '#662506'];
     M.colour.solar = function(steps) {
-        return FM.tabulate(function(x){ return M.colour.getColourAt(solar, x/(steps-1)); }, steps);
+        return M.tabulate(function(x){ return M.colour.getColourAt(solar, x/(steps-1)); }, steps);
     };
 
 })();
@@ -856,7 +856,8 @@ M.cookie = {
       	var next = this.$el.nextSibling;
         var parent = this.$el.parentNode;
         var frag = document.createDocumentFragment();
-        var returned = fn.call(frag.appendChild(element)) || element;
+        frag.appendChild(this.$el);
+        var returned = fn.call(this) || this.$el;
       	if (next) {
 			parent.insertBefore(returned, next);
 		} else {
@@ -902,8 +903,8 @@ M.cookie = {
 	};
 
 	M.$.prototype.insertBefore = function(newChild) {
-	    var parent = this.parent();
 	    var _this = this;
+	    var parent = this.parent();
 
 	    if (typeof newChild === 'string') {
 	        var newChildren = $$N(newChild);
@@ -917,12 +918,12 @@ M.cookie = {
 
 	M.$.prototype.insertAfter = function(newChild) {
 	    var _this = this;
-	    var parent = _this.$el.parentNode;
+	    var parent = this.parent();
 
 	    if (typeof newChild === 'string') {
 	        var newChildren = $$N(newChild);
 	        newChildren.each(function(child) {
-	            //parent.$el.insertAfter(child, _this.$el);
+	            parent.$el.insertAfter(child.$el, _this.$el);
 	        });
 	    } else {
 	        var next = _this.$el.nextSibling;
@@ -952,12 +953,12 @@ M.cookie = {
 
 	M.$.prototype.next = function () {
 	    var next = this.$el.nextSibling;
-	    return next ? $(next) : false;
+	    return next ? $(next) : null;
 	};
 
 	M.$.prototype.prev = function () {
 	    var prev = this.$el.previousSibling;
-	    return prev ? $(prev) : false;
+	    return prev ? $(prev) : null;
 	};
 
 	M.$.prototype.find = function(selector) {
@@ -966,7 +967,7 @@ M.cookie = {
 
 	M.$.prototype.parent = function() {
 	    var parent = this.$el.parentNode;
-	    return parent ? $(parent) : false;
+	    return parent ? $(parent) : null;
 	};
 
 	M.$.prototype.parents = function(selector) {
@@ -1053,7 +1054,7 @@ M.cookie = {
             window.mozCancelAnimationFrame    ||
             window.msCancelAnimationFrame     ||
             window.clearTimeout;
-          return function(id){ return cancel(id); };
+          return function(id) { return cAF(id); };
     })();
 
     M.animate = function(callback, duration) {
@@ -1332,18 +1333,18 @@ M.cookie = {
 	    var startX, startY;
 	    var preventMouse = false;
 
-	    $el.addEventListener('click', function(e){
+	    $el.$el.addEventListener('click', function(e){
 	        e.preventDefault();
 	    });
 
-	    $el.addEventListener('mousedown', function(e){
+	    $el.$el.addEventListener('mousedown', function(e){
 	        if (preventMouse) return;
 	        waitForEvent = true;
 	        startX = e.clientX;
 	        startY = e.clientY;
 	    });
 
-	    $el.addEventListener('mouseup', function(e){
+	    $el.$el.addEventListener('mouseup', function(e){
 	        if (preventMouse) {
 	            preventMouse = false;
 	            return;
@@ -1358,7 +1359,7 @@ M.cookie = {
 	        waitForEvent = false;
 	    });
 
-	    $el.addEventListener('touchstart', function(e){
+	    $el.$el.addEventListener('touchstart', function(e){
 	        preventMouse = true;
 	        if (e.touches.length === 1) {
 	            waitForEvent = true;
@@ -1367,7 +1368,7 @@ M.cookie = {
 	        }
 	    });
 
-	    $el.addEventListener('touchend', function(e){
+	    $el.$el.addEventListener('touchend', function(e){
 	        if (waitForEvent && e.changedTouches.length === 1) {
 	            var endX = e.changedTouches[0].clientX;
 	            var endY = e.changedTouches[0].clientY;
@@ -1378,7 +1379,7 @@ M.cookie = {
 	        waitForEvent = false;
 	    });
 
-	    $el.addEventListener('touchcancel', function(){
+	    $el.$el.addEventListener('touchcancel', function(){
 	        waitForEvent = false;
 	    });
 	}
@@ -1398,7 +1399,7 @@ M.cookie = {
 		if ($el._events._pointer) return;
 		$el._events._pointer = true;
 
-		var $parent = $el.$el.offsetParent;
+		var $parent = $($el.$el.offsetParent);
 		var isInside = null;
 		$parent.on('pointerEnd', function(e) { isInside = null; });
 
@@ -1419,9 +1420,10 @@ M.cookie = {
 	M.$.prototype.fixOverflowScroll = function() {
 		if (this._events.fixOverflowScroll) return;
 		this._events.fixOverflowScroll = true;
-		_this = this;
 
-		this.addEventListener('touchstart', function(){
+		var _this = this;
+
+		this.$el.addEventListener('touchstart', function(){
 			// This ensures that overflow bounces happen within container
 			var top = _this.$el.scrollTop;
 			var bottom = _this.$el.scrollHeight - _this.$el.offsetHeight;
@@ -1462,17 +1464,16 @@ M.cookie = {
 
 		var scrollTimeout = null;
 		var scrolling = false;
-		var initialScroll = 0;
+		var $parent = ($el.$el === window) ? M.$body.$el : $el.$el;
 
 		function start() {
-			initialScroll = _this.$el.scrollTop;
 			$el.trigger('scrollstart', {});
 			scrolling = true;
 		}
 
 		function move() {
 			if (!scrolling) start();
-			$el.trigger('scroll', { top: $el.$el.scrollTop, left: $el.$el.scrollLeft });
+			$el.trigger('scroll', { top: $parent.scrollTop, left: $parent.scrollLeft });
 
 			if (scrollTimeout) window.clearTimeout(scrollTimeout);
 			scrollTimeout = window.setTimeout(end, 100);
@@ -1488,10 +1489,13 @@ M.cookie = {
 			window.removeEventListener('touchend', touchEnd);
 		}
 
-		$el.addEventListener('wheel mousewheel DOMMouseScroll', move);
 		$el.fixOverflowScroll();
 
-		$el.on('touchstart', function(){
+		$el.$el.addEventListener('wheel', move);
+		$el.$el.addEventListener('mousewheel', move);
+		$el.$el.addEventListener('DOMMouseScroll', move);
+
+		$el.$el.addEventListener('touchstart', function(){
 			start();
 			window.addEventListener('touchmove', move);
 			window.addEventListener('touchend', touchEnd);
@@ -1543,11 +1547,10 @@ M.cookie = {
 	// EVENT BINDINGS
 
 	function createEvent($el, event, fn, useCapture) {
-		var custom = customEvents[name];
+		var custom = customEvents[event];
 
 		if (M.isString(custom)) {
 			$el.on(custom, fn, useCapture);
-			return;
 		} else if (custom) {
 			custom($el);
 		} else {
@@ -1562,7 +1565,7 @@ M.cookie = {
 	}
 
 	function removeEvent($el, event, fn, useCapture) {
-		var custom = customEvents[name];
+		var custom = customEvents[event];
 
 		if (M.isString(custom)) {
 			$el.off(custom, fn, useCapture);
@@ -1603,7 +1606,7 @@ M.cookie = {
 		});
 	};
 
-	M.$.prototype.trigger = function(name, args) {
+	M.$.prototype.trigger = function(event, args) {
 		if (!this._events[event]) return;
 		var _this = this;
 		M.each(this._events[event], function(fn) { fn.call(_this, args); });

@@ -21,7 +21,7 @@
             window.mozCancelAnimationFrame    ||
             window.msCancelAnimationFrame     ||
             window.clearTimeout;
-          return function(id){ return cancel(id); };
+          return function(id) { return cAF(id); };
     })();
 
     M.animate = function(callback, duration) {

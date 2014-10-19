@@ -83,21 +83,21 @@
 	               '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
     M.colour.rainbow = function(steps) {
         var scale = (0.4 + 0.15 * steps).bound(0,1);
-        return FM.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
+        return M.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
     };
 
     var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA',
                        '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
     M.colour.temperature = function(steps) {
         var scale = (0.1 * steps).bound(0,1);
-        return FM.tabulate(function(x){
+        return M.tabulate(function(x){
             return M.colour.getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
     };
 
     var solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', '#EC7014', '#CC4C02',
                  '#993404', '#662506'];
     M.colour.solar = function(steps) {
-        return FM.tabulate(function(x){ return M.colour.getColourAt(solar, x/(steps-1)); }, steps);
+        return M.tabulate(function(x){ return M.colour.getColourAt(solar, x/(steps-1)); }, steps);
     };
 
 })();

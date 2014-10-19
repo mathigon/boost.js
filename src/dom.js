@@ -296,7 +296,8 @@
       	var next = this.$el.nextSibling;
         var parent = this.$el.parentNode;
         var frag = document.createDocumentFragment();
-        var returned = fn.call(frag.appendChild(element)) || element;
+        frag.appendChild(this.$el);
+        var returned = fn.call(this) || this.$el;
       	if (next) {
 			parent.insertBefore(returned, next);
 		} else {
@@ -342,8 +343,8 @@
 	};
 
 	M.$.prototype.insertBefore = function(newChild) {
-	    var parent = this.parent();
 	    var _this = this;
+	    var parent = this.parent();
 
 	    if (typeof newChild === 'string') {
 	        var newChildren = $$N(newChild);
@@ -357,12 +358,12 @@
 
 	M.$.prototype.insertAfter = function(newChild) {
 	    var _this = this;
-	    var parent = _this.$el.parentNode;
+	    var parent = this.parent();
 
 	    if (typeof newChild === 'string') {
 	        var newChildren = $$N(newChild);
 	        newChildren.each(function(child) {
-	            //parent.$el.insertAfter(child, _this.$el);
+	            parent.$el.insertAfter(child.$el, _this.$el);
 	        });
 	    } else {
 	        var next = _this.$el.nextSibling;
@@ -392,12 +393,12 @@
 
 	M.$.prototype.next = function () {
 	    var next = this.$el.nextSibling;
-	    return next ? $(next) : false;
+	    return next ? $(next) : null;
 	};
 
 	M.$.prototype.prev = function () {
 	    var prev = this.$el.previousSibling;
-	    return prev ? $(prev) : false;
+	    return prev ? $(prev) : null;
 	};
 
 	M.$.prototype.find = function(selector) {
@@ -406,7 +407,7 @@
 
 	M.$.prototype.parent = function() {
 	    var parent = this.$el.parentNode;
-	    return parent ? $(parent) : false;
+	    return parent ? $(parent) : null;
 	};
 
 	M.$.prototype.parents = function(selector) {

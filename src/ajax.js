@@ -44,7 +44,7 @@ M.ajax = function(url, options) {
     if (!options) options = {};
     var xhr = new XMLHttpRequest();
 
-    var respond = function(xx) {
+    var respond = function() {
         var status = xhr.status;
 
         if (!status && xhr.responseText || status >= 200 && status < 300 || status === 304) {
