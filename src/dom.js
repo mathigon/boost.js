@@ -146,9 +146,9 @@
 	M.$.prototype.data = function(key, value) {
 	    if (value == null) {
 	        var dataAttr = this.$el.getAttribute('data-' + key);
-	        return dataAttr ? dataAttr : (this.data ? this.data[key] : undefined);
+	        return dataAttr ? dataAttr : (this._data ? this._data[key] : undefined);
 	    } else {
-	        this.data[key] = value;
+	        this._data[key] = value;
 	    }
 	};
 

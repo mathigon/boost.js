@@ -1463,7 +1463,7 @@ M.cookie = {
 
 		var scrollTimeout = null;
 		var scrolling = false;
-		var $parent = ($el.$el === window) ? M.$body.$el : $el.$el;
+		var isWindow = ($el.$el === window || $el.$el === M.$body.$el);
 
 		function start() {
 			$el.trigger('scrollstart', {});
@@ -1472,7 +1472,7 @@ M.cookie = {
 
 		function move() {
 			if (!scrolling) start();
-			$el.trigger('scroll', { top: $parent.scrollTop, left: $parent.scrollLeft });
+			$el.trigger('scroll', { top: isWindow ? window.pageYOffset : $el.$el.scrollTop });
 
 			if (scrollTimeout) window.clearTimeout(scrollTimeout);
 			scrollTimeout = window.setTimeout(end, 100);
@@ -1512,9 +1512,6 @@ M.cookie = {
 		pointerMove:  'mousemove touchmove',
 		pointerEnd:   'mouseup touchend mousecancel touchcancel',
 
-		animationEnd:   'webkitAnimationEnd oAnimationEnd animationend',
-		transitionEnd:  'webkitTransitionEnd oTransitionEnd transitionend',
-
 		change: 'propertychange keyup input paste',
 
 		scrollwheel: 'DOMMouseScroll mousewheel',
@@ -1530,7 +1527,7 @@ M.cookie = {
 		scrollEnd: makeScrollEvents  // no capture!
 	};
 
-	var shortcuts = ('click scroll change transitionEnd').split(' ');
+	var shortcuts = ('click scroll change').split(' ');
 
 	shortcuts.each(function(event) {
 		M.$.prototype[event] = function(callback) {
@@ -1541,6 +1538,14 @@ M.cookie = {
 			}
 		};
 	});
+
+	M.$.prototype.transitionEnd = function(fn) {
+		this.one('webkitTransitionEnd oTransitionEnd transitionend', fn);
+	};
+
+	M.$.prototype.animationEnd = function(fn) {
+		this.one('webkitAnimationEnd oAnimationEnd animationend', fn);
+	};
 
 
 	// =============================================================================================
