@@ -80,7 +80,7 @@ M.boost = true;
 
 	M.addCSSRule = function(selector, rules) {
 	    var css = document.styleSheets[document.styleSheets.length-1];
-	    var index = css.rules.length-1;
+	    var index = css.cssRules.length - 1;
 	    if(css.insertRule) {
 	        css.insertRule(selector + '{' + rules + '}', index);
 	    } else {
@@ -570,6 +570,7 @@ M.cookie = {
 		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
 		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
 		this.$el = $el;
+		this._isWindow = M.isOneOf($el, window, document.body);
 	};
 
 
@@ -706,9 +707,9 @@ M.cookie = {
 	M.$.prototype.data = function(key, value) {
 	    if (value == null) {
 	        var dataAttr = this.$el.getAttribute('data-' + key);
-	        return dataAttr ? dataAttr : (this.data ? this.data[key] : undefined);
+	        return dataAttr ? dataAttr : (this._data ? this._data[key] : undefined);
 	    } else {
-	        this.data[key] = value;
+	        this._data[key] = value;
 	    }
 	};
 
@@ -740,36 +741,50 @@ M.cookie = {
 	// ---------------------------------------------------------------------------------------------
 	// Dimensions
 
-	M.$.prototype.width = function(type) {
-	    if (this.$el === window) {
-	        return window.innerWidth;
-	    } else if (type === 'padding') {
-	        return this.$el.clientWidth;
-	    } else if (type === 'scroll') {
-	        return this.$el.scrollWidth;
-	    }  else if (type === 'border') {
-	        return this.$el.offsetWidth;
-	    } else if (type === 'margin') {
-	        return this.$el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
-	    } else {
-	        return this.$el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
-	    }
+	// Includes border and padding
+	M.$.prototype.width = function() {
+		if (this._isWindow) return window.innerWidth;
+	    return this.$el.offsetWidth;
 	};
 
-	M.$.prototype.height = function(type) {
-	    if (this.$el === window) {
-	        return window.innerHeight;
-	    } else if (type === 'padding') {
-	        return this.$el.clientHeight;
-	    } else if (type === 'scroll') {
-	        return this.$el.scrollHeight;
-	    }  else if (type === 'border') {
-	        return this.$el.offsetHeight;
-	    } else if (type === 'margin') {
-	        return this.$el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
-	    } else {
-	        return this.$el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
-	    }
+	// Doesn't include border and padding
+	M.$.prototype.innerWidth = function() {
+		if (this._isWindow) return window.innerWidth;
+		return this.$el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
+	};
+
+	// Includes Margins
+	M.$.prototype.outerWidth = function() {
+		if (this._isWindow) return window.outerWidth;
+		return this.$el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
+	};
+
+	M.$.prototype.scrollWidth = function() {
+		if (this._isWindow) return M.$body.$el.scrollWidth;
+		return this.$el.scrollWidth;
+	};
+
+	// Includes border and padding
+	M.$.prototype.height = function() {
+		if (this._isWindow) return window.innerHeight;
+	    return this.$el.offsetHeight;
+	};
+
+	// Doesn't include border and padding
+	M.$.prototype.innerHeight = function() {
+		if (this._isWindow) return window.innerHeight;
+		return this.$el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
+	};
+
+	// Includes Margins
+	M.$.prototype.outerHeight = function() {
+		if (this._isWindow) return window.outerHeight;
+		return this.$el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
+	};
+
+	M.$.prototype.scrollHeight = function() {
+		if (this._isWindow) return M.$body.$el.scrollHeight;
+		return this.$el.scrollHeight;
 	};
 
 	M.$.prototype.offset = function($parent) {
@@ -798,6 +813,30 @@ M.cookie = {
 	        box = this.$el.getBoundingClientRect();
 	        return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
 	    }
+	};
+
+	M.$.prototype.scrollTop = function(y) {
+		if (y == null) {
+			return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
+		} else {
+			if (this._isWindow) {
+				document.body.scrollTop = y;
+			} else {
+				this.$el.scrollTop = y;
+			}
+		}
+	};
+
+	M.$.prototype.scrollLeft = function(x) {
+		if (x == null) {
+			return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
+		} else {
+			if (this._isWindow) {
+				document.body.scrollLeft = x;
+			} else {
+				this.$el.scrollLeft = x;
+			}
+		}
 	};
 
 
@@ -1425,11 +1464,11 @@ M.cookie = {
 
 		this.$el.addEventListener('touchstart', function(){
 			// This ensures that overflow bounces happen within container
-			var top = _this.$el.scrollTop;
-			var bottom = _this.$el.scrollHeight - _this.$el.offsetHeight;
+			var top = _this.scrollTop();
+			var bottom = _this.$el.scrollHeight - _this.height();
 
-			if(top <= 0) _this.$el.scrollTop = 1;
-			if(top >= bottom) _this.$el.scrollTop = bottom - 1;
+			if(top <= 0) _this.scrollTop(1);
+			if(top >= bottom) _this.scrollTop(bottom - 1);
 		});
 	};
 
@@ -1440,12 +1479,12 @@ M.cookie = {
 		if (time == null) time = 1000;
 		if (!easing) easing = 'cubic';
 
-		var startPosition = this.$el.scrollTop;
+		var startPosition = this.scrollTop();
 		var distance = pos - startPosition;
 
 		var callback = function(t) {
 			var x = startPosition + distance * M.easing(easing, t);
-			_this.$el.scrollTop = x;
+			_this.scrollTop(x);
 			_this.trigger('scroll', { top: x });
 		};
 
@@ -1463,24 +1502,44 @@ M.cookie = {
 
 		var scrollTimeout = null;
 		var scrolling = false;
-		var isWindow = ($el.$el === window || $el.$el === M.$body.$el);
+		var scrollAnimation;
+		var scrollTop;
+
+		function onScroll() {
+			var newScrollTop = $el.scrollTop();
+
+			if (Math.abs(newScrollTop - scrollTop) > 1) {
+				if (scrollTimeout) window.clearTimeout(scrollTimeout);
+				scrollTimeout = null;
+				$el.trigger('scroll', { top: newScrollTop });
+				scrollTop = newScrollTop;
+			} else if (!scrollTimeout) {
+				scrollTimeout = window.setTimeout(end, 100);
+			} else {
+			}
+		}
 
 		function start() {
-			$el.trigger('scrollstart', {});
+			if (scrolling) return;
 			scrolling = true;
+			scrollTop = $el.scrollTop();
+			scrollAnimation = M.animate(onScroll);
+			$el.trigger('scrollstart', {});
 		}
 
 		function move() {
 			if (!scrolling) start();
-			$el.trigger('scroll', { top: isWindow ? window.pageYOffset : $el.$el.scrollTop });
-
-			if (scrollTimeout) window.clearTimeout(scrollTimeout);
-			scrollTimeout = window.setTimeout(end, 100);
 		}
 
 		function end() {
-			$el.trigger('scrollend', {});
 			scrolling = false;
+			scrollAnimation.cancel();
+			$el.trigger('scrollend', {});
+		}
+
+		function touchStart() {
+			window.addEventListener('touchmove', move);
+			window.addEventListener('touchend', touchEnd);
 		}
 
 		function touchEnd() {
@@ -1495,11 +1554,7 @@ M.cookie = {
 		$target.addEventListener('mousewheel', move);
 		$target.addEventListener('DOMMouseScroll', move);
 
-		$el.$el.addEventListener('touchstart', function(){
-			start();
-			window.addEventListener('touchmove', move);
-			window.addEventListener('touchend', touchEnd);
-		});
+		$el.$el.addEventListener('touchstart', touchStart);
 	}
 
 

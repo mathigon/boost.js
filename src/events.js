@@ -160,11 +160,11 @@
 
 		this.$el.addEventListener('touchstart', function(){
 			// This ensures that overflow bounces happen within container
-			var top = _this.$el.scrollTop;
-			var bottom = _this.$el.scrollHeight - _this.$el.offsetHeight;
+			var top = _this.scrollTop();
+			var bottom = _this.$el.scrollHeight - _this.height();
 
-			if(top <= 0) _this.$el.scrollTop = 1;
-			if(top >= bottom) _this.$el.scrollTop = bottom - 1;
+			if(top <= 0) _this.scrollTop(1);
+			if(top >= bottom) _this.scrollTop(bottom - 1);
 		});
 	};
 
@@ -175,12 +175,12 @@
 		if (time == null) time = 1000;
 		if (!easing) easing = 'cubic';
 
-		var startPosition = this.$el.scrollTop;
+		var startPosition = this.scrollTop();
 		var distance = pos - startPosition;
 
 		var callback = function(t) {
 			var x = startPosition + distance * M.easing(easing, t);
-			_this.$el.scrollTop = x;
+			_this.scrollTop(x);
 			_this.trigger('scroll', { top: x });
 		};
 
@@ -198,24 +198,44 @@
 
 		var scrollTimeout = null;
 		var scrolling = false;
-		var isWindow = ($el.$el === window || $el.$el === M.$body.$el);
+		var scrollAnimation;
+		var scrollTop;
+
+		function onScroll() {
+			var newScrollTop = $el.scrollTop();
+
+			if (Math.abs(newScrollTop - scrollTop) > 1) {
+				if (scrollTimeout) window.clearTimeout(scrollTimeout);
+				scrollTimeout = null;
+				$el.trigger('scroll', { top: newScrollTop });
+				scrollTop = newScrollTop;
+			} else if (!scrollTimeout) {
+				scrollTimeout = window.setTimeout(end, 100);
+			} else {
+			}
+		}
 
 		function start() {
-			$el.trigger('scrollstart', {});
+			if (scrolling) return;
 			scrolling = true;
+			scrollTop = $el.scrollTop();
+			scrollAnimation = M.animate(onScroll);
+			$el.trigger('scrollstart', {});
 		}
 
 		function move() {
 			if (!scrolling) start();
-			$el.trigger('scroll', { top: isWindow ? window.pageYOffset : $el.$el.scrollTop });
-
-			if (scrollTimeout) window.clearTimeout(scrollTimeout);
-			scrollTimeout = window.setTimeout(end, 100);
 		}
 
 		function end() {
-			$el.trigger('scrollend', {});
 			scrolling = false;
+			scrollAnimation.cancel();
+			$el.trigger('scrollend', {});
+		}
+
+		function touchStart() {
+			window.addEventListener('touchmove', move);
+			window.addEventListener('touchend', touchEnd);
 		}
 
 		function touchEnd() {
@@ -230,11 +250,7 @@
 		$target.addEventListener('mousewheel', move);
 		$target.addEventListener('DOMMouseScroll', move);
 
-		$el.$el.addEventListener('touchstart', function(){
-			start();
-			window.addEventListener('touchmove', move);
-			window.addEventListener('touchend', touchEnd);
-		});
+		$el.$el.addEventListener('touchstart', touchStart);
 	}
 
 

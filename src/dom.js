@@ -10,6 +10,7 @@
 		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
 		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
 		this.$el = $el;
+		this._isWindow = M.isOneOf($el, window, document.body);
 	};
 
 
@@ -180,36 +181,50 @@
 	// ---------------------------------------------------------------------------------------------
 	// Dimensions
 
-	M.$.prototype.width = function(type) {
-	    if (this.$el === window) {
-	        return window.innerWidth;
-	    } else if (type === 'padding') {
-	        return this.$el.clientWidth;
-	    } else if (type === 'scroll') {
-	        return this.$el.scrollWidth;
-	    }  else if (type === 'border') {
-	        return this.$el.offsetWidth;
-	    } else if (type === 'margin') {
-	        return this.$el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
-	    } else {
-	        return this.$el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
-	    }
+	// Includes border and padding
+	M.$.prototype.width = function() {
+		if (this._isWindow) return window.innerWidth;
+	    return this.$el.offsetWidth;
 	};
 
-	M.$.prototype.height = function(type) {
-	    if (this.$el === window) {
-	        return window.innerHeight;
-	    } else if (type === 'padding') {
-	        return this.$el.clientHeight;
-	    } else if (type === 'scroll') {
-	        return this.$el.scrollHeight;
-	    }  else if (type === 'border') {
-	        return this.$el.offsetHeight;
-	    } else if (type === 'margin') {
-	        return this.$el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
-	    } else {
-	        return this.$el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
-	    }
+	// Doesn't include border and padding
+	M.$.prototype.innerWidth = function() {
+		if (this._isWindow) return window.innerWidth;
+		return this.$el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
+	};
+
+	// Includes Margins
+	M.$.prototype.outerWidth = function() {
+		if (this._isWindow) return window.outerWidth;
+		return this.$el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
+	};
+
+	M.$.prototype.scrollWidth = function() {
+		if (this._isWindow) return M.$body.$el.scrollWidth;
+		return this.$el.scrollWidth;
+	};
+
+	// Includes border and padding
+	M.$.prototype.height = function() {
+		if (this._isWindow) return window.innerHeight;
+	    return this.$el.offsetHeight;
+	};
+
+	// Doesn't include border and padding
+	M.$.prototype.innerHeight = function() {
+		if (this._isWindow) return window.innerHeight;
+		return this.$el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
+	};
+
+	// Includes Margins
+	M.$.prototype.outerHeight = function() {
+		if (this._isWindow) return window.outerHeight;
+		return this.$el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
+	};
+
+	M.$.prototype.scrollHeight = function() {
+		if (this._isWindow) return M.$body.$el.scrollHeight;
+		return this.$el.scrollHeight;
 	};
 
 	M.$.prototype.offset = function($parent) {
@@ -238,6 +253,30 @@
 	        box = this.$el.getBoundingClientRect();
 	        return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
 	    }
+	};
+
+	M.$.prototype.scrollTop = function(y) {
+		if (y == null) {
+			return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
+		} else {
+			if (this._isWindow) {
+				document.body.scrollTop = y;
+			} else {
+				this.$el.scrollTop = y;
+			}
+		}
+	};
+
+	M.$.prototype.scrollLeft = function(x) {
+		if (x == null) {
+			return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
+		} else {
+			if (this._isWindow) {
+				document.body.scrollLeft = x;
+			} else {
+				this.$el.scrollLeft = x;
+			}
+		}
 	};
 
 

@@ -82,7 +82,7 @@ M.boost = true;
 
 	M.addCSSRule = function(selector, rules) {
 	    var css = document.styleSheets[document.styleSheets.length-1];
-	    var index = css.rules.length-1;
+	    var index = css.cssRules.length - 1;
 	    if(css.insertRule) {
 	        css.insertRule(selector + '{' + rules + '}', index);
 	    } else {
