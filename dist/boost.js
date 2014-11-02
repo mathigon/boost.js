@@ -661,17 +661,33 @@ M.cookie = {
 	// ---------------------------------------------------------------------------------------------
 	// Basic Functionality
 
+	function _addClass($el, className) {
+		if ($el.$el.classList) {
+			$el.$el.classList.add(className);
+		} else if (!$el.hasClass(className)) {
+			$el.$el.className += ' ' + className;
+		}
+	}
+
 	M.$.prototype.addClass = function(className) {
-	    var classes = className.split(' ');
+	    var classes = className.trim().split(' ');
 	    for (var i = 0; i < classes.length; ++i) {
-	        this.$el.classList.add(classes[i]);
+	        _addClass(this, classes[i]);
 	    }
 	};
 
+	function _removeClass($el, className) {
+		if ($el.$el.classList) {
+			$el.$el.classList.remove(className);
+		} else if ($el.hasClass(className)) {
+			$el.$el.className = (' ' + $el.$el.className + ' ').replace(' ' + className + ' ', ' ');
+		}
+	}
+
 	M.$.prototype.removeClass = function(className) {
-	    var classes = className.split(' ');
+	    var classes = className.trim().split(' ');
 	    for (var i = 0; i < classes.length; ++i) {
-	        this.$el.classList.remove(classes[i]);
+	        _removeClass(this, classes[i]);
 	    }
 	};
 
@@ -679,10 +695,20 @@ M.cookie = {
 	    return (' ' + this.$el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
 	};
 
+	function _toggleClass($el, className) {
+		if ($el.$el.classList) {
+			$el.$el.classList.toggle(className);
+		} else if ($el.hasClass(className)) {
+			$el.addClass(className);
+		} else {
+			$el.removeClass(className);
+		}
+	}
+
 	M.$.prototype.toggleClass = function(className) {
-	    var classes = className.split(' ');
+	    var classes = className.trim().split(' ');
 	    for (var i = 0; i < classes.length; ++i) {
-	        this.$el.classList.toggle(classes[i]);
+	        _toggleClass(this, classes[i]);
 	    }
 	};
 
