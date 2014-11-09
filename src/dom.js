@@ -10,7 +10,7 @@
 		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
 		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
 		this.$el = $el;
-		this._isWindow = M.isOneOf($el, window, document.body);
+		this._isWindow = M.isOneOf($el, window, document.body, document.documentElement);
 	};
 
 
@@ -29,9 +29,9 @@
 	};
 
 	// Returns a single M.$ element by id
-	window.$I = function(selector, parent) {
-		if (!parent || !parent.getElementById) parent = document;
-		var $el = parent.getElementById(selector);
+	window.$I = function(selector, context) {
+	    context = (context && context.$el.getElementById) ? context.$el : document;
+		var $el = context.getElementById(selector);
 		return $el ? new M.$($el) : null;
 	};
 
@@ -286,7 +286,7 @@
 			return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
 		} else {
 			if (this._isWindow) {
-				document.body.scrollTop = y;
+				document.body.scrollTop = document.documentElement.scrollTop = y;
 			} else {
 				this.$el.scrollTop = y;
 			}
@@ -298,7 +298,7 @@
 			return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
 		} else {
 			if (this._isWindow) {
-				document.body.scrollLeft = x;
+				document.body.scrollLeft = document.documentElement.scrollLeft = x;
 			} else {
 				this.$el.scrollLeft = x;
 			}

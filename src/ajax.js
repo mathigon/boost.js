@@ -52,16 +52,17 @@ M.ajax = function(url, options) {
 
             if (options.dataType === 'html') {
                 var doc = document.implementation.createHTMLDocument('');
-                doc.open();
-                doc.write(xhr.responseText);
-                doc.close();
+                doc.documentElement.innerHTML = xhr.responseText;
+                //doc.open();
+                //doc.write(xhr.responseText);
+                //doc.close();
                 /* TODO Scripts in Ajax DOM
                 $T('script', doc).each(function(script){
                     var s = $N('script', { html: script.html() });
                     document.body.appendChild(s.$el);
                 });
                 */
-                options.success(doc);
+                options.success($(doc));
             } else if (options.dataType === 'json') {
                 options.success(JSON.parse(xhr.responseText));
             } else {

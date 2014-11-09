@@ -21,6 +21,10 @@ M.boost = true;
 	    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
 
+	    isChrome: navigator.userAgent.toLowerCase().indexOf('chrome') > -1,
+
+	    hasHistory: window.history && window.history.pushState,
+
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};
 

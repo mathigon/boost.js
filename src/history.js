@@ -6,7 +6,7 @@
 
 (function() {
 
-    var hasHistory = !!window.history;
+    var hasHistory = M.browser.hasHistory;
     var id = 0;
 
     var root = window.location.origin + window.location.port;

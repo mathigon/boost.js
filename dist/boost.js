@@ -19,6 +19,10 @@ M.boost = true;
 	    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
 
+	    isChrome: navigator.userAgent.toLowerCase().indexOf('chrome') > -1,
+
+	    hasHistory: window.history && window.history.pushState,
+
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};
 
@@ -162,16 +166,17 @@ M.ajax = function(url, options) {
 
             if (options.dataType === 'html') {
                 var doc = document.implementation.createHTMLDocument('');
-                doc.open();
-                doc.write(xhr.responseText);
-                doc.close();
+                doc.documentElement.innerHTML = xhr.responseText;
+                //doc.open();
+                //doc.write(xhr.responseText);
+                //doc.close();
                 /* TODO Scripts in Ajax DOM
                 $T('script', doc).each(function(script){
                     var s = $N('script', { html: script.html() });
                     document.body.appendChild(s.$el);
                 });
                 */
-                options.success(doc);
+                options.success($(doc));
             } else if (options.dataType === 'json') {
                 options.success(JSON.parse(xhr.responseText));
             } else {
@@ -446,7 +451,7 @@ M.cookie = {
 
 (function() {
 
-    var hasHistory = !!window.history;
+    var hasHistory = M.browser.hasHistory;
     var id = 0;
 
     var root = window.location.origin + window.location.port;
@@ -570,7 +575,7 @@ M.cookie = {
 		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
 		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
 		this.$el = $el;
-		this._isWindow = M.isOneOf($el, window, document.body);
+		this._isWindow = M.isOneOf($el, window, document.body, document.documentElement);
 	};
 
 
@@ -589,9 +594,9 @@ M.cookie = {
 	};
 
 	// Returns a single M.$ element by id
-	window.$I = function(selector, parent) {
-		if (!parent || !parent.getElementById) parent = document;
-		var $el = parent.getElementById(selector);
+	window.$I = function(selector, context) {
+	    context = (context && context.$el.getElementById) ? context.$el : document;
+		var $el = context.getElementById(selector);
 		return $el ? new M.$($el) : null;
 	};
 
@@ -846,7 +851,7 @@ M.cookie = {
 			return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
 		} else {
 			if (this._isWindow) {
-				document.body.scrollTop = y;
+				document.body.scrollTop = document.documentElement.scrollTop = y;
 			} else {
 				this.$el.scrollTop = y;
 			}
@@ -858,7 +863,7 @@ M.cookie = {
 			return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
 		} else {
 			if (this._isWindow) {
-				document.body.scrollLeft = x;
+				document.body.scrollLeft = document.documentElement.scrollLeft = x;
 			} else {
 				this.$el.scrollLeft = x;
 			}
