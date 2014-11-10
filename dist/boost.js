@@ -44,12 +44,6 @@ M.boost = true;
 	    return Math.random().toString(36).substr(2,10);
 	};
 
-	M.is3DTransform = (function(){
-	    var style = document.createElement('div').style;
-	    return ('webkitPerspective' in style || 'MozPerspective' in style ||
-	        'OPerspective' in style || 'MsPerspective' in style || 'perspective' in style);
-	})();
-
 
 	// ---------------------------------------------------------------------------------------------
 	// ONLOAD EVENTS
@@ -57,10 +51,20 @@ M.boost = true;
 	var loadQueue = [];
 	var loaded = false;
 
-	window.onload = function() {
+	function afterLoad() {
+		if (loaded) return;
 		loaded = true;
 		for (var i=0; i<loadQueue.length; ++i) loadQueue[i]();
+	}
+
+	window.onload = function() {
+		afterLoad();
+		if (M.resize()) M.resize();
 	};
+
+	document.addEventListener('DOMContentLoaded', function(event) {
+		afterLoad();
+	});
 
 	M.onload = function(fn) {
 		if (loaded) {
