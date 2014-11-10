@@ -95,8 +95,23 @@ module.exports = function(grunt) {
             options: {
                 preCompile: function(src, context) {
                     return src.split('\n').map(function(line) {
-                        var m = (/^###\s+(.*)/g).exec(line);
-                        return m ? ['### <a name="', '"></a>[M.', '](#', ')'].join(m[1]) : line;
+
+                        var m = (/^###\s+(.*)/).exec(line);
+                        if (m) return ['### <a name="', '"></a>[M.', '](#', ')'].join(m[1])
+                                   .replace('M.Array', 'Array')
+                                   .replace('M.String', 'String');
+
+                        var trim = line.trim();
+                        var length = trim.length;
+                        var n = (trim[0] === '`') && (trim[length - 1] === '`') && length > 5;
+                        if (n) return line
+                            .replace(/^`/, '<code>')
+                            .replace(/([\(\,\)]\s*)(([A-Za-z0-9\[\]]*\s)*)(([A-Za-z0-9\[\]])*)/g,
+                            '$1<span class="code-type">$2</span><span class="code-param">$4</span>')
+                            .replace(/\:\s((.)*)`/g,': <span class="code-return">$1</span>`')
+                            .replace(/`\s*$/, '</code>  ');
+
+                        return line;
                     }).join('\n');
                 },
                 postCompile: function(src) {
