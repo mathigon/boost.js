@@ -16,7 +16,8 @@ M.boost = true;
 	    width:    window.innerWidth,
 	    height:   window.innerHeight,
 
-	    isMobile: (typeof window.orientation !== 'undefined'),
+	    isMobile: /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i
+					.test(navigator.userAgent.toLowerCase()),
 	    isRetina: ((window.devicePixelRatio || 1) > 1),
 	    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
