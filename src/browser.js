@@ -12,6 +12,8 @@ M.boost = true;
 
 (function() {
 
+	var isIE = navigator.appName.indexOf("Internet Explorer") >= 0;
+
 	M.browser = {
 	    width:    window.innerWidth,
 	    height:   window.innerHeight,
@@ -23,8 +25,10 @@ M.boost = true;
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
 
 	    isChrome: navigator.userAgent.toLowerCase().indexOf('chrome') > -1,
+	    isIE: isIE,
 
-	    hasHistory: window.history && window.history.pushState,
+	    // IE 9 doesn't support window.history
+	    hasHistory: window.history && window.history.pushState && (!isIE || navigator.appVersion.indexOf("MSIE 1") >= 0),
 
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};
