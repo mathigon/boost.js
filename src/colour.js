@@ -53,7 +53,7 @@
     };
 
     M.colour.interpolate = function(c1, c2, p) {
-        p = p.bound(0,1);
+        p = M.bound(p, 0,1);
 
         c1 = M.colour.parse(c1);
         c2 = M.colour.parse(c2);
@@ -71,7 +71,7 @@
 
 	// Gets the colour of a multi-step gradient at a given percentage p
 	M.colour.getColourAt = function(gradient, p) {
-	    p = p.bound(0, 0.999);
+	    p = M.bound(p, 0, 0.999);
 	    var r = Math.floor(p * (gradient.length - 1));
 	    var q = p * (gradient.length - 1) - r;
 	    return M.colour.interpolate(gradient[r+1], gradient[r], q);
@@ -82,14 +82,14 @@
     var rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', '#63AD99',
 	               '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
     M.colour.rainbow = function(steps) {
-        var scale = (0.4 + 0.15 * steps).bound(0,1);
+        var scale = M.bound(0.4 + 0.15 * steps, 0, 1);
         return M.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
     };
 
     var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA',
                        '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
     M.colour.temperature = function(steps) {
-        var scale = (0.1 * steps).bound(0,1);
+        var scale = M.bound(0.1 * steps, 0, 1);
         return M.tabulate(function(x){
             return M.colour.getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
     };

@@ -10,19 +10,24 @@ M.boost = true;
 
 (function() {
 
+	var ua = window.navigator.userAgent;
+	var isIE = (ua.indexOf('MSIE ') >= 0) || !!ua.match(/Trident.*rv\:11\./);
+
 	M.browser = {
 	    width:    window.innerWidth,
 	    height:   window.innerHeight,
 
 	    isMobile: /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i
-				      .test(navigator.userAgent.toLowerCase()),
+					.test(navigator.userAgent.toLowerCase()),
 	    isRetina: ((window.devicePixelRatio || 1) > 1),
 	    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
 
-	    isChrome: navigator.userAgent.toLowerCase().indexOf('chrome') > -1,
+	    isChrome: ua.toLowerCase().indexOf('chrome') >= 0,
+	    isIE: isIE,
 
-	    hasHistory: window.history && window.history.pushState,
+	    hasHistory: window.history && window.history.pushState && (!isIE || ua.indexOf('MSIE 1') >= 0),
+	    hasClipPath: document.body.style.clipPath != null && document.body.style.webkitClipPath != null && !isIE,
 
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};
@@ -356,7 +361,7 @@ M.getScript = function(src, success, error) {
     };
 
     M.colour.interpolate = function(c1, c2, p) {
-        p = p.bound(0,1);
+        p = M.bound(p, 0,1);
 
         c1 = M.colour.parse(c1);
         c2 = M.colour.parse(c2);
@@ -374,7 +379,7 @@ M.getScript = function(src, success, error) {
 
 	// Gets the colour of a multi-step gradient at a given percentage p
 	M.colour.getColourAt = function(gradient, p) {
-	    p = p.bound(0, 0.999);
+	    p = M.bound(p, 0, 0.999);
 	    var r = Math.floor(p * (gradient.length - 1));
 	    var q = p * (gradient.length - 1) - r;
 	    return M.colour.interpolate(gradient[r+1], gradient[r], q);
@@ -385,14 +390,14 @@ M.getScript = function(src, success, error) {
     var rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', '#63AD99',
 	               '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
     M.colour.rainbow = function(steps) {
-        var scale = (0.4 + 0.15 * steps).bound(0,1);
+        var scale = M.bound(0.4 + 0.15 * steps, 0, 1);
         return M.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
     };
 
     var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA',
                        '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
     M.colour.temperature = function(steps) {
-        var scale = (0.1 * steps).bound(0,1);
+        var scale = M.bound(0.1 * steps, 0, 1);
         return M.tabulate(function(x){
             return M.colour.getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
     };
@@ -731,7 +736,7 @@ M.cookie = {
 	};
 
 	M.$.prototype.attr = function(attr, value) {
-	    if (value == null) {
+	    if (value === undefined) {
 	        return this.$el.getAttribute(attr);
 	    } else if (value === null) {
 	        this.$el.removeAttribute(attr);
@@ -1197,8 +1202,8 @@ M.cookie = {
         // Set start property values of elements
         var s = window.getComputedStyle(this.$el);
         M.each(props, function(options) {
-            if (options.css === 'height') this.css('height', parseFloat(s.getPropertyValue('height')));
-            if (options.css === 'width') this.css('width',  parseFloat(s.getPropertyValue('width')));
+            if (options.css === 'height') _this.css('height', parseFloat(s.getPropertyValue('height')));
+            if (options.css === 'width') _this.css('width', parseFloat(s.getPropertyValue('width')));
             if (options.from != null) _this.css(options.css, options.from);
         });
 
@@ -1279,6 +1284,33 @@ M.cookie = {
     M.$.prototype.fadeOut = function(time) {
         this.animate({ css: 'opacity', from: 1, to: 0, duration: time },
             function() { this.hide(); });
+    };
+
+    // Requires css transition: height, no padding or margin
+    M.$.prototype.slideUp = function(callback) {
+        var _this = this;
+        this._data.sliding = 'up';
+        this.css('height', this.height() + 'px');
+        M.redraw();
+        this.css('height', '0px');
+
+        this.transitionEnd(function() {
+            if (_this._data.sliding === 'up' && callback) callback();
+        });
+    };
+
+    // Requires css transition: height, no padding or margin, single wrapper child
+    M.$.prototype.slideDown = function(callback) {
+        var _this = this;
+        this._data.sliding = 'down';
+        this.css('height', this.children(0).outerHeight() + 'px');
+
+        this.transitionEnd(function() {
+            if (_this._data.sliding === 'down') {
+                _this.css('height', 'auto');
+                if (callback) callback();
+            }
+        });
     };
 
 

@@ -161,7 +161,7 @@
 	};
 
 	M.$.prototype.attr = function(attr, value) {
-	    if (value == null) {
+	    if (value === undefined) {
 	        return this.$el.getAttribute(attr);
 	    } else if (value === null) {
 	        this.$el.removeAttribute(attr);

@@ -89,8 +89,8 @@
         // Set start property values of elements
         var s = window.getComputedStyle(this.$el);
         M.each(props, function(options) {
-            if (options.css === 'height') this.css('height', parseFloat(s.getPropertyValue('height')));
-            if (options.css === 'width') this.css('width',  parseFloat(s.getPropertyValue('width')));
+            if (options.css === 'height') _this.css('height', parseFloat(s.getPropertyValue('height')));
+            if (options.css === 'width') _this.css('width', parseFloat(s.getPropertyValue('width')));
             if (options.from != null) _this.css(options.css, options.from);
         });
 
@@ -171,6 +171,33 @@
     M.$.prototype.fadeOut = function(time) {
         this.animate({ css: 'opacity', from: 1, to: 0, duration: time },
             function() { this.hide(); });
+    };
+
+    // Requires css transition: height, no padding or margin
+    M.$.prototype.slideUp = function(callback) {
+        var _this = this;
+        this._data.sliding = 'up';
+        this.css('height', this.height() + 'px');
+        M.redraw();
+        this.css('height', '0px');
+
+        this.transitionEnd(function() {
+            if (_this._data.sliding === 'up' && callback) callback();
+        });
+    };
+
+    // Requires css transition: height, no padding or margin, single wrapper child
+    M.$.prototype.slideDown = function(callback) {
+        var _this = this;
+        this._data.sliding = 'down';
+        this.css('height', this.children(0).outerHeight() + 'px');
+
+        this.transitionEnd(function() {
+            if (_this._data.sliding === 'down') {
+                _this.css('height', 'auto');
+                if (callback) callback();
+            }
+        });
     };
 
 

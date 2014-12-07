@@ -12,7 +12,8 @@ M.boost = true;
 
 (function() {
 
-	var isIE = navigator.appName.indexOf("Internet Explorer") >= 0;
+	var ua = window.navigator.userAgent;
+	var isIE = (ua.indexOf('MSIE ') >= 0) || !!ua.match(/Trident.*rv\:11\./);
 
 	M.browser = {
 	    width:    window.innerWidth,
@@ -24,11 +25,11 @@ M.boost = true;
 	    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
 
-	    isChrome: navigator.userAgent.toLowerCase().indexOf('chrome') > -1,
+	    isChrome: ua.toLowerCase().indexOf('chrome') >= 0,
 	    isIE: isIE,
 
-	    // IE 9 doesn't support window.history
-	    hasHistory: window.history && window.history.pushState && (!isIE || navigator.appVersion.indexOf("MSIE 1") >= 0),
+	    hasHistory: window.history && window.history.pushState && (!isIE || ua.indexOf('MSIE 1') >= 0),
+	    hasClipPath: document.body.style.clipPath != null && document.body.style.webkitClipPath != null && !isIE,
 
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};
