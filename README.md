@@ -1,6 +1,6 @@
 # Boost.js
 
-TODO
+DOM selection and manipulation utilities, events framework, animation and transition functions, AJAX, cookie, browser history and browser storage functions.
 
 
 ## Quick start

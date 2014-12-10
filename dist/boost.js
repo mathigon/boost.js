@@ -1165,7 +1165,7 @@ M.cookie = {
         var duration = s.getPropertyValue('transition-duration').split(',');
         var property = s.getPropertyValue('transition-property').split(',');
         var timing   = s.getPropertyValue('transition-timing-function')
-                        .match(/[^\(\),]+(\([^\(\)]*\))?[^\(\),]*/g);
+                        .match(/[^\(\),]+(\([^\(\)]*\))?[^\(\),]*/g) || [];
 
         var result = [];
         for (var i=0; i<property.length; ++i) {
