@@ -86,6 +86,10 @@
         var _this = this;
         if (!M.isArray(props)) props = [props];
 
+        var cancelled = false;
+        if (this._animation) this._animation.cancel();
+        this._animation = null;
+
         // Set start property values of elements
         var s = window.getComputedStyle(this.$el);
         M.each(props, function(options) {
@@ -106,10 +110,15 @@
 
         // Remove new transition values
         this.transitionEnd(function() {
-            _this.css(M.prefix('transition'), oldTransition);
-            M.redraw();
-            if (callback) callback.call(_this);
+            if (!cancelled) {
+                _this.css(M.prefix('transition'), oldTransition);
+                M.redraw();
+                if (callback) callback.call(_this);
+            }
         });
+
+        this._animation = { cancel: function() { cancelled = true; } };
+        return this._animation;
     };
 
 

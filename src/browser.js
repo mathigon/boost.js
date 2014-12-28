@@ -29,7 +29,7 @@ M.boost = true;
 	    isIE: isIE,
 
 	    hasHistory: window.history && window.history.pushState && (!isIE || ua.indexOf('MSIE 1') >= 0),
-	    hasClipPath: document.body.style.clipPath != null && document.body.style.webkitClipPath != null && !isIE,
+	    hasClipPath: (document.body.style.clipPath != null || document.body.style.webkitClipPath != null) && !isIE,
 
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};

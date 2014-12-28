@@ -72,13 +72,15 @@
 
 	// Creates a new DOM node and M.$ element
 	window.$N = function(tag, attributes, parent) {
-	    var t = document.createElement(tag);
+		var t = M.isOneOf(tag, 'path', 'rect', 'circle', 'ellipse', 'polygon') ?
+				    document.createElementNS('http://www.w3.org/2000/svg', tag) :
+	    			document.createElement(tag);
 
 	    for (var a in attributes) {
 	        if (a === 'id') {
 	            t.id = attributes.id;
-	        } else if (a === 'class') {
-	            t.className = attributes.class;
+	        // } else if (a === 'class') {
+	        //     t.className = attributes.class;
 	        } else if (a === 'html') {
 	            t.innerHTML = attributes.html;
 	        } else {
@@ -201,6 +203,14 @@
 	    } else {
 	        this.$el.textContent = text;
 	    }
+	};
+
+	M.$.prototype.blur = function() {
+	    this.$el.blur();
+	};
+
+	M.$.prototype.focus = function() {
+	    this.$el.focus();
 	};
 
 
@@ -329,6 +339,11 @@
 
 	M.$.prototype.transform = function(transform) {
 	    this.$el.style[M.prefix('transform')] = (transform || '');
+	};
+
+	M.$.prototype.translate = function(x, y) {
+	    x = Math.round(+x || 0);
+	    this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
 	};
 
 	M.$.prototype.translateX = function(x) {

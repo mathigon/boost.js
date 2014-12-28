@@ -27,7 +27,7 @@ M.boost = true;
 	    isIE: isIE,
 
 	    hasHistory: window.history && window.history.pushState && (!isIE || ua.indexOf('MSIE 1') >= 0),
-	    hasClipPath: document.body.style.clipPath != null && document.body.style.webkitClipPath != null && !isIE,
+	    hasClipPath: (document.body.style.clipPath != null || document.body.style.webkitClipPath != null) && !isIE,
 
 	    speechRecognition: ('webkitSpeechRecognition' in window)
 	};
@@ -647,13 +647,15 @@ M.cookie = {
 
 	// Creates a new DOM node and M.$ element
 	window.$N = function(tag, attributes, parent) {
-	    var t = document.createElement(tag);
+		var t = M.isOneOf(tag, 'path', 'rect', 'circle', 'ellipse', 'polygon') ?
+				    document.createElementNS('http://www.w3.org/2000/svg', tag) :
+	    			document.createElement(tag);
 
 	    for (var a in attributes) {
 	        if (a === 'id') {
 	            t.id = attributes.id;
-	        } else if (a === 'class') {
-	            t.className = attributes.class;
+	        // } else if (a === 'class') {
+	        //     t.className = attributes.class;
 	        } else if (a === 'html') {
 	            t.innerHTML = attributes.html;
 	        } else {
@@ -776,6 +778,14 @@ M.cookie = {
 	    } else {
 	        this.$el.textContent = text;
 	    }
+	};
+
+	M.$.prototype.blur = function() {
+	    this.$el.blur();
+	};
+
+	M.$.prototype.focus = function() {
+	    this.$el.focus();
 	};
 
 
@@ -904,6 +914,11 @@ M.cookie = {
 
 	M.$.prototype.transform = function(transform) {
 	    this.$el.style[M.prefix('transform')] = (transform || '');
+	};
+
+	M.$.prototype.translate = function(x, y) {
+	    x = Math.round(+x || 0);
+	    this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
 	};
 
 	M.$.prototype.translateX = function(x) {
@@ -1199,6 +1214,10 @@ M.cookie = {
         var _this = this;
         if (!M.isArray(props)) props = [props];
 
+        var cancelled = false;
+        if (this._animation) this._animation.cancel();
+        this._animation = null;
+
         // Set start property values of elements
         var s = window.getComputedStyle(this.$el);
         M.each(props, function(options) {
@@ -1219,10 +1238,15 @@ M.cookie = {
 
         // Remove new transition values
         this.transitionEnd(function() {
-            _this.css(M.prefix('transition'), oldTransition);
-            M.redraw();
-            if (callback) callback.call(_this);
+            if (!cancelled) {
+                _this.css(M.prefix('transition'), oldTransition);
+                M.redraw();
+                if (callback) callback.call(_this);
+            }
         });
+
+        this._animation = { cancel: function() { cancelled = true; } };
+        return this._animation;
     };
 
 
@@ -1398,21 +1422,21 @@ M.cookie = {
 
 	M.events.pointerOffset = function(event, parent) {
 	    if (event.offsetX) {
-	        return [event.offsetX, event.offsetY];
+	        return new M.geo.Point(event.offsetX, event.offsetY);
 	    } else {
 	        parent = parent ? parent.$el : event.target;
 	        var parentXY = parent.getBoundingClientRect();
 	        var eventX = event.touches ? event.touches[0].clientX : event.clientX;
 	        var eventY = event.touches ? event.touches[0].clientY : event.clientY;
-	        return [eventX-parentXY.left, eventY-parentXY.top];
+	        return new M.geo.Point(eventX-parentXY.left, eventY-parentXY.top);
 	    }
 	};
 
 	M.events.pointerPosition = function(e) {
-	    return {
-	        x: e.touches ? e.touches[0].clientX : e.clientX,
-	        y: e.touches ? e.touches[0].clientY : e.clientY
-	    };
+	    return new M.geo.Point(
+	        e.touches ? e.touches[0].clientX : e.clientX,
+	        e.touches ? e.touches[0].clientY : e.clientY
+	    );
 	};
 
 	M.events.getWheelDelta = function(e) {

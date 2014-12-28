@@ -26,21 +26,21 @@
 
 	M.events.pointerOffset = function(event, parent) {
 	    if (event.offsetX) {
-	        return [event.offsetX, event.offsetY];
+	        return new M.geo.Point(event.offsetX, event.offsetY);
 	    } else {
 	        parent = parent ? parent.$el : event.target;
 	        var parentXY = parent.getBoundingClientRect();
 	        var eventX = event.touches ? event.touches[0].clientX : event.clientX;
 	        var eventY = event.touches ? event.touches[0].clientY : event.clientY;
-	        return [eventX-parentXY.left, eventY-parentXY.top];
+	        return new M.geo.Point(eventX-parentXY.left, eventY-parentXY.top);
 	    }
 	};
 
 	M.events.pointerPosition = function(e) {
-	    return {
-	        x: e.touches ? e.touches[0].clientX : e.clientX,
-	        y: e.touches ? e.touches[0].clientY : e.clientY
-	    };
+	    return new M.geo.Point(
+	        e.touches ? e.touches[0].clientX : e.clientX,
+	        e.touches ? e.touches[0].clientY : e.clientY
+	    );
 	};
 
 	M.events.getWheelDelta = function(e) {
