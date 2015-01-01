@@ -581,554 +581,571 @@ M.cookie = {
 
 (function() {
 
-	M.$ = function ($el) {
-		this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
-		this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
-		this.$el = $el;
-		this._isWindow = M.isOneOf($el, window, document.body, document.documentElement);
-	};
+    M.$ = function ($el) {
+        this._data   = $el ? ($el._mdata   || ($el._mdata   = {})) : {};
+        this._events = $el ? ($el._mevents || ($el._mevents = {})) : {};
+        this.$el = $el;
+        this._isWindow = M.isOneOf($el, window, document.body, document.documentElement);
+    };
 
 
-	// ---------------------------------------------------------------------------------------------
-	// Constructors and Query Selectors
+    // ---------------------------------------------------------------------------------------------
+    // Constructors and Query Selectors
 
-	// Creates a single M.$ element from an arbitrary query string or a Node element
-	window.$ = function(selector, context) {
-	    if (typeof selector === 'string') {
-	        context = context ? (context.$el || context) : document;
-			var $el = context.querySelector(selector);
-			return $el ? new M.$($el) : null;
-	    } else if (selector instanceof Node || selector === window) {
-	        return new M.$(selector);
-	    }
-	};
+    // Creates a single M.$ element from an arbitrary query string or a Node element
+    window.$ = function(selector, context) {
+        if (typeof selector === 'string') {
+            context = context ? (context.$el || context) : document;
+            var $el = context.querySelector(selector);
+            return $el ? new M.$($el) : null;
+        } else if (selector instanceof Node || selector === window) {
+            return new M.$(selector);
+        }
+    };
 
-	// Returns a single M.$ element by id
-	window.$I = function(selector, context) {
-	    context = (context && context.$el.getElementById) ? context.$el : document;
-		var $el = context.getElementById(selector);
-		return $el ? new M.$($el) : null;
-	};
+    // Returns a single M.$ element by id
+    window.$I = function(selector, context) {
+        context = (context && context.$el.getElementById) ? context.$el : document;
+        var $el = context.getElementById(selector);
+        return $el ? new M.$($el) : null;
+    };
 
-	// Returns a single M.$ element by class name
-	window.$C = function(selector, context) {
-	    context = context ? (context.$el || context) : document;
-	    var $els = context.getElementsByClassName(selector);
-	    return $els.length ? new M.$($els[0]) : null;
-	};
+    // Returns a single M.$ element by class name
+    window.$C = function(selector, context) {
+        context = context ? (context.$el || context) : document;
+        var $els = context.getElementsByClassName(selector);
+        return $els.length ? new M.$($els[0]) : null;
+    };
 
-	// Returns a single M.$ element by tag name
-	window.$T = function(selector, context) {
-	    context = context ? (context.$el || context) : document;
-	    var $els = context.getElementsByTagName(selector);
-		return $els.length ? new M.$($els[0]) : null;
-	};
+    // Returns a single M.$ element by tag name
+    window.$T = function(selector, context) {
+        context = context ? (context.$el || context) : document;
+        var $els = context.getElementsByTagName(selector);
+        return $els.length ? new M.$($els[0]) : null;
+    };
 
-	// Returns an array of M.$ elements based on an arbitrary query string
-	window.$$ = function(selector, context) {
-	    context = context ? (context.$el || context) : document;
-	    var $els = context.querySelectorAll(selector);
-	    return M.each($els, function($el) { return new M.$($el); });
-	};
+    // Returns an array of M.$ elements based on an arbitrary query string
+    window.$$ = function(selector, context) {
+        context = context ? (context.$el || context) : document;
+        var $els = context.querySelectorAll(selector);
+        return M.each($els, function($el) { return new M.$($el); });
+    };
 
-	// Returns an array of M.$ elements with a given class name
-	window.$$C = function(selector, context) {
-		context = context ? (context.$el || context) : document;
-		var $els = context.getElementsByClassName(selector);
-		return M.each($els, function($el) { return new M.$($el); });
-	};
+    // Returns an array of M.$ elements with a given class name
+    window.$$C = function(selector, context) {
+        context = context ? (context.$el || context) : document;
+        var $els = context.getElementsByClassName(selector);
+        return M.each($els, function($el) { return new M.$($el); });
+    };
 
-	// Returns an array of M.$ elements with a given tag name
-	window.$$T = function(selector, context) {
-		context = context ? (context.$el || context) : document;
-		var $els = context.getElementsByTagName(selector);
-		return M.each($els, function($el) { return new M.$($el); });
-	};
+    // Returns an array of M.$ elements with a given tag name
+    window.$$T = function(selector, context) {
+        context = context ? (context.$el || context) : document;
+        var $els = context.getElementsByTagName(selector);
+        return M.each($els, function($el) { return new M.$($el); });
+    };
 
-	// Creates a new DOM node and M.$ element
-	window.$N = function(tag, attributes, parent) {
-		var t = M.isOneOf(tag, 'path', 'rect', 'circle', 'ellipse', 'polygon') ?
-				    document.createElementNS('http://www.w3.org/2000/svg', tag) :
-	    			document.createElement(tag);
+    var svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'g', 'defs', 'marker', 'line'];
 
-	    for (var a in attributes) {
-	        if (a === 'id') {
-	            t.id = attributes.id;
-	        // } else if (a === 'class') {
-	        //     t.className = attributes.class;
-	        } else if (a === 'html') {
-	            t.innerHTML = attributes.html;
-	        } else {
-	            t.setAttribute(a, attributes[a]);
-	        }
-	    }
+    // Creates a new DOM node and M.$ element
+    window.$N = function(tag, attributes, parent) {
+        var t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
+                    document.createElementNS('http://www.w3.org/2000/svg', tag);
 
-	    var $el = new M.$(t);
-	    if (parent) parent.append($el);
-	    return $el;
-	};
+        for (var a in attributes) {
+            if (a === 'id') {
+                t.id = attributes.id;
+            // } else if (a === 'class') {
+            //     t.className = attributes.class;
+            } else if (a === 'html') {
+                t.innerHTML = attributes.html;
+            } else {
+                t.setAttribute(a, attributes[a]);
+            }
+        }
 
-	// Converts an arbitrary html string into an array of M.$ elements
-	window.$$N = function(html) {
-	    var tempDiv = $N('div', { html: html });
-	    return tempDiv.children();
-	};
+        var $el = new M.$(t);
+        if (parent) parent.append($el);
+        return $el;
+    };
 
-
-	// ---------------------------------------------------------------------------------------------
-	// Basic Functionality
-
-	function _addClass($el, className) {
-		if ($el.$el.classList) {
-			$el.$el.classList.add(className);
-		} else if (!$el.hasClass(className)) {
-			$el.$el.className += ' ' + className;
-		}
-	}
-
-	M.$.prototype.addClass = function(className) {
-	    var classes = className.trim().split(' ');
-	    for (var i = 0; i < classes.length; ++i) {
-	        _addClass(this, classes[i]);
-	    }
-	};
-
-	function _removeClass($el, className) {
-		if ($el.$el.classList) {
-			$el.$el.classList.remove(className);
-		} else if ($el.hasClass(className)) {
-			$el.$el.className = (' ' + $el.$el.className + ' ').replace(' ' + className + ' ', ' ');
-		}
-	}
-
-	M.$.prototype.removeClass = function(className) {
-	    var classes = className.trim().split(' ');
-	    for (var i = 0; i < classes.length; ++i) {
-	        _removeClass(this, classes[i]);
-	    }
-	};
-
-	M.$.prototype.hasClass = function(className) {
-	    return (' ' + this.$el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
-	};
-
-	function _toggleClass($el, className) {
-		if ($el.$el.classList) {
-			$el.$el.classList.toggle(className);
-		} else if ($el.hasClass(className)) {
-			$el.addClass(className);
-		} else {
-			$el.removeClass(className);
-		}
-	}
-
-	M.$.prototype.toggleClass = function(className) {
-	    var classes = className.trim().split(' ');
-	    for (var i = 0; i < classes.length; ++i) {
-	        _toggleClass(this, classes[i]);
-	    }
-	};
-
-	M.$.prototype.setClass = function(className, condition) {
-	    if (condition) {
-	        this.addClass(className);
-	    } else {
-	        this.removeClass(className);
-	    }
-	};
-
-	M.$.prototype.attr = function(attr, value) {
-	    if (value === undefined) {
-	        return this.$el.getAttribute(attr);
-	    } else if (value === null) {
-	        this.$el.removeAttribute(attr);
-	    } else {
-	        this.$el.setAttribute(attr, value);
-	    }
-	};
-
-	M.$.prototype.data = function(key, value) {
-	    if (value == null) {
-	        var dataAttr = this.$el.getAttribute('data-' + key);
-	        return dataAttr ? dataAttr : (this._data ? this._data[key] : undefined);
-	    } else {
-	        this._data[key] = value;
-	    }
-	};
-
-	M.$.prototype.value = function(value) {
-	    if (value == null) {
-	        return this.$el.value;
-	    } else {
-	        this.$el.value = value;
-	    }
-	};
-
-	M.$.prototype.html = function(html) {
-	    if (html == null) {
-	        return this.$el.innerHTML;
-	    } else {
-	        this.$el.innerHTML = html;
-	    }
-	};
-
-	M.$.prototype.text = function(text) {
-	    if (text == null) {
-	        return this.$el.textContent.trim();
-	    } else {
-	        this.$el.textContent = text;
-	    }
-	};
-
-	M.$.prototype.blur = function() {
-	    this.$el.blur();
-	};
-
-	M.$.prototype.focus = function() {
-	    this.$el.focus();
-	};
+    // Converts an arbitrary html string into an array of M.$ elements
+    window.$$N = function(html) {
+        var tempDiv = $N('div', { html: html });
+        return tempDiv.children();
+    };
 
 
-	// ---------------------------------------------------------------------------------------------
-	// Dimensions
+    // ---------------------------------------------------------------------------------------------
+    // Basic Functionality
 
-	// Includes border and padding
-	M.$.prototype.width = function() {
-		if (this._isWindow) return window.innerWidth;
-	    return this.$el.offsetWidth;
-	};
+    function _addClass($el, className) {
+        if ($el.$el.classList) {
+            $el.$el.classList.add(className);
+        } else if (!$el.hasClass(className)) {
+            $el.$el.className += ' ' + className;
+        }
+    }
 
-	// Doesn't include border and padding
-	M.$.prototype.innerWidth = function() {
-		if (this._isWindow) return window.innerWidth;
-		return this.$el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
-	};
+    M.$.prototype.addClass = function(className) {
+        var classes = className.trim().split(' ');
+        for (var i = 0; i < classes.length; ++i) {
+            _addClass(this, classes[i]);
+        }
+    };
 
-	// Includes Margins
-	M.$.prototype.outerWidth = function() {
-		if (this._isWindow) return window.outerWidth;
-		return this.$el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
-	};
+    function _removeClass($el, className) {
+        if ($el.$el.classList) {
+            $el.$el.classList.remove(className);
+        } else if ($el.hasClass(className)) {
+            $el.$el.className = (' ' + $el.$el.className + ' ').replace(' ' + className + ' ', ' ');
+        }
+    }
 
-	M.$.prototype.scrollWidth = function() {
-		if (this._isWindow) return M.$body.$el.scrollWidth;
-		return this.$el.scrollWidth;
-	};
+    M.$.prototype.removeClass = function(className) {
+        var classes = className.trim().split(' ');
+        for (var i = 0; i < classes.length; ++i) {
+            _removeClass(this, classes[i]);
+        }
+    };
 
-	// Includes border and padding
-	M.$.prototype.height = function() {
-		if (this._isWindow) return window.innerHeight;
-	    return this.$el.offsetHeight;
-	};
+    M.$.prototype.hasClass = function(className) {
+        return (' ' + this.$el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
+    };
 
-	// Doesn't include border and padding
-	M.$.prototype.innerHeight = function() {
-		if (this._isWindow) return window.innerHeight;
-		return this.$el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
-	};
+    function _toggleClass($el, className) {
+        if ($el.$el.classList) {
+            $el.$el.classList.toggle(className);
+        } else if ($el.hasClass(className)) {
+            $el.addClass(className);
+        } else {
+            $el.removeClass(className);
+        }
+    }
 
-	// Includes Margins
-	M.$.prototype.outerHeight = function() {
-		if (this._isWindow) return window.outerHeight;
-		return this.$el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
-	};
+    M.$.prototype.toggleClass = function(className) {
+        var classes = className.trim().split(' ');
+        for (var i = 0; i < classes.length; ++i) {
+            _toggleClass(this, classes[i]);
+        }
+    };
 
-	M.$.prototype.scrollHeight = function() {
-		if (this._isWindow) return M.$body.$el.scrollHeight;
-		return this.$el.scrollHeight;
-	};
+    M.$.prototype.setClass = function(className, condition) {
+        if (condition) {
+            this.addClass(className);
+        } else {
+            this.removeClass(className);
+        }
+    };
 
-	M.$.prototype.offset = function($parent) {
+    M.$.prototype.attr = function(attr, value) {
+        if (value === undefined) {
+            return this.$el.getAttribute(attr);
+        } else if (value === null) {
+            this.$el.removeAttribute(attr);
+        } else {
+            this.$el.setAttribute(attr, value);
+        }
+    };
 
-	    if ($parent === 'parent') $parent = this.parent();
-	    if ($parent === 'body') $parent = M.$body;
-		var box;
+    M.$.prototype.data = function(key, value) {
+        if (value == null) {
+            var dataAttr = this.$el.getAttribute('data-' + key);
+            return dataAttr ? dataAttr : (this._data ? this._data[key] : undefined);
+        } else {
+            this._data[key] = value;
+        }
+    };
 
-	    // Get offset from immediate parent
-	    if ($parent && $parent.$el === this.$el.offsetParent) {
-	        var top = this.$el.offsetTop + $parent.$el.clientTop;
-	        var left = this.$el.offsetLeft + $parent.$el.clientLeft;
-	        var bottom = top +  this.$el.offsetHeight;
-	        var right = left + this.$el.offsetWidth;
-	        return { top: top, left: left, bottom: bottom, right: right };
+    M.$.prototype.value = function(value) {
+        if (value == null) {
+            return this.$el.value;
+        } else {
+            this.$el.value = value;
+        }
+    };
 
-	    // Get offset based on any other element including $(document.body)
-	    } else if ($parent) {
-	        var parentBox = $parent.$el.getBoundingClientRect();
-	        box = this.$el.getBoundingClientRect();
-	        return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
-	                 bottom: box.bottom - parentBox.top, right: box.right - parentBox.left };
+    M.$.prototype.html = function(html) {
+        if (html == null) {
+            return this.$el.innerHTML;
+        } else {
+            this.$el.innerHTML = html;
+        }
+    };
 
-	    // Get offset based on viewport
-	    } else {
-	        box = this.$el.getBoundingClientRect();
-	        return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
-	    }
-	};
+    M.$.prototype.text = function(text) {
+        if (text == null) {
+            return this.$el.textContent.trim();
+        } else {
+            this.$el.textContent = text;
+        }
+    };
 
-	M.$.prototype.scrollTop = function(y) {
-		if (y == null) {
-			return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
-		} else {
-			if (this._isWindow) {
-				document.body.scrollTop = document.documentElement.scrollTop = y;
-			} else {
-				this.$el.scrollTop = y;
-			}
-		}
-	};
+    M.$.prototype.blur = function() {
+        this.$el.blur();
+    };
 
-	M.$.prototype.scrollLeft = function(x) {
-		if (x == null) {
-			return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
-		} else {
-			if (this._isWindow) {
-				document.body.scrollLeft = document.documentElement.scrollLeft = x;
-			} else {
-				this.$el.scrollLeft = x;
-			}
-		}
-	};
-
-
-	// ---------------------------------------------------------------------------------------------
-	// Styles
-
-	M.$.prototype.css = function(props, value) {
-	    if (arguments.length === 1) {
-	        if (typeof props === 'string') {
-	            return window.getComputedStyle(this.$el, null).getPropertyValue(props);
-	        } else {
-	            for (var prop in props) if (M.has(props, prop)) this.$el.style[prop] = props[prop];
-	        }
-	    } else if (arguments.length === 2 && typeof props === 'string') {
-	        this.$el.style[M.toCamelCase(props)] = value;
-	    }
-	};
-
-	M.$.prototype.transition = function(property, duration, curve) {
-		if (arguments.length === 1) this.$el.style[M.prefix('transition')] = property;
-	    if (typeof duration !== 'string') duration = duration + 'ms';
-	    this.$el.style[M.prefix('transition')] = property + ' ' + duration + (curve ? ' ' + curve : '');
-	};
-
-	M.$.prototype.transform = function(transform) {
-	    this.$el.style[M.prefix('transform')] = (transform || '');
-	};
-
-	M.$.prototype.translate = function(x, y) {
-	    x = Math.round(+x || 0);
-	    this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
-	};
-
-	M.$.prototype.translateX = function(x) {
-	    x = Math.round(+x || 0);
-	    this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,0)';
-	};
-
-	M.$.prototype.translateY = function(y) {
-	    y = Math.round(+y || 0);
-	    this.$el.style[M.prefix('transform')] = 'translate(0px,'+y+'px)';
-	};
-
-	M.$.prototype.hide = function() {
-	    this.css('display', 'none');
-	    this.css('visibility', 'hidden');
-	};
-
-	M.$.prototype.show = function() {
-	    this.css('display', 'block');
-	    this.css('visibility', 'visible');
-	};
+    M.$.prototype.focus = function() {
+        this.$el.focus();
+    };
 
 
-	// ---------------------------------------------------------------------------------------------
-	// DOM Manipulation
+    // ---------------------------------------------------------------------------------------------
+    // Dimensions
+
+    // Includes border and padding
+    M.$.prototype.width = function() {
+        if (this._isWindow) return window.innerWidth;
+        return this.$el.offsetWidth;
+    };
+
+    // Doesn't include border and padding
+    M.$.prototype.innerWidth = function() {
+        if (this._isWindow) return window.innerWidth;
+        return this.$el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
+    };
+
+    // Includes Margins
+    M.$.prototype.outerWidth = function() {
+        if (this._isWindow) return window.outerWidth;
+        return this.$el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
+    };
+
+    M.$.prototype.scrollWidth = function() {
+        if (this._isWindow) return M.$body.$el.scrollWidth;
+        return this.$el.scrollWidth;
+    };
+
+    // Includes border and padding
+    M.$.prototype.height = function() {
+        if (this._isWindow) return window.innerHeight;
+        return this.$el.offsetHeight;
+    };
+
+    // Doesn't include border and padding
+    M.$.prototype.innerHeight = function() {
+        if (this._isWindow) return window.innerHeight;
+        return this.$el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
+    };
+
+    // Includes Margins
+    M.$.prototype.outerHeight = function() {
+        if (this._isWindow) return window.outerHeight;
+        return this.$el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
+    };
+
+    M.$.prototype.scrollHeight = function() {
+        if (this._isWindow) return M.$body.$el.scrollHeight;
+        return this.$el.scrollHeight;
+    };
+
+    M.$.prototype.offset = function($parent) {
+
+        if ($parent === 'parent') $parent = this.parent();
+        if ($parent === 'body') $parent = M.$body;
+        var box;
+
+        // Get offset from immediate parent
+        if ($parent && $parent.$el === this.$el.offsetParent) {
+            var top = this.$el.offsetTop + $parent.$el.clientTop;
+            var left = this.$el.offsetLeft + $parent.$el.clientLeft;
+            var bottom = top +  this.$el.offsetHeight;
+            var right = left + this.$el.offsetWidth;
+            return { top: top, left: left, bottom: bottom, right: right };
+
+        // Get offset based on any other element including $(document.body)
+        } else if ($parent) {
+            var parentBox = $parent.$el.getBoundingClientRect();
+            box = this.$el.getBoundingClientRect();
+            return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
+                     bottom: box.bottom - parentBox.top, right: box.right - parentBox.left };
+
+        // Get offset based on viewport
+        } else {
+            box = this.$el.getBoundingClientRect();
+            return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
+        }
+    };
+
+    M.$.prototype.scrollTop = function(y) {
+        if (y == null) {
+            return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
+        } else {
+            if (this._isWindow) {
+                document.body.scrollTop = document.documentElement.scrollTop = y;
+            } else {
+                this.$el.scrollTop = y;
+            }
+        }
+    };
+
+    M.$.prototype.scrollLeft = function(x) {
+        if (x == null) {
+            return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
+        } else {
+            if (this._isWindow) {
+                document.body.scrollLeft = document.documentElement.scrollLeft = x;
+            } else {
+                this.$el.scrollLeft = x;
+            }
+        }
+    };
+
+
+    // ---------------------------------------------------------------------------------------------
+    // Styles
+
+    M.$.prototype.css = function(props, value) {
+        if (arguments.length === 1) {
+            if (typeof props === 'string') {
+                return window.getComputedStyle(this.$el, null).getPropertyValue(props);
+            } else {
+                for (var p in props) if (M.has(props, p)) this.$el.style[M.toCamelCase(p)] = props[p];
+            }
+        } else if (arguments.length === 2 && typeof props === 'string') {
+            this.$el.style[M.toCamelCase(props)] = value;
+        }
+    };
+
+    M.$.prototype.transition = function(property, duration, curve) {
+        if (arguments.length === 1) this.$el.style[M.prefix('transition')] = property;
+        if (typeof duration !== 'string') duration = duration + 'ms';
+        this.$el.style[M.prefix('transition')] = property + ' ' + duration + (curve ? ' ' + curve : '');
+    };
+
+    M.$.prototype.transform = function(transform) {
+        this.$el.style[M.prefix('transform')] = (transform || '');
+    };
+
+    M.$.prototype.getTransformMatrix = function() {
+        var transform = window.getComputedStyle(this.$el).getPropertyValue(M.prefix('transform'));
+        if (!transform || transform === 'none') return null;
+
+        var coords = transform.match(/matrix\(([0-9\,\.\s]*)\)/);
+        if (!coords[1]) return null;
+
+        var matrix = coords[1].split(',');
+        return [[+matrix[0], +matrix[1]], [+matrix[2], +matrix[3]]];
+    };
+
+    M.$.prototype.getScale = function() {
+        var matrix = this.getTransformMatrix();
+        return matrix ? [matrix[0][0], matrix[1][1]] : [1, 1];
+    };
+
+    M.$.prototype.translate = function(x, y) {
+        x = Math.round(+x || 0);
+        this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
+    };
+
+    M.$.prototype.translateX = function(x) {
+        x = Math.round(+x || 0);
+        this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,0)';
+    };
+
+    M.$.prototype.translateY = function(y) {
+        y = Math.round(+y || 0);
+        this.$el.style[M.prefix('transform')] = 'translate(0px,'+y+'px)';
+    };
+
+    M.$.prototype.hide = function() {
+        this.css('display', 'none');
+        this.css('visibility', 'hidden');
+    };
+
+    M.$.prototype.show = function() {
+        this.css('display', 'block');
+        this.css('visibility', 'visible');
+    };
+
+
+    // ---------------------------------------------------------------------------------------------
+    // DOM Manipulation
 
     // Removes an element from the DOM for more performant node manipulation. The element
     // is placed back into the DOM at the place it was taken from.
     M.$.prototype.manipulate = function(fn){
-      	var next = this.$el.nextSibling;
+        var next = this.$el.nextSibling;
         var parent = this.$el.parentNode;
         var frag = document.createDocumentFragment();
         frag.appendChild(this.$el);
         var returned = fn.call(this) || this.$el;
-      	if (next) {
-			parent.insertBefore(returned, next);
-		} else {
-			parent.appendChild(returned);
-		}
+        if (next) {
+            parent.insertBefore(returned, next);
+        } else {
+            parent.appendChild(returned);
+        }
     };
 
-	M.$.prototype.is = function(selector) {
-	    var compareWith = document.querySelectorAll(selector);
-	    for (var i = 0, l = compareWith.length; i < l; ++i)
-	        if (compareWith[i] === this.$el) return true;
-	    return false;
-	};
+    M.$.prototype.is = function(selector) {
+        var compareWith = document.querySelectorAll(selector);
+        for (var i = 0, l = compareWith.length; i < l; ++i)
+            if (compareWith[i] === this.$el) return true;
+        return false;
+    };
 
-	M.$.prototype.index = function() {
-	    var i = 0;
-	    var child = this.$el;
-	    while ((child = child.previousSibling) !== null) i++;
-	    return i;
-	};
+    M.$.prototype.index = function() {
+        var i = 0;
+        var child = this.$el;
+        while ((child = child.previousSibling) !== null) i++;
+        return i;
+    };
 
-	M.$.prototype.append = function(newChild) {
-	    var _this = this;
-	    if (typeof newChild === 'string') {
-	        var newChildren = $$N(newChild);
-	        newChildren.each(function(child) {
-	            _this.$el.appendChild(child.$el);
-	        });
-	    } else {
-	        this.$el.appendChild(newChild.$el);
-	    }
-	};
+    M.$.prototype.append = function(newChild) {
+        var _this = this;
+        if (typeof newChild === 'string') {
+            var newChildren = $$N(newChild);
+            newChildren.each(function(child) {
+                _this.$el.appendChild(child.$el);
+            });
+        } else {
+            this.$el.appendChild(newChild.$el);
+        }
+    };
 
-	M.$.prototype.prepend = function(newChild) {
-	    if (typeof newChild === 'string') {
-	        var newChildren = $$N(newChild);
-	        for (var j = newChildren.length - 1; j >= 0; j--) {
-	            this.$el.insertBefore(newChildren[j], this.$el.childNodes[0]);
-	        }
-	    } else {
-	        this.$el.insertBefore(newChild.$el, this.$el.childNodes[0]);
-	    }
-	};
+    M.$.prototype.prepend = function(newChild) {
+        if (typeof newChild === 'string') {
+            var newChildren = $$N(newChild);
+            for (var j = newChildren.length - 1; j >= 0; j--) {
+                this.$el.insertBefore(newChildren[j], this.$el.childNodes[0]);
+            }
+        } else {
+            this.$el.insertBefore(newChild.$el, this.$el.childNodes[0]);
+        }
+    };
 
-	M.$.prototype.insertBefore = function(newChild) {
-	    var _this = this;
-	    var parent = this.parent();
+    M.$.prototype.insertBefore = function(newChild) {
+        var _this = this;
+        var parent = this.parent();
 
-	    if (typeof newChild === 'string') {
-	        var newChildren = $$N(newChild);
-	        for (var j = newChildren.length - 1; j >= 0; j--) {
-	            parent.$el.insertBefore(newChildren[j].$el, _this.$el);
-	        }
-	    } else {
-	        parent.$el.insertBefore(newChild.$el, _this.$el);
-	    }
-	};
+        if (typeof newChild === 'string') {
+            var newChildren = $$N(newChild);
+            for (var j = newChildren.length - 1; j >= 0; j--) {
+                parent.$el.insertBefore(newChildren[j].$el, _this.$el);
+            }
+        } else {
+            parent.$el.insertBefore(newChild.$el, _this.$el);
+        }
+    };
 
-	M.$.prototype.insertAfter = function(newChild) {
-	    var _this = this;
-	    var parent = this.parent();
+    M.$.prototype.insertAfter = function(newChild) {
+        var _this = this;
+        var parent = this.parent();
 
-	    if (typeof newChild === 'string') {
-	        var newChildren = $$N(newChild);
-	        newChildren.each(function(child) {
-	            parent.$el.insertAfter(_this.$el, child.$el);
-	        });
-	    } else {
-	        var next = _this.$el.nextSibling;
-	        if (next) {
-	            parent.$el.insertBefore(newChild.$el, next);
-	        } else {
-	            parent.$el.appendChild(newChild.$el);
-	        }
-	    }
-	};
+        if (typeof newChild === 'string') {
+            var newChildren = $$N(newChild);
+            newChildren.each(function(child) {
+                parent.$el.insertAfter(_this.$el, child.$el);
+            });
+        } else {
+            var next = _this.$el.nextSibling;
+            if (next) {
+                parent.$el.insertBefore(newChild.$el, next);
+            } else {
+                parent.$el.appendChild(newChild.$el);
+            }
+        }
+    };
 
-	M.$.prototype.wrap = function(wrapper) {
-	    if (typeof wrapper === 'string') wrapper = $(document.createElement(wrapper));
-	    this.insertBefore(wrapper);
-	    this.remove();
-	    wrapper.append(this);
-	};
+    M.$.prototype.wrap = function(wrapper) {
+        if (typeof wrapper === 'string') wrapper = $(document.createElement(wrapper));
+        this.insertBefore(wrapper);
+        this.remove();
+        wrapper.append(this);
+    };
 
-	M.$.prototype.moveTo = function(newParent, before) {
-	    this.remove();
-	    if (before) {
-	        newParent.prepend(this);
-	    } else {
-	        newParent.append(this);
-	    }
-	};
+    M.$.prototype.moveTo = function(newParent, before) {
+        this.remove();
+        if (before) {
+            newParent.prepend(this);
+        } else {
+            newParent.append(this);
+        }
+    };
 
-	M.$.prototype.next = function () {
-	    var next = this.$el.nextSibling;
-	    return next ? $(next) : null;
-	};
+    M.$.prototype.next = function () {
+        var next = this.$el.nextSibling;
+        return next ? $(next) : null;
+    };
 
-	M.$.prototype.prev = function () {
-	    var prev = this.$el.previousSibling;
-	    return prev ? $(prev) : null;
-	};
+    M.$.prototype.prev = function () {
+        var prev = this.$el.previousSibling;
+        return prev ? $(prev) : null;
+    };
 
-	M.$.prototype.find = function(selector) {
-	    return $$(selector, this);
-	};
+    M.$.prototype.find = function(selector) {
+        return $$(selector, this);
+    };
 
-	M.$.prototype.parent = function() {
-	    var parent = this.$el.parentNode;
-	    return parent ? $(parent) : null;
-	};
+    M.$.prototype.parent = function() {
+        var parent = this.$el.parentNode;
+        return parent ? $(parent) : null;
+    };
 
-	M.$.prototype.parents = function(selector) {
-	    var parents = [];
-	    var parent = this.parent();
-	    while (parent) {
-	        if (!selector || parent.is(selector)) parents.push(parent);
-	        parent = parent.parent();
-	    }
-	    return parents;
-	};
+    M.$.prototype.parents = function(selector) {
+        var parents = [];
+        var parent = this.parent();
+        while (parent) {
+            if (!selector || parent.is(selector)) parents.push(parent);
+            parent = parent.parent();
+        }
+        return parents;
+    };
 
-	M.$.prototype.children = function(selector) {
-	    var childNodes = this.$el.children;
+    M.$.prototype.children = function(selector) {
+        var childNodes = this.$el.children;
 
-	    if (!childNodes) {
-	        childNodes = [];
-	        var nodes = this.$el.childNodes;
-	        M.each(nodes, function(n) {
-	            if (!n.data || n.data.trim()) childNodes.push(n);
-	        });
-	    }
+        if (!childNodes) {
+            childNodes = [];
+            var nodes = this.$el.childNodes;
+            M.each(nodes, function(n) {
+                if (!n.data || n.data.trim()) childNodes.push(n);
+            });
+        }
 
-	    if (typeof selector === 'number') {
-	        return $(childNodes[selector]);
-	    } else {
-	        var children = [];
-	        for (var i = 0, l = childNodes.length; i < l; ++i)
-	            if (!selector || $(childNodes[i]).is(selector))
-	                children.push($(childNodes[i]));
-	        return children;
-	    }
-	};
+        if (typeof selector === 'number') {
+            return $(childNodes[selector]);
+        } else {
+            var children = [];
+            for (var i = 0, l = childNodes.length; i < l; ++i)
+                if (!selector || $(childNodes[i]).is(selector))
+                    children.push($(childNodes[i]));
+            return children;
+        }
+    };
 
-	M.$.prototype.remove = function () {
-	    if (this.$el.parentNode) this.$el.parentNode.removeChild(this.$el);
-	};
+    M.$.prototype.remove = function () {
+        if (this.$el.parentNode) this.$el.parentNode.removeChild(this.$el);
+    };
 
-	M.$.prototype.delete = function () {
-	    this.remove();
-	    this.$el = null;
-	};
+    M.$.prototype.delete = function () {
+        this.remove();
+        this.$el = null;
+    };
 
-	M.$.prototype.clear = function () {
-	    var _this = this;
-	    this.children().each(function($el) {
-	        _this.$el.removeChild($el.$el);
-	    });
-	};
+    M.$.prototype.clear = function () {
+        var _this = this;
+        this.children().each(function($el) {
+            _this.$el.removeChild($el.$el);
+        });
+    };
 
-	M.$.prototype.replace = function(newEl) {
-	    this.insertAfter(newEl);
-	    this.remove();
-	};
+    M.$.prototype.replace = function(newEl) {
+        this.insertAfter(newEl);
+        this.remove();
+    };
 
 
-	// ---------------------------------------------------------------------------------------------
-	// Special Elements
+    // ---------------------------------------------------------------------------------------------
+    // Special Elements
 
-	M.$body = $(document.body);
-	M.$html = $T('html');
-	M.$window = $(window);
-	M.$doc = $(window.document.documentElement);
+    M.$body = $(document.body);
+    M.$html = $T('html');
+    M.$window = $(window);
+    M.$doc = $(window.document.documentElement);
 
-	M.$html.addClass( M.browser.isTouch ? 'is-touch' : 'not-touch' );
-	M.$html.addClass( M.browser.isMobile ? 'is-mobile' : 'not-mobile' );
+    M.$html.addClass( M.browser.isTouch ? 'is-touch' : 'not-touch' );
+    M.$html.addClass( M.browser.isMobile ? 'is-mobile' : 'not-mobile' );
 
 })();
 
@@ -1160,7 +1177,7 @@ M.cookie = {
         function getFrame() {
             if (running && (!duration || time <= duration)) M.animationFrame(getFrame);
             time = +new Date() - startTime;
-            callback(duration ? time/duration : time);
+            callback(duration ? Math.min(1,time/duration) : time);
         }
 
         getFrame();
@@ -1403,457 +1420,471 @@ M.cookie = {
 
 (function() {
 
-	// =============================================================================================
-	// EVENT UTILITIES
-
-	M.events = {};
-
-	M.events.isSupported = function(event) {
-	    event = 'on' + event;
-	    var $el = $N('div');
-	    var isSupported = (event in $el.$el);
-	    if (!isSupported) {
-	        $el.attr(event, 'return;');
-	        isSupported = (typeof $el.$el[event] === 'function');
-	    }
-	    $el.delete();
-	    return isSupported;
-	};
-
-	M.events.pointerOffset = function(event, parent) {
-	    if (event.offsetX) {
-	        return new M.geo.Point(event.offsetX, event.offsetY);
-	    } else {
-	        parent = parent ? parent.$el : event.target;
-	        var parentXY = parent.getBoundingClientRect();
-	        var eventX = event.touches ? event.touches[0].clientX : event.clientX;
-	        var eventY = event.touches ? event.touches[0].clientY : event.clientY;
-	        return new M.geo.Point(eventX-parentXY.left, eventY-parentXY.top);
-	    }
-	};
-
-	M.events.pointerPosition = function(e) {
-	    return new M.geo.Point(
-	        e.touches ? e.touches[0].clientX : e.clientX,
-	        e.touches ? e.touches[0].clientY : e.clientY
-	    );
-	};
-
-	M.events.getWheelDelta = function(e) {
-	    var delta = 0;
-	    if (e.wheelDelta) delta = e.wheelDelta / 40;
-	    if (e.detail) delta = -e.detail / 3.5;
-	    return delta;
-	};
-
-	M.events.stop = function(e) {
-	    e.preventDefault();
-	    e.stopPropagation();
-	};
-
-
-	// =============================================================================================
-	// CLICK EVENTS
-	// TODO Add ability to remove click events
-
-	function makeClickEvent($el) {
-		if ($el._events._click) return;
-		$el._events._click = true;
-
-	    var waitForEvent = false;
-	    var startX, startY;
-	    var preventMouse = false;
-
-	    $el.$el.addEventListener('click', function(e){
-	        e.preventDefault();
-	    });
-
-	    $el.$el.addEventListener('mousedown', function(e){
-	        if (preventMouse) return;
-	        waitForEvent = true;
-	        startX = e.clientX;
-	        startY = e.clientY;
-	    });
-
-	    $el.$el.addEventListener('mouseup', function(e){
-	        if (preventMouse) {
-	            preventMouse = false;
-	            return;
-	        }
-	        if (waitForEvent) {
-	            var endX = e.clientX;
-	            var endY = e.clientY;
-	            if (Math.abs(endX - startX) < 2 && Math.abs(endY - startY) < 2) {
-	                $el.trigger('click', e);
-	            }
-	        }
-	        waitForEvent = false;
-	    });
-
-	    $el.$el.addEventListener('touchstart', function(e){
-	        preventMouse = true;
-	        if (e.touches.length === 1) {
-	            waitForEvent = true;
-	            startX = e.changedTouches[0].clientX;
-	            startY = e.changedTouches[0].clientY;
-	        }
-	    });
-
-	    $el.$el.addEventListener('touchend', function(e){
-	        if (waitForEvent && e.changedTouches.length === 1) {
-	            var endX = e.changedTouches[0].clientX;
-	            var endY = e.changedTouches[0].clientY;
-	            if (Math.abs(endX - startX) < 5 && Math.abs(endY - startY) < 5) {
-	                $el.trigger('click', e);
-	            }
-	        }
-	        waitForEvent = false;
-	    });
-
-	    $el.$el.addEventListener('touchcancel', function(){
-	        waitForEvent = false;
-	    });
-	}
-
-
-	// =============================================================================================
-	// POINTER EVENTS
-	// TODO Make pointer more efficient more efficient using *enter and *leave
-	// TODO Add ability to remove pointer events
-
-	var checkInside = function($el, event) {
-		var c = M.events.pointerPosition(event);
-		return ($el.$el === document.elementFromPoint(c.x, c.y));
-	};
-
-	function makePointerPositionEvents($el) {
-		if ($el._events._pointer) return;
-		$el._events._pointer = true;
-
-		var $parent = $($el.$el.offsetParent);
-		var isInside = null;
-		$parent.on('pointerEnd', function(e) { isInside = null; });
-
-		$parent.on('pointerMove', function(e) {
-			var wasInside = isInside;
-			isInside = checkInside($el, e);
-			if (wasInside != null && isInside && !wasInside) $el.trigger('pointerEnter', e);
-			if (!isInside && wasInside) $el.trigger('pointerLeave', e);
-			if (isInside) $el.trigger('pointerOver', e);
-		});
-	}
-
-
-	// =============================================================================================
-	// SCROLL EVENTS
-	// TODO Add ability to remove scroll events
-
-	M.$.prototype.fixOverflowScroll = function() {
-		if (this._events.fixOverflowScroll) return;
-		this._events.fixOverflowScroll = true;
-
-		var _this = this;
-
-		this.$el.addEventListener('touchstart', function(){
-			// This ensures that overflow bounces happen within container
-			var top = _this.scrollTop();
-			var bottom = _this.$el.scrollHeight - _this.height();
-
-			if(top <= 0) _this.scrollTop(1);
-			if(top >= bottom) _this.scrollTop(bottom - 1);
-		});
-	};
-
-	M.$.prototype.scrollTo = function(pos, time, easing) {
-		var _this = this;
-
-		if (pos < 0) pos = 0;
-		if (time == null) time = 1000;
-		if (!easing) easing = 'cubic';
-
-		var startPosition = this.scrollTop();
-		var distance = pos - startPosition;
-
-		var callback = function(t) {
-			var x = startPosition + distance * M.easing(easing, t);
-			_this.scrollTop(x);
-			_this.trigger('scroll', { top: x });
-		};
-
-		_this.trigger('scrollstart', {});
-		var animation = M.animate(callback, time);
-
-		// TODO cancel scroll events
-		// this.on('scroll', function() { animation.cancel(); });
-		// this.on('touchstart', function() { animation.cancel(); });
-	};
-
-	function makeScrollEvents($el) {
-		if ($el._events._scroll) return;
-		$el._events._scroll = true;
-
-		var scrollTimeout = null;
-		var scrolling = false;
-		var scrollAnimation;
-		var scrollTop;
-
-		function onScroll() {
-			var newScrollTop = $el.scrollTop();
-
-			if (Math.abs(newScrollTop - scrollTop) > 1) {
-				if (scrollTimeout) window.clearTimeout(scrollTimeout);
-				scrollTimeout = null;
-				$el.trigger('scroll', { top: newScrollTop });
-				scrollTop = newScrollTop;
-			} else if (!scrollTimeout) {
-				scrollTimeout = window.setTimeout(end, 100);
-			} else {
-			}
-		}
-
-		function start() {
-			if (scrolling) return;
-			scrolling = true;
-			scrollTop = $el.scrollTop();
-			scrollAnimation = M.animate(onScroll);
-			$el.trigger('scrollstart', {});
-		}
-
-		function move() {
-			if (!scrolling) start();
-		}
-
-		function end() {
-			scrolling = false;
-			scrollAnimation.cancel();
-			$el.trigger('scrollend', {});
-		}
-
-		function touchStart() {
-			window.addEventListener('touchmove', move);
-			window.addEventListener('touchend', touchEnd);
-		}
-
-		function touchEnd() {
-			window.removeEventListener('touchmove', move);
-			window.removeEventListener('touchend', touchEnd);
-		}
-
-		$el.fixOverflowScroll();
-
-		var $target = ($el.$el === M.$body.$el) ? M.$window.$el : $el.$el;
-		$target.addEventListener('wheel', move);
-		$target.addEventListener('mousewheel', move);
-		$target.addEventListener('DOMMouseScroll', move);
-
-		$el.$el.addEventListener('touchstart', touchStart);
-	}
-
-
-	// =============================================================================================
-	// CUSTOM EVENTS
-
-	var customEvents = {
-
-		pointerStart: 'mousedown touchstart',
-		pointerMove:  'mousemove touchmove',
-		pointerEnd:   'mouseup touchend mousecancel touchcancel',
-
-		change: 'propertychange keyup input paste',
-
-		scrollwheel: 'DOMMouseScroll mousewheel',
-
-		click: makeClickEvent,  // no capture!
-
-		pointerEnter: makePointerPositionEvents,  // no capture!
-		pointerLeave: makePointerPositionEvents,  // no capture!
-		pointerOver: makePointerPositionEvents,  // no capture!
-
-		scrollStart: makeScrollEvents,  // no capture!
-		scroll: makeScrollEvents,  // no capture!
-		scrollEnd: makeScrollEvents  // no capture!
-	};
-
-	var shortcuts = ('click scroll change').split(' ');
-
-	shortcuts.each(function(event) {
-		M.$.prototype[event] = function(callback) {
-			if (callback == null) {
-				this.trigger(event);
-			} else {
-				this.on(event, callback);
-			}
-		};
-	});
-
-	M.$.prototype.transitionEnd = function(fn) {
-		this.one('webkitTransitionEnd oTransitionEnd transitionend', fn);
-	};
-
-	M.$.prototype.animationEnd = function(fn) {
-		this.one('webkitAnimationEnd oAnimationEnd animationend', fn);
-	};
-
-
-	// =============================================================================================
-	// EVENT BINDINGS
-
-	function createEvent($el, event, fn, useCapture) {
-		var custom = customEvents[event];
-
-		if (M.isString(custom)) {
-			$el.on(custom, fn, useCapture);
-		} else if (custom) {
-			custom($el);
-		} else {
-			$el.$el.addEventListener(event, fn, !!useCapture);
-		}
-
-		if ($el._events[event]) {
+    // =============================================================================================
+    // EVENT UTILITIES
+
+    M.events = {};
+
+    M.events.isSupported = function(event) {
+        event = 'on' + event;
+        var $el = $N('div');
+        var isSupported = (event in $el.$el);
+        if (!isSupported) {
+            $el.attr(event, 'return;');
+            isSupported = (typeof $el.$el[event] === 'function');
+        }
+        $el.delete();
+        return isSupported;
+    };
+
+    M.events.pointerOffset = function(event, $parent) {
+
+        var t0 = M.now();
+
+        if (event.offsetX && $parent.$el === event.target) {
+            var r1 = new M.geo.Point(event.offsetX, event.offsetY);
+            console.log( 'offset', M.now()-t0 );
+            return r1;
+        }
+        
+        if (!$parent) $parent = $(event.target);
+        var parentXY = $parent.$el.getBoundingClientRect();
+
+        var eventX = event.touches ? event.touches[0].clientX : event.clientX;
+        var eventY = event.touches ? event.touches[0].clientY : event.clientY;
+
+        var offsetX = eventX - parentXY.left;
+        var offsetY = eventY - parentXY.top;
+
+        // If a CSS transform is applied, the offset is calculated in browser pixels, no $parent pixels
+        var scale = $parent.getScale();
+        var r2 = new M.geo.Point(offsetX/scale[0], offsetY/scale[1]);
+        console.log( 'client', M.now()-t0 );
+        return r2;
+    };
+
+    M.events.pointerPosition = function(e) {
+        return new M.geo.Point(
+            e.touches ? e.touches[0].clientX : e.clientX,
+            e.touches ? e.touches[0].clientY : e.clientY
+        );
+    };
+
+    M.events.getWheelDelta = function(e) {
+        var delta = 0;
+        if (e.wheelDelta) delta = e.wheelDelta / 40;
+        if (e.detail) delta = -e.detail / 3.5;
+        return delta;
+    };
+
+    M.events.stop = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+
+    // =============================================================================================
+    // CLICK EVENTS
+    // TODO Add ability to remove click events
+
+    function makeClickEvent($el) {
+        if ($el._events._click) return;
+        $el._events._click = true;
+
+        var waitForEvent = false;
+        var startX, startY;
+        var preventMouse = false;
+
+        $el.$el.addEventListener('click', function(e){
+            e.preventDefault();
+        });
+
+        $el.$el.addEventListener('mousedown', function(e){
+            if (preventMouse) return;
+            waitForEvent = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        $el.$el.addEventListener('mouseup', function(e){
+            if (preventMouse) {
+                preventMouse = false;
+                return;
+            }
+            if (waitForEvent) {
+                var endX = e.clientX;
+                var endY = e.clientY;
+                if (Math.abs(endX - startX) < 2 && Math.abs(endY - startY) < 2) {
+                    $el.trigger('click', e);
+                }
+            }
+            waitForEvent = false;
+        });
+
+        $el.$el.addEventListener('touchstart', function(e){
+            preventMouse = true;
+            if (e.touches.length === 1) {
+                waitForEvent = true;
+                startX = e.changedTouches[0].clientX;
+                startY = e.changedTouches[0].clientY;
+            }
+        });
+
+        $el.$el.addEventListener('touchend', function(e){
+            if (waitForEvent && e.changedTouches.length === 1) {
+                var endX = e.changedTouches[0].clientX;
+                var endY = e.changedTouches[0].clientY;
+                if (Math.abs(endX - startX) < 5 && Math.abs(endY - startY) < 5) {
+                    $el.trigger('click', e);
+                }
+            }
+            waitForEvent = false;
+        });
+
+        $el.$el.addEventListener('touchcancel', function(){
+            waitForEvent = false;
+        });
+    }
+
+
+    // =============================================================================================
+    // POINTER EVENTS
+    // TODO Make pointer more efficient more efficient using *enter and *leave
+    // TODO Add ability to remove pointer events
+
+    var checkInside = function($el, event) {
+        var c = M.events.pointerPosition(event);
+        return ($el.$el === document.elementFromPoint(c.x, c.y));
+    };
+
+    function makePointerPositionEvents($el) {
+        if ($el._events._pointer) return;
+        $el._events._pointer = true;
+
+        var $parent = $($el.$el.offsetParent);
+        var isInside = null;
+        $parent.on('pointerEnd', function(e) { isInside = null; });
+
+        $parent.on('pointerMove', function(e) {
+            var wasInside = isInside;
+            isInside = checkInside($el, e);
+            if (wasInside != null && isInside && !wasInside) $el.trigger('pointerEnter', e);
+            if (!isInside && wasInside) $el.trigger('pointerLeave', e);
+            if (isInside) $el.trigger('pointerOver', e);
+        });
+    }
+
+
+    // =============================================================================================
+    // SCROLL EVENTS
+    // TODO Add ability to remove scroll events
+
+    M.$.prototype.fixOverflowScroll = function() {
+        if (this._events.fixOverflowScroll) return;
+        this._events.fixOverflowScroll = true;
+
+        var _this = this;
+
+        this.$el.addEventListener('touchstart', function(){
+            // This ensures that overflow bounces happen within container
+            var top = _this.scrollTop();
+            var bottom = _this.$el.scrollHeight - _this.height();
+
+            if(top <= 0) _this.scrollTop(1);
+            if(top >= bottom) _this.scrollTop(bottom - 1);
+        });
+    };
+
+    M.$.prototype.scrollTo = function(pos, time, easing) {
+        var _this = this;
+
+        if (pos < 0) pos = 0;
+        if (time == null) time = 1000;
+        if (!easing) easing = 'cubic';
+
+        var startPosition = this.scrollTop();
+        var distance = pos - startPosition;
+
+        var callback = function(t) {
+            var x = startPosition + distance * M.easing(easing, t);
+            _this.scrollTop(x);
+            _this.trigger('scroll', { top: x });
+        };
+
+        _this.trigger('scrollstart', {});
+        var animation = M.animate(callback, time);
+
+        // TODO cancel scroll events
+        // this.on('scroll', function() { animation.cancel(); });
+        // this.on('touchstart', function() { animation.cancel(); });
+    };
+
+    function makeScrollEvents($el) {
+        if ($el._events._scroll) return;
+        $el._events._scroll = true;
+
+        var scrollTimeout = null;
+        var scrolling = false;
+        var scrollAnimation;
+        var scrollTop;
+
+        function onScroll() {
+            var newScrollTop = $el.scrollTop();
+
+            if (Math.abs(newScrollTop - scrollTop) > 1) {
+                if (scrollTimeout) window.clearTimeout(scrollTimeout);
+                scrollTimeout = null;
+                $el.trigger('scroll', { top: newScrollTop });
+                scrollTop = newScrollTop;
+            } else if (!scrollTimeout) {
+                scrollTimeout = window.setTimeout(end, 100);
+            } else {
+            }
+        }
+
+        function start() {
+            if (scrolling) return;
+            scrolling = true;
+            scrollTop = $el.scrollTop();
+            scrollAnimation = M.animate(onScroll);
+            $el.trigger('scrollstart', {});
+        }
+
+        function move() {
+            if (!scrolling) start();
+        }
+
+        function end() {
+            scrolling = false;
+            scrollAnimation.cancel();
+            $el.trigger('scrollend', {});
+        }
+
+        function touchStart() {
+            window.addEventListener('touchmove', move);
+            window.addEventListener('touchend', touchEnd);
+        }
+
+        function touchEnd() {
+            window.removeEventListener('touchmove', move);
+            window.removeEventListener('touchend', touchEnd);
+        }
+
+        $el.fixOverflowScroll();
+
+        var $target = ($el.$el === M.$body.$el) ? M.$window.$el : $el.$el;
+        $target.addEventListener('wheel', move);
+        $target.addEventListener('mousewheel', move);
+        $target.addEventListener('DOMMouseScroll', move);
+
+        $el.$el.addEventListener('touchstart', touchStart);
+    }
+
+
+    // =============================================================================================
+    // CUSTOM EVENTS
+
+    var customEvents = {
+
+        pointerStart: 'mousedown touchstart',
+        pointerMove:  'mousemove touchmove',
+        pointerEnd:   'mouseup touchend mousecancel touchcancel',
+
+        change: 'propertychange keyup input paste',
+
+        scrollwheel: 'DOMMouseScroll mousewheel',
+
+        click: makeClickEvent,  // no capture!
+
+        pointerEnter: makePointerPositionEvents,  // no capture!
+        pointerLeave: makePointerPositionEvents,  // no capture!
+        pointerOver: makePointerPositionEvents,  // no capture!
+
+        scrollStart: makeScrollEvents,  // no capture!
+        scroll: makeScrollEvents,  // no capture!
+        scrollEnd: makeScrollEvents  // no capture!
+    };
+
+    var shortcuts = ('click scroll change').split(' ');
+
+    shortcuts.each(function(event) {
+        M.$.prototype[event] = function(callback) {
+            if (callback == null) {
+                this.trigger(event);
+            } else {
+                this.on(event, callback);
+            }
+        };
+    });
+
+    M.$.prototype.transitionEnd = function(fn) {
+        this.one('webkitTransitionEnd oTransitionEnd transitionend', fn);
+    };
+
+    M.$.prototype.animationEnd = function(fn) {
+        this.one('webkitAnimationEnd oAnimationEnd animationend', fn);
+    };
+
+
+    // =============================================================================================
+    // EVENT BINDINGS
+
+    function createEvent($el, event, fn, useCapture) {
+        var custom = customEvents[event];
+
+        if (M.isString(custom)) {
+            $el.on(custom, fn, useCapture);
+        } else if (custom) {
+            custom($el);
+        } else {
+            $el.$el.addEventListener(event, fn, !!useCapture);
+        }
+
+        if ($el._events[event]) {
             if (!$el._events[event].has(fn)) $el._events[event].push(fn);
         } else {
             $el._events[event] = [fn];
         }
-	}
+    }
 
-	function removeEvent($el, event, fn, useCapture) {
-		var custom = customEvents[event];
+    function removeEvent($el, event, fn, useCapture) {
+        var custom = customEvents[event];
 
-		if (M.isString(custom)) {
-			$el.off(custom, fn, useCapture);
-			return;
-		} else if (!custom) {
-			$el.$el.removeEventListener(event, fn, !!useCapture);
-		}
+        if (M.isString(custom)) {
+            $el.off(custom, fn, useCapture);
+            return;
+        } else if (!custom) {
+            $el.$el.removeEventListener(event, fn, !!useCapture);
+        }
 
-		if ($el._events[event]) $el._events[event] = $el._events[event].without(fn);
-	}
+        if ($el._events[event]) $el._events[event] = $el._events[event].without(fn);
+    }
 
-	M.$.prototype.on = function(type, fn, useCapture) {
-		var _this = this;
-		if (arguments.length > 1) {
-			type.words().each(function(event) {
-				createEvent(_this, event, fn, useCapture);
-			});
-		} else {
-			M.each(type, function(callback, event) {
-				createEvent(_this, event, callback);
-			});
-		}
-	};
+    M.$.prototype.on = function(type, fn, useCapture) {
+        var _this = this;
+        if (arguments.length > 1) {
+            type.words().each(function(event) {
+                createEvent(_this, event, fn, useCapture);
+            });
+        } else {
+            M.each(type, function(callback, event) {
+                createEvent(_this, event, callback);
+            });
+        }
+    };
 
-	M.$.prototype.one = function(events, fn, useCapture) {
-		var _this = this;
-		function callback() {
-			_this.off(events, callback, useCapture);
-			fn(arguments);
-		}
-		this.on(events, callback, useCapture);
-	};
+    M.$.prototype.one = function(events, fn, useCapture) {
+        var _this = this;
+        function callback() {
+            _this.off(events, callback, useCapture);
+            fn(arguments);
+        }
+        this.on(events, callback, useCapture);
+    };
 
-	M.$.prototype.off = function(type, fn, useCapture) {
-		var _this = this;
-		type.words().each(function(event) {
-			removeEvent(_this, event, fn, useCapture);
-		});
-	};
+    M.$.prototype.off = function(type, fn, useCapture) {
+        var _this = this;
+        type.words().each(function(event) {
+            removeEvent(_this, event, fn, useCapture);
+        });
+    };
 
-	M.$.prototype.trigger = function(event, args) {
-		if (!this._events[event]) return;
-		var _this = this;
-		M.each(this._events[event], function(fn) { fn.call(_this, args); });
-	};
+    M.$.prototype.trigger = function(event, args) {
+        if (!this._events[event]) return;
+        var _this = this;
+        M.each(this._events[event], function(fn) { fn.call(_this, args); });
+    };
 
-	// var evt;
-	// try {
-	//     evt = new CustomEvent(eventName, {detail: eventData, bubbles: true, cancelable: true});
-	// } catch (e) {
-	//     evt = document.createEvent('Event');
-	//     evt.initEvent(eventName, true, true);
-	//     evt.detail = eventData;
-	// }
-	// this.$el.dispatchEvent(evt);
-
-
-	// =============================================================================================
-	// KEYBOARD EVENTS
-	// TODO Make keyboard events follow .on syntax
-
-	M.activeInput = function() {
-	    return document.activeElement === document.body ? undefined : document.activeElement;
-	};
-
-	// Executes fn if any one of [keys] is pressed
-	M.keyboardEvent = function(keys, fn) {
-	    if (!(keys instanceof Array)) keys = [keys];
-	    document.addEventListener('keydown', function(e){
-	        var k = e.keyCode || e.which;
-	        for (var i=0; i<keys.length; ++i) {
-	            if (k === keys[i] && !M.activeInput()) {
-	                e.preventDefault();
-	                fn(e);
-	            }
-	        }
-	    });
-	};
-
-	// Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
-	M.keyboardMultiEvent = function(key1, key2, fn1, fn2) {
-	    var key2down = false;
-
-	    document.addEventListener('keydown', function(e){
-	        var k = e.keyCode || e.which;
-
-	        if (k === key2) {
-	            key2down = true;
-	        } else if (key2down && k === key1 && !M.activeInput()) {
-	            e.preventDefault();
-	            fn2(e);
-	        } else if (k === key1 && !M.activeInput()) {
-	            e.preventDefault();
-	            fn1(e);
-	        }
-	    });
-
-	    document.addEventListener('keyup', function(e){
-	        var k = e.keyCode || e.which;
-	        if (k === key2) key2down = false;
-	    });
-	};
+    // var evt;
+    // try {
+    //     evt = new CustomEvent(eventName, {detail: eventData, bubbles: true, cancelable: true});
+    // } catch (e) {
+    //     evt = document.createEvent('Event');
+    //     evt.initEvent(eventName, true, true);
+    //     evt.detail = eventData;
+    // }
+    // this.$el.dispatchEvent(evt);
 
 
-	// =============================================================================================
-	// RESIZE EVENTS
-	// TODO Add ability to remove resize events
-	// TODO Use M.Queue to store resize events
+    // =============================================================================================
+    // KEYBOARD EVENTS
+    // TODO Make keyboard events follow .on syntax
 
-	// Multiple queues, to allow ordering of resize events
-	var events = [[], [], []];
+    M.activeInput = function() {
+        return document.activeElement === document.body ? undefined : document.activeElement;
+    };
 
-	var trigger = function() {
-		var size = [window.innerWidth, window.innerHeight];
-		events.each(function(queue) {
-			queue.each(function(fn) {
-				fn.call(null, size);
-			});
-		});
-	};
+    // Executes fn if any one of [keys] is pressed
+    M.keyboardEvent = function(keys, fn) {
+        if (!(keys instanceof Array)) keys = [keys];
+        document.addEventListener('keydown', function(e){
+            var k = e.keyCode || e.which;
+            for (var i=0; i<keys.length; ++i) {
+                if (k === keys[i] && !M.activeInput()) {
+                    e.preventDefault();
+                    fn(e);
+                }
+            }
+        });
+    };
 
-	M.resize = function(fn, queue) {
-		if (fn) {
-			events[queue||0].push(fn);
-		} else {
-			trigger();
-		}
-	};
+    // Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
+    M.keyboardMultiEvent = function(key1, key2, fn1, fn2) {
+        var key2down = false;
 
-	var timeout = null;
-	M.$window.on('resize', function() {
-		clearTimeout(timeout);
-		timeout = setTimeout(function() {
-			trigger();
-		}, 50);
-	});
+        document.addEventListener('keydown', function(e){
+            var k = e.keyCode || e.which;
+
+            if (k === key2) {
+                key2down = true;
+            } else if (key2down && k === key1 && !M.activeInput()) {
+                e.preventDefault();
+                fn2(e);
+            } else if (k === key1 && !M.activeInput()) {
+                e.preventDefault();
+                fn1(e);
+            }
+        });
+
+        document.addEventListener('keyup', function(e){
+            var k = e.keyCode || e.which;
+            if (k === key2) key2down = false;
+        });
+    };
+
+
+    // =============================================================================================
+    // RESIZE EVENTS
+    // TODO Add ability to remove resize events
+    // TODO Use M.Queue to store resize events
+
+    // Multiple queues, to allow ordering of resize events
+    var events = [[], [], []];
+
+    var trigger = function() {
+        var size = [window.innerWidth, window.innerHeight];
+        events.each(function(queue) {
+            queue.each(function(fn) {
+                fn.call(null, size);
+            });
+        });
+    };
+
+    M.resize = function(fn, queue) {
+        if (fn) {
+            events[queue||0].push(fn);
+        } else {
+            trigger();
+        }
+    };
+
+    var timeout = null;
+    M.$window.on('resize', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(function() {
+            trigger();
+        }, 50);
+    });
 
 })();
 

@@ -32,7 +32,7 @@
         function getFrame() {
             if (running && (!duration || time <= duration)) M.animationFrame(getFrame);
             time = +new Date() - startTime;
-            callback(duration ? time/duration : time);
+            callback(duration ? Math.min(1,time/duration) : time);
         }
 
         getFrame();
