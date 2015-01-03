@@ -1193,6 +1193,8 @@ M.cookie = {
 
     M.$.prototype.getTransitions = function() {
         var s = window.getComputedStyle(this.$el);
+        if (s.getPropertyValue('transition') === 'all 0s ease 0s') return [];
+
         var delay    = s.getPropertyValue('transition-delay').split(',');
         var duration = s.getPropertyValue('transition-duration').split(',');
         var property = s.getPropertyValue('transition-property').split(',');
@@ -1244,7 +1246,7 @@ M.cookie = {
         });
 
         // Set transition values of elements
-        var oldTransition = s.getPropertyValue(M.prefix('transition'));
+        var oldTransition = s.getPropertyValue('transition').replace('all 0s ease 0s', '');
         this.setTransitions(M.merge(this.getTransitions(), props));
         M.redraw();
 
@@ -1256,13 +1258,17 @@ M.cookie = {
         // Remove new transition values
         this.transitionEnd(function() {
             if (!cancelled) {
-                _this.css(M.prefix('transition'), oldTransition);
+                _this.css('transition', oldTransition);
                 M.redraw();
                 if (callback) callback.call(_this);
             }
         });
 
-        this._animation = { cancel: function() { cancelled = true; } };
+        this._animation = { cancel: function() {
+            cancelled = true;
+            _this.css('transition', oldTransition);
+            M.redraw();
+        } };
         return this._animation;
     };
 
@@ -1280,7 +1286,7 @@ M.cookie = {
     };
 
     M.$.prototype.enter = function(effect, time, delay) {
-        this.css('visibility', 'visible');
+        this.show();
         if (!time) return;
         if (!effect) effect = 'fade';
 
@@ -1288,12 +1294,17 @@ M.cookie = {
             this.animate({ css: 'opacity', from: 0, to: 1, duration: time });
 
         } else if (effect === 'pop') {
-            this.css('opacity', '1');
-            this.animate({
-                css: M.prefix('transform'),
-                from: 'scale(0)', to: 'scale(1)', delay: delay,
-                duration: time, timing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            });
+            // TODO Remove ugly bug to get pop animations to work with transformed elements
+            var transform = this.$el.style[M.prefix('transform')].replace('none', '')
+                                 .replace(/scale\([0-9\.]*\)/, '');
+            var from = transform + ' scale(0.5)';
+            var to   = transform + ' scale(1)';
+
+            this.animate([
+                { css: M.prefix('transform'), from: from, to: to, delay: delay,
+                  duration: time, timing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' },
+                { css: 'opacity', from: 0, to: 1, delay: delay, duration: time }
+            ]);
 
         } else if (effect === 'draw') {
             var l = this.getStrokeLength();
@@ -1304,16 +1315,30 @@ M.cookie = {
 
     M.$.prototype.exit = function(effect, time, delay) {
         var _this = this;
-        if (!time) { this.css('visibility', 'hidden'); return; }
+        var end = function() { _this.hide(); };
+        if (!time) { end(); return; }
         if (!effect) effect = 'fade';
 
         if (effect === 'fade') {
-            this.animate({ css: 'opacity', from: 1, to: 0, duration: time },
-                         function() { _this.css('visibility', 'hidden'); });
+            this.animate({ css: 'opacity', from: 1, to: 0, delay: delay, duration: time }, end);
+
+        } else if (effect === 'pop') {
+            // TODO Remove ugly bug to get pop animations to work with transformed elements
+            var transform = this.$el.style[M.prefix('transform')].replace('none', '')
+                                 .replace(/scale\([0-9\.]*\)/, '');
+            var from = transform + ' scale(1)';
+            var to   = transform + ' scale(0.5)';
+
+            this.animate([
+                { css: M.prefix('transform'), from: from, to: to, delay: delay,
+                  duration: time, timing: 'cubic-bezier(0.68, -0.275, 0.825, 0.115)' },
+                { css: 'opacity', from: 1, to: 0, delay: delay, duration: time }
+            ], end, true);
+
         } else if (effect === 'draw') {
             var l = this.getStrokeLength();
             this.css('stroke-dasharray', l + ' ' + l);
-            this.animate({ css: 'stroke-dashoffset', from: 0, to: l, delay: delay, duration: time });
+            this.animate({ css: 'stroke-dashoffset', from: 0, to: l, delay: delay, duration: time }, end);
         }
     };
 
@@ -1439,13 +1464,8 @@ M.cookie = {
 
     M.events.pointerOffset = function(event, $parent) {
 
-        var t0 = M.now();
-
-        if (event.offsetX && $parent.$el === event.target) {
-            var r1 = new M.geo.Point(event.offsetX, event.offsetY);
-            console.log( 'offset', M.now()-t0 );
-            return r1;
-        }
+        if (event.offsetX && $parent.$el === event.target)
+            return new M.geo.Point(event.offsetX, event.offsetY);
         
         if (!$parent) $parent = $(event.target);
         var parentXY = $parent.$el.getBoundingClientRect();
@@ -1458,9 +1478,7 @@ M.cookie = {
 
         // If a CSS transform is applied, the offset is calculated in browser pixels, no $parent pixels
         var scale = $parent.getScale();
-        var r2 = new M.geo.Point(offsetX/scale[0], offsetY/scale[1]);
-        console.log( 'client', M.now()-t0 );
-        return r2;
+        return new M.geo.Point(offsetX/scale[0], offsetY/scale[1]);
     };
 
     M.events.pointerPosition = function(e) {

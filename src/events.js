@@ -27,7 +27,7 @@
     M.events.pointerOffset = function(event, $parent) {
 
         if (event.offsetX && $parent.$el === event.target)
-            return = new M.geo.Point(event.offsetX, event.offsetY);
+            return new M.geo.Point(event.offsetX, event.offsetY);
         
         if (!$parent) $parent = $(event.target);
         var parentXY = $parent.$el.getBoundingClientRect();
