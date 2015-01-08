@@ -24,10 +24,18 @@
         return isSupported;
     };
 
+    var scaleParentCache = {};
+    var scaleCache = {};  // this is set to empty on resize below
+
     M.events.pointerOffset = function(event, $parent) {
 
         if (event.offsetX && $parent.$el === event.target)
             return new M.geo.Point(event.offsetX, event.offsetY);
+
+        // Cache the scale parent and scale transform for better performance
+        var id = $parent._data.id = $parent._data.id || M.uid();
+        if (!scaleParentCache[id]) scaleParentCache[id] = $parent.parents('.frame')[0] || $parent;
+        if (!scaleCache[id]) scaleCache[id] = scaleParentCache[id].getScale();
         
         if (!$parent) $parent = $(event.target);
         var parentXY = $parent.$el.getBoundingClientRect();
@@ -39,8 +47,7 @@
         var offsetY = eventY - parentXY.top;
 
         // If a CSS transform is applied, the offset is calculated in browser pixels, no $parent pixels
-        var scale = $parent.getScale();
-        return new M.geo.Point(offsetX/scale[0], offsetY/scale[1]);
+        return new M.geo.Point(offsetX/scaleCache[id][0], offsetY/scaleCache[id][1]);
     };
 
     M.events.pointerPosition = function(e) {
@@ -442,6 +449,7 @@
     var events = [[], [], []];
 
     var trigger = function() {
+        scaleCache = {};
         var size = [window.innerWidth, window.innerHeight];
         events.each(function(queue) {
             queue.each(function(fn) {
