@@ -23,7 +23,7 @@ M.boost = true;
 	    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
 	    imgExt:   ((window.devicePixelRatio || 1) > 1.25) ? '@2x' : '',
 
-	    isChrome: ua.toLowerCase().indexOf('chrome') >= 0,
+	    isChrome: window.chrome,
 	    isIE: isIE,
 
 	    hasHistory: window.history && window.history.pushState && (!isIE || ua.indexOf('MSIE 1') >= 0),
@@ -37,7 +37,7 @@ M.boost = true;
 	    document.body.offsetHeight;
 	};
 
-	M.now = Date.now || function getTime () { return new Date().getTime(); };
+	M.now = Date.now || function() { return +(new Date()); };
 
 	M.toCamelCase = function(str) {
 	    return str.toLowerCase().replace(/^-/,'').replace(/-(.)/g, function(match, g) {
@@ -102,29 +102,16 @@ M.boost = true;
 	    }
 	};
 
-    var cache = {};
-    var style;
-    var prefixes = {'webkit': 'webkit', 'moz': 'Moz', 'ms': 'ms'};
+    var style = document.createElement('div').style;
+    var prefixes = [['webkit', 'webkit'], ['moz', 'Moz'], ['ms', 'ms'], ['O', 'o']];
 
-	// document.body doesn't exist if this file is included in the <head> of an html file
-	M.onload(function(){ style = document.body.style; });
-
-    var findCssPrefix = function(name) {
-        var rule = M.toCamelCase(name);
-        if (style[rule] != null) return name;
-        rule = rule.toTitleCase();
-        for (var v in prefixes) {
-            if (style[prefixes[v] + rule] != null) return '-' + v + '-' + name;
-        }
-        return name;
-    };
-
-    M.prefix = function(name) {
-        if (cache[name]) return cache[name];
-        var rule = findCssPrefix(name);
-        cache[name] = rule;
-        return rule;
-    };
+	M.prefix = M.cache(function(name) {
+	    var rule = M.toCamelCase(name).toTitleCase();
+	    for (var i = 0; i < prefixes.length; ++i) {
+	        if (style[prefixes[i][1] + rule] != null) return '-' + prefixes[i][0] + '-' + name;
+	    }
+	    return name;
+	});
 
 })();
 
@@ -1155,7 +1142,6 @@ M.cookie = {
         var rAF = window.requestAnimationFrame ||
             window.webkitRequestAnimationFrame ||
             window.mozRequestAnimationFrame    ||
-            window.msRequestAnimationFrame     ||
             function (callback) { return window.setTimeout(callback, 20); };
         return function(fn) { return rAF(fn); };
     })();
@@ -1164,13 +1150,12 @@ M.cookie = {
           var cAF = window.cancelAnimationFrame ||
             window.webkitCancelAnimationFrame ||
             window.mozCancelAnimationFrame    ||
-            window.msCancelAnimationFrame     ||
             window.clearTimeout;
           return function(id) { return cAF(id); };
     })();
 
     M.animate = function(callback, duration) {
-        var startTime = +new Date();
+        var startTime = M.now();
         var time = 0;
 		var running = true;
 
@@ -1417,6 +1402,12 @@ M.cookie = {
             case 'elastic':
                 if (s == null) s = 0.3;
                 return - Math.pow(2, 10 * (t - 1)) * Math.sin(((t - 1) * 2 / s - 0.5) * Math.PI );
+
+            case 'swing':
+                return 0.5 - Math.cos(t * Math.PI) / 2;
+
+            case 'spring':
+                return 1 - (Math.cos(t * 4.5 * Math.PI) * Math.exp(-p * 6));
 
             case 'bounce':
                 if (t < 1/11) return 1/64 - 7.5625 * (0.5/11 - t) * (0.5/11 - t);  // 121/16 = 7.5625

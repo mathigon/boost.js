@@ -10,7 +10,6 @@
         var rAF = window.requestAnimationFrame ||
             window.webkitRequestAnimationFrame ||
             window.mozRequestAnimationFrame    ||
-            window.msRequestAnimationFrame     ||
             function (callback) { return window.setTimeout(callback, 20); };
         return function(fn) { return rAF(fn); };
     })();
@@ -19,13 +18,12 @@
           var cAF = window.cancelAnimationFrame ||
             window.webkitCancelAnimationFrame ||
             window.mozCancelAnimationFrame    ||
-            window.msCancelAnimationFrame     ||
             window.clearTimeout;
           return function(id) { return cAF(id); };
     })();
 
     M.animate = function(callback, duration) {
-        var startTime = +new Date();
+        var startTime = M.now();
         var time = 0;
 		var running = true;
 
@@ -272,6 +270,12 @@
             case 'elastic':
                 if (s == null) s = 0.3;
                 return - Math.pow(2, 10 * (t - 1)) * Math.sin(((t - 1) * 2 / s - 0.5) * Math.PI );
+
+            case 'swing':
+                return 0.5 - Math.cos(t * Math.PI) / 2;
+
+            case 'spring':
+                return 1 - (Math.cos(t * 4.5 * Math.PI) * Math.exp(-p * 6));
 
             case 'bounce':
                 if (t < 1/11) return 1/64 - 7.5625 * (0.5/11 - t) * (0.5/11 - t);  // 121/16 = 7.5625
