@@ -1,6 +1,6 @@
 // =================================================================================================
 // Boost.js | AJAX Functions
-// (c) 2014 Mathigon / Philipp Legner
+// (c) 2015 Mathigon / Philipp Legner
 // =================================================================================================
 
 
@@ -38,6 +38,10 @@ M.fromQueryString = function(string) {
 
 // -------------------------------------------------------------------------------------------------
 // AJAX
+
+// TODO more roubust
+// TODO return a promise
+// TODO use navigator.online
 
 M.ajax = function(url, options) {
 

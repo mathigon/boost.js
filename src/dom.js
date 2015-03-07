@@ -1,6 +1,6 @@
 // =================================================================================================
 // Boost.js | DOM Helpers
-// (c) 2014 Mathigon / Philipp Legner
+// (c) 2015 Mathigon / Philipp Legner
 // =================================================================================================
 
 
@@ -264,6 +264,14 @@
         return this.$el.scrollHeight;
     };
 
+    M.$.prototype.offsetTop = function() {
+        return this.$el.offsetTop;
+    };
+
+    M.$.prototype.offsetLeft = function() {
+        return this.$el.offsetLeft;
+    };
+
     M.$.prototype.offset = function($parent) {
 
         if ($parent === 'parent') $parent = this.parent();
@@ -287,8 +295,7 @@
 
         // Get offset based on viewport
         } else {
-            box = this.$el.getBoundingClientRect();
-            return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
+            return this.$el.getBoundingClientRect();
         }
     };
 
@@ -301,6 +308,7 @@
             } else {
                 this.$el.scrollTop = y;
             }
+            this.trigger('scroll', { top: y });
         }
     };
 
@@ -313,6 +321,7 @@
             } else {
                 this.$el.scrollLeft = x;
             }
+            this.trigger('scroll', { left: x });
         }
     };
 
@@ -515,6 +524,15 @@
             parent = parent.parent();
         }
         return parents;
+    };
+
+    M.$.prototype.hasParent = function($p) {
+        var parent = this.parent();
+        while (parent) {
+            if (parent.$el === $p.$el) return true;
+            parent = parent.parent();
+        }
+        return false;
     };
 
     M.$.prototype.children = function(selector) {

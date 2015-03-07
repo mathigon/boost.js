@@ -1,6 +1,6 @@
 // =================================================================================================
 // Boost.js | Browser Utilities
-// (c) 2014 Mathigon / Philipp Legner
+// (c) 2015 Mathigon / Philipp Legner
 // =================================================================================================
 
 
@@ -13,7 +13,7 @@ M.boost = true;
 (function() {
 
 	var ua = window.navigator.userAgent;
-	var isIE = (ua.indexOf('MSIE ') >= 0) || !!ua.match(/Trident.*rv\:11\./);
+	var isIE = (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0);
 
 	M.browser = {
 	    width:    window.innerWidth,

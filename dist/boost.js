@@ -1,5 +1,5 @@
 // Boost Browser and DOM Tools
-// (c) 2014, Mathigon / Philipp Legner
+// (c) 2015, Mathigon / Philipp Legner
 // MIT License (https://github.com/Mathigon/boost.js/blob/master/LICENSE)
 
  (function() {
@@ -11,7 +11,7 @@ M.boost = true;
 (function() {
 
 	var ua = window.navigator.userAgent;
-	var isIE = (ua.indexOf('MSIE ') >= 0) || !!ua.match(/Trident.*rv\:11\./);
+	var isIE = (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0);
 
 	M.browser = {
 	    width:    window.innerWidth,
@@ -504,21 +504,23 @@ M.cookie = {
     var popped = ('state' in window.history);
     var initialURL = location.href;
 
-    window.addEventListener('popstate', function(e){
+    window.onpopstate = function(e) {
         var validPop = popped || location.href === initialURL;
         popped = true;
+
         if (!validPop) return;
 
         path = window.location.pathname;
         hash = window.location.hash.replace(/^#/, '');
 
-        if (!e.state) return;
-        var newId = e.state.id;
-        M.history.trigger('change', e.state.state);
-        if (newId < id) M.history.trigger('back', e.state.state);
-        if (newId > id) M.history.trigger('forward', e.state.state);
+        var state = e.state || { id: 0, state: { url: path } };
+        var newId = state.id;
+
+        M.history.trigger('change', state.state);
+        if (newId < id) M.history.trigger('back', state.state);
+        if (newId > id) M.history.trigger('forward', state.state);
         id = newId;
-    });
+    };
 
 })();
 
@@ -826,6 +828,14 @@ M.cookie = {
         return this.$el.scrollHeight;
     };
 
+    M.$.prototype.offsetTop = function() {
+        return this.$el.offsetTop;
+    };
+
+    M.$.prototype.offsetLeft = function() {
+        return this.$el.offsetLeft;
+    };
+
     M.$.prototype.offset = function($parent) {
 
         if ($parent === 'parent') $parent = this.parent();
@@ -849,8 +859,7 @@ M.cookie = {
 
         // Get offset based on viewport
         } else {
-            box = this.$el.getBoundingClientRect();
-            return { top: box.top, left: box.left, bottom: box.bottom, right: box.right };
+            return this.$el.getBoundingClientRect();
         }
     };
 
@@ -863,6 +872,7 @@ M.cookie = {
             } else {
                 this.$el.scrollTop = y;
             }
+            this.trigger('scroll', { top: y });
         }
     };
 
@@ -875,6 +885,7 @@ M.cookie = {
             } else {
                 this.$el.scrollLeft = x;
             }
+            this.trigger('scroll', { left: x });
         }
     };
 
@@ -1077,6 +1088,15 @@ M.cookie = {
             parent = parent.parent();
         }
         return parents;
+    };
+
+    M.$.prototype.hasParent = function($p) {
+        var parent = this.parent();
+        while (parent) {
+            if (parent.$el === $p.$el) return true;
+            parent = parent.parent();
+        }
+        return false;
     };
 
     M.$.prototype.children = function(selector) {

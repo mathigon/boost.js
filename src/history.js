@@ -1,6 +1,6 @@
 // =================================================================================================
 // Boost.js | History Utilities
-// (c) 2014 Mathigon / Philipp Legner
+// (c) 2015 Mathigon / Philipp Legner
 // =================================================================================================
 
 
@@ -62,20 +62,22 @@
     var popped = ('state' in window.history);
     var initialURL = location.href;
 
-    window.addEventListener('popstate', function(e){
+    window.onpopstate = function(e) {
         var validPop = popped || location.href === initialURL;
         popped = true;
+
         if (!validPop) return;
 
         path = window.location.pathname;
         hash = window.location.hash.replace(/^#/, '');
 
-        if (!e.state) return;
-        var newId = e.state.id;
-        M.history.trigger('change', e.state.state);
-        if (newId < id) M.history.trigger('back', e.state.state);
-        if (newId > id) M.history.trigger('forward', e.state.state);
+        var state = e.state || { id: 0, state: { url: path } };
+        var newId = state.id;
+
+        M.history.trigger('change', state.state);
+        if (newId < id) M.history.trigger('back', state.state);
+        if (newId > id) M.history.trigger('forward', state.state);
         id = newId;
-    });
+    };
 
 })();
