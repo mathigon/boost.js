@@ -103,14 +103,16 @@ M.boost = true;
 	};
 
     var style = document.createElement('div').style;
-    var prefixes = [['webkit', 'webkit'], ['moz', 'Moz'], ['ms', 'ms'], ['O', 'o']];
+    var prefixes = ['webkit', 'Moz', 'ms', 'O'];
 
 	M.prefix = M.cache(function(name) {
-	    var rule = M.toCamelCase(name).toTitleCase();
+	    var rule = M.toCamelCase(name);
+		if (style[name] != null) return name; 
+
+	    rule = rule.toTitleCase();
 	    for (var i = 0; i < prefixes.length; ++i) {
-	        if (style[prefixes[i][1] + rule] != null) return '-' + prefixes[i][0] + '-' + name;
+	        if (style[prefixes[i] + rule] != null) return prefixes[i] + rule;
 	    }
-	    return name;
 	});
 
 })();
@@ -149,6 +151,10 @@ M.fromQueryString = function(string) {
 
 // -------------------------------------------------------------------------------------------------
 // AJAX
+
+// TODO more roubust
+// TODO return a promise
+// TODO use navigator.online
 
 M.ajax = function(url, options) {
 
