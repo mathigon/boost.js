@@ -4,190 +4,115 @@
 // =================================================================================================
 
 
-// -------------------------------------------------------------------------------------------------
-// String Conversions
 
-M.toQueryString = function(data) {
-    var pairs = [];
-
-    M.each(data, function(value, key) {
-        key = encodeURIComponent(key);
-        if (value == null) { pairs.push(key); return; }
-        value = M.isArray(value) ? value.join(',') : '' + value;
-        value = value.replace(/(\r)?\n/g, '\r\n');
-        value = encodeURIComponent(value);
-        value = value.replace(/%20/g, '+');
-
-        pairs.push(key + '=' + value);
-    });
-
-    return pairs.join('&');
-};
-
-M.fromQueryString = function(string) {
-    string = string.replace(/^[?,&]/,'');
-    var pairs = decodeURIComponent(string).split('&');
-    var result = {};
-    pairs.each(function(pair) {
-        var x = pair.split('=');
-        result[x[0]] = x[1];
-    });
-    return result;
-};
+import $ from 'element';
+import Evented from 'evented';
 
 
-// -------------------------------------------------------------------------------------------------
-// AJAX
+export default class Ajax extends Evented {
 
-// TODO more roubust
-// TODO return a promise
-// TODO use navigator.online
+    // ---------------------------------------------------------------------------------------------
+    // Static Methods
 
-M.ajax = function(url, options) {
+    static toQueryString(data) {
+        let pairs = [];
 
-    if (!options) options = {};
-    var xhr = new XMLHttpRequest();
+        for (let key of data) {
+            let value = data[key];
+            key = encodeURIComponent(key);
+            if (value == null) { pairs.push(key); return; }
+            value = Array.isArray(value) ? value.join(',') : '' + value;
+            value = value.replace(/(\r)?\n/g, '\r\n');
+            value = encodeURIComponent(value);
+            value = value.replace(/%20/g, '+');
+            pairs.push(key + '=' + value);
+        };
 
-    var respond = function() {
-        var status = xhr.status;
-
-        if (!status && xhr.responseText || status >= 200 && status < 300 || status === 304) {
-            if (!options.success) return;
-
-            if (options.dataType === 'html') {
-                var doc = document.implementation.createHTMLDocument('');
-                doc.documentElement.innerHTML = xhr.responseText;
-                //doc.open();
-                //doc.write(xhr.responseText);
-                //doc.close();
-                /* TODO Scripts in Ajax DOM
-                $T('script', doc).each(function(script){
-                    var s = $N('script', { html: script.html() });
-                    document.body.appendChild(s.$el);
-                });
-                */
-                options.success($(doc));
-            } else if (options.dataType === 'json') {
-                options.success(JSON.parse(xhr.responseText));
-            } else {
-                options.success(xhr.responseText);
-            }
-
-        } else {
-            if (options.error) options.error(xhr);
-        }
-    };
-
-    if (xhr.onload) {
-        xhr.onload = xhr.onerror = respond;
-    } else {
-        xhr.onreadystatechange = function() { if (xhr.readyState === 4) respond(); };
+        return pairs.join('&');
     }
 
-    // Default URL
-    if (!options.url) options.url = window.location.toString();
-
-    // GET Data
-    if (options.method === 'GET' || options.method === 'HEAD') {
-        url += (url.indexOf('?') >= 0 ? '&' : '?');
-        if (options.data) url += M.toQueryString(options.data) + '&';
-        if (options.cache === false) url += '_nocache=' + Date.now();
+    static fromQueryString(str) {
+        str = str.replace(/^[?,&]/,'');
+        let pairs = decodeURIComponent(str).split('&');
+        let result = {};
+        pairs.forEach(function(pair) {
+            let x = pair.split('=');
+            result[x[0]] = x[1];
+        });
+        return result;
     }
 
-    // Open XHR Request
-    if (options.async == null) options.async = 'true';
-    xhr.open(options.method ? options.method.toUpperCase() : 'GET',
-             url, options.async, options.user, options.password);
+    static formatResponse(response, type) {
+        switch(type) {
 
-    // Additional headers
-    if (options.headers && xhr.setRequestHeader)
-        M.each(options.headers, function(header, value) {
-			xhr.setRequestHeader(header, value);
-		});
+            case 'html':
+            var doc = document.implementation.createHTMLDocument('');
+            doc.documentElement.innerHTML = response;
+            return $(doc);
+ 
+            case: 'json':
+            return JSON.parse(response);
 
-    // Check for crossDomain
-    if (options.crossDomain == null) options.crossDomain =
-        /^([\w-]+:)?\/\/([^\/]+)/.test(options.url) && RegExp.$2 !== window.location.host;
-    if (options.crossDomain) xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-    // POST Data
-    var postData = null;
-    if (options.processData == null) options.processData = true;
-    if (options.contentType == null) options.contentType = 'application/x-www-form-urlencoded';
-
-    if (options.data && (options.method === 'POST' || options.method === 'PUT')) {
-        var postDataInstances = [ArrayBuffer, Blob, Document, FormData];
-        if (!options.processData || postDataInstances.indexOf(options.data.constructor) >= 0) {
-            postData = options.data;
-        } else {
-            // NOTE Check Ajax Post Data
-            var boundary = '---------------------------' + Date.now().toString(16);
-            if (options.contentType === 'multipart\/form-data') {
-                xhr.setRequestHeader('Content-Type', 'multipart\/form-data; boundary=' + boundary);
-            } else {
-                xhr.setRequestHeader('Content-Type', options.contentType);
-            }
-            postData = '';
-            var _data = M.toQueryString(options.data);
-            if (options.contentType === 'multipart\/form-data') {
-                boundary = '---------------------------' + Date.now().toString(16);
-                _data = _data.split('&');
-                var _newData = [];
-                for (var i = 0; i < _data.length; i++) {
-                    _newData.push('Content-Disposition: form-data; name="' +
-						_data[i].split('=')[0] + '"\r\n\r\n' + _data[i].split('=')[1] + '\r\n');
-                }
-                postData = '--' + boundary + '\r\n' + _newData.join('--' + boundary + '\r\n') +
-					'--' + boundary + '--\r\n';
-            } else {
-                postData = options.contentType === 'application/x-www-form-urlencoded' ?
-					_data : _data.replace(/&/g, '\r\n');
-            }
+            default:
+            return response;
         }
     }
 
-    // Send XHR Request
-    xhr.send(postData);
-};
 
+    // ---------------------------------------------------------------------------------------------
+    // Constructor Functions
 
-// -------------------------------------------------------------------------------------------------
-// Request Wrappers
+    constructor(type = 'GET', url, data = '', options = { async: true, cache: true }) {
+        
+        // TODO use window.fetch() instead
 
-M.get = function (url, data, success) {
-    return M.ajax(url, {
-        method: 'GET',
-        dataType: 'html',
-        data: typeof data === 'function' ? null : data,
-        success: typeof data === 'function' ? data : success
-    });
-};
+        if (!(this instanceof Ajax)) return new Ajax(arguments);
 
-M.post = function (url, data, success) {
-    return M.ajax(url, {
-        method: 'POST',
-        dataType: 'html',
-        data: typeof data === 'function' ? null : data,
-        success: typeof data === 'function' ? data : success
-    });
-};
+        let _this = this;
+        let xhr = new XMLHttpRequest();
+        let params = '';
 
-M.getJSON = function (url, data, success) {
-    return M.ajax(url, {
-        method: 'GET',
-        dataType: 'json',
-        data: typeof data === 'function' ? null : data,
-        success: typeof data === 'function' ? data : success
-    });
-};
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState <= 3) return;
+            var status = xhr.status;
+            var success = (status >= 200 && status < 300) || status === 304;
+            _this.trigger(success ? 'success' : 'error', success ? xhr.responseText : xhr);
+        };
 
-M.getScript = function(src, success, error) {
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
+        if (type === 'GET') {
+            url += (url.indexOf('?') >= 0 ? '&' : '?');
+            if (data) url += Ajax.toQueryString(data) + '&';
+            if (!options.cache) url += '_cachebust=' + Date.now();
+        } else {
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            params = typeof data == 'string' ? '?' + data : Object.keys(data).map(
+                function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]) }
+            ).join('&');
+            if (!options.cache) url += '&_cachebust=' + Date.now();
+        }
 
-    if (error) script.onerror = error;
-    if (success) script.onload = success;
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.open(type, url, options.async, options.user, options.password);
+        xhr.send(params);
+    }
 
-    document.head.appendChild(script);
-    script.src = src;
-};
+    static get(url, data) {
+        return new Ajax('GET', url, data);
+    }
+     
+    static post(url, data) {
+        return new Ajax('POST', url, data);
+    }
+
+    static script(src) {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';  // TODO needed?
+        script.src = src;
+
+        if (error) script.onerror = error;  // FIXME
+        if (success) script.onload = success;  // FIXME
+
+        document.head.appendChild(script);  // FIXME Needs Document
+    }
+}
+

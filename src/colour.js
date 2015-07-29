@@ -1,103 +1,190 @@
-// =================================================================================================
-// Boost.js | Colour Utilities
-// (c) 2015 Mathigon / Philipp Legner
-// =================================================================================================
+// =============================================================================
+// Boost.js | Colours
+// (c) 2015 Mathigon
+// =============================================================================
 
 
-(function() {
 
-	M.colour = {
-	    red:    '#D90000',
-	    orange: '#F15A24',
-	    yellow: '#edd200',
-	    lime:   '#b2d300',
-	    green:  '#00B200',
-	    cyan:   '#29ABE2',
-	    blue:   '#006DD9',
-	    violet: '#662D91',
-	    purple: '#9d0069',
-	    pink:   '#ED1E79'
-	};
+import { clamp } from 'utilities';
+import { tabulate } from 'arrays';
 
-	M.colour.parse = function(c) {
-	    if (c[0] === '#') {
-	        return [ parseInt(c.substr(1,2),16), parseInt(c.substr(3,2),16), parseInt(c.substr(5,2),16) ];
-	    } else if (c.indexOf('rgb') >= 0) {
-	        return c.replace('rgb(','').replace('rgba(','').replace(')','').split(',')
-	                .each(function(x){ return +x; });
-	    }
-	    return null;
-	};
 
-    var pad2 = function(str) {
-        return str.length === 1 ? '0' + str : str;
-    };
+// -----------------------------------------------------------------------------
+// Static Colours (gradients from http://www.sron.nl/~pault/colourschemes.pdf)
 
-    var makeHex = function(colour) {
-        var c = M.colour.parse(colour);
-        return '#' + c.each(function(x) { return pad2(Math.round(x).toString(16)); }).join('');
-    };
+const red    = '#D90000';
+const orange = '#F15A24';
+const yellow = '#edd200';
+const lime   = '#b2d300';
+const green  = '#00B200';
+const cyan   = '#29ABE2';
+const blue   = '#006DD9';
+const violet = '#662D91';
+const purple = '#9d0069';
+const pink   = '#ED1E79';
 
-    var makeRgb = function(c) {
-        var alpha = (c[3] || (c[3] === 0));
-        return 'rgb' + (alpha ? 'a(' : '(') + c.slice(0,3).each(function(x) {
-			return Math.round(x); }).join(',') + (alpha ? ',' + c[3] : '') + ')';
-    };
+const rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', 
+                 '#63AD99', '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
 
-    M.colour.toRgb = function(c) {
-        return makeRgb(M.colour.parse(c));
-    };
+const temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', 
+                     '#FFE3AA', '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
 
-    M.colour.toHex = function(c) {
-        return makeHex(M.colour.parse(c));
-    };
+const solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', 
+               '#EC7014', '#CC4C02', '#993404', '#662506'];
 
-    M.colour.interpolate = function(c1, c2, p) {
-        p = M.bound(p, 0,1);
 
-        c1 = M.colour.parse(c1);
-        c2 = M.colour.parse(c2);
-        var alpha = (c1[3] != null || c2[3] != null);
-        if (c1[3] == null) c1[3] = 1;
-        if (c2[3] == null) c2[3] = 1;
+// -----------------------------------------------------------------------------
+// Helper Functions
+
+function pad2(str) {
+    return str.length === 1 ? '0' + str : str;
+}
+
+
+export default class Colour {
+
+    // -------------------------------------------------------------------------
+    // Static Methods
+
+    static interpolate(c1, c2, p) {
+        p = clamp(p, 0, 1);
+
+        if (!(c1 instanceof Colour)) c1 = new Colour(c1);
+        if (!(c2 instanceof Colour)) c2 = new Colour(c2);
 
         return makeRgb([
-            p*c1[0]+(1-p)*c2[0],
-            p*c1[1]+(1-p)*c2[1],
-            p*c1[2]+(1-p)*c2[2],
-            alpha ? p*c1[3]+(1-p)*c2[3] : null
+            p * c1[0] + (1 - p) * c2[0],
+            p * c1[1] + (1 - p) * c2[1],
+            p * c1[2] + (1 - p) * c2[2],
+            alpha ? p * c1[3] + (1 - p) * c2[3] : null
         ]);
-    };
+    }
 
-	// Gets the colour of a multi-step gradient at a given percentage p
-	M.colour.getColourAt = function(gradient, p) {
-	    p = M.bound(p, 0, 0.999);
-	    var r = Math.floor(p * (gradient.length - 1));
-	    var q = p * (gradient.length - 1) - r;
-	    return M.colour.interpolate(gradient[r+1], gradient[r], q);
-	};
+    // Gets the colour of a multi-step gradient at a given percentage p
+    static getColourAt(gradient, p) {
+        p = clamp(p, 0, 0.9999);  // FIXME
+        let r = Math.floor(p * (gradient.length - 1));
+        let q = p * (gradient.length - 1) - r;
+        return interpolate(gradient[r + 1], gradient[r], q);
+    }
 
-    // Colour Schemes from http://www.sron.nl/~pault/colourschemes.pdf
+    static rainbow(steps) {
+        let scale = clamp(0.4 + 0.15 * steps, 0, 1);
+        return tabulate(function(x) { return getColourAt(rainbow, scale * x/(steps-1)); }, steps);
+    }
 
-    var rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', '#63AD99',
-	               '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
-    M.colour.rainbow = function(steps) {
-        var scale = M.bound(0.4 + 0.15 * steps, 0, 1);
-        return M.tabulate(function(x){ return M.colour.getColourAt(rainbow, scale*x/(steps-1)); }, steps);
-    };
+    static temperature(steps) {
+        let scale = clamp(0.1 * steps, 0, 1);
+        return tabulate(function(x) {
+            return getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
+    }
 
-    var temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', '#FFE3AA',
-                       '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
-    M.colour.temperature = function(steps) {
-        var scale = M.bound(0.1 * steps, 0, 1);
-        return M.tabulate(function(x){
-            return M.colour.getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
-    };
+    static solar(steps) {
+        return tabulate(function(x) { return getColourAt(solar, x/(steps-1)); }, steps);
+    }
 
-    var solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', '#EC7014', '#CC4C02',
-                 '#993404', '#662506'];
-    M.colour.solar = function(steps) {
-        return M.tabulate(function(x){ return M.colour.getColourAt(solar, x/(steps-1)); }, steps);
-    };
 
-})();
+    // -------------------------------------------------------------------------
+    // Constructor Functions
+
+    constructor(r, g, b, a = 1) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+    }
+
+    static fromHex(hex) {
+        // asset(hex, /#[0-9a-fA-f]{6}/)
+        let r = parseInt(hex.substr(1, 2), 16);
+        let g = parseInt(hex.substr(3, 2), 16);
+        let b = parseInt(hex.substr(5, 2), 16);
+        return new Colour(r, g, b);
+    }
+
+    static fromRgb(rgb) {
+        let c = rgb.replace('rgb(','').replace('rgba(','').replace(')','').split(',');
+        this.r = +c[0];
+        this.g = +c[1];
+        this.b = +c[2];
+        this.a = (c.length > 3) ? +c[3] : 1;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Getter Functions
+
+    get hex() {
+        let c = [this.r, this.g, this.b].map(function(x) { return pad2(Math.round(x).toString(16)); });
+        return '#' + c.join('');
+    }
+
+    get rgb() {
+        let c = [this.r, this.g, this.b].map(function(x) { return Math.round(x); }).join(',');
+        return 'rgba(' + c + ',' + this.a + ')';
+    }
+
+    get hsl() {
+        let r = this.r / 255;
+        let g = this.g / 255;
+        let b = this.b / 255;
+        
+        let max = Math.max(r, g, b);
+        let min = Math.min(r, g, b);
+
+        let h, s;
+        let l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0; // achromatic
+        } else {
+            let d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch(max){
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+
+        return 'hsl(' + [h, s, l].join(',') + ')';
+    }
+
+    get complement() {
+        // TODO
+    }
+
+    get inverse() {
+        // TODO
+    }
+
+    toString() {
+        return this.rgb;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Prototype Functions
+
+    lighten(p) {
+        // TODO
+    }
+
+    darken(p) {
+        // TODO
+    }
+
+    saturate(p) {
+        // TODO
+    }
+
+    desaturate(p) {
+        // TODO
+    }
+
+    grayscale(p = 1) {
+        // TODO
+    }
+
+}

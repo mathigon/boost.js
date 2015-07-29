@@ -1,6 +1,6 @@
-# Boost.js
+# boost.js
 
-DOM selection and manipulation utilities, events framework, animation and transition functions, AJAX, cookie, browser history and browser storage functions.
+TODO
 
 
 ## Quick start
@@ -20,4 +20,4 @@ TODO
 
 ## Copyright and license
 
-Code and documentation are copyright (c) 2014 Mathigon. Code is released under the [MIT license](LICENSE).
+Code and documentation are copyright (c) 2015 Mathigon. Released under the [MIT license](LICENSE).
