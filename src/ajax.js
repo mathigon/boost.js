@@ -5,7 +5,7 @@
 
 
 
-import $ from 'element';
+import $ from 'elements';
 import Evented from 'evented';
 
 
@@ -26,7 +26,7 @@ export default class Ajax extends Evented {
             value = encodeURIComponent(value);
             value = value.replace(/%20/g, '+');
             pairs.push(key + '=' + value);
-        };
+        }
 
         return pairs.join('&');
     }
@@ -50,7 +50,7 @@ export default class Ajax extends Evented {
             doc.documentElement.innerHTML = response;
             return $(doc);
  
-            case: 'json':
+            case 'json':
             return JSON.parse(response);
 
             default:
@@ -62,8 +62,9 @@ export default class Ajax extends Evented {
     // ---------------------------------------------------------------------------------------------
     // Constructor Functions
 
-    constructor(type = 'GET', url, data = '', options = { async: true, cache: true }) {
-        
+    constructor(type, url, data = '', options = { async: true, cache: true }) {
+        super();
+
         // TODO use window.fetch() instead
 
         if (!(this instanceof Ajax)) return new Ajax(arguments);
@@ -86,7 +87,7 @@ export default class Ajax extends Evented {
         } else {
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             params = typeof data == 'string' ? '?' + data : Object.keys(data).map(
-                function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]) }
+                function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); }
             ).join('&');
             if (!options.cache) url += '&_cachebust=' + Date.now();
         }
@@ -105,14 +106,14 @@ export default class Ajax extends Evented {
     }
 
     static script(src) {
-        var script = document.createElement('script');
-        script.type = 'text/javascript';  // TODO needed?
-        script.src = src;
+        var el = document.createElement('script');
+        el.type = 'text/javascript';  // TODO needed?
+        el.src = src;
 
-        if (error) script.onerror = error;  // FIXME
-        if (success) script.onload = success;  // FIXME
+        if (error) el.onerror = error;  // FIXME
+        if (success) el.onload = success;  // FIXME
 
-        document.head.appendChild(script);  // FIXME Needs Document
+        document.head.appendChild(el);  // FIXME Needs Document
     }
 }
 

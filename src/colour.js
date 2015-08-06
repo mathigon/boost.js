@@ -70,7 +70,7 @@ export default class Colour {
 
     static rainbow(steps) {
         let scale = clamp(0.4 + 0.15 * steps, 0, 1);
-        return tabulate(function(x) { return getColourAt(rainbow, scale * x/(steps-1)); }, steps);
+        return tabulate(x => getColourAt(rainbow, scale * x/(steps-1)), steps);
     }
 
     static temperature(steps) {
@@ -80,7 +80,7 @@ export default class Colour {
     }
 
     static solar(steps) {
-        return tabulate(function(x) { return getColourAt(solar, x/(steps-1)); }, steps);
+        return tabulate(x => getColourAt(solar, x/(steps-1)), steps);
     }
 
 
@@ -103,7 +103,7 @@ export default class Colour {
     }
 
     static fromRgb(rgb) {
-        let c = rgb.replace('rgb(','').replace('rgba(','').replace(')','').split(',');
+        let c = rgb.replace(/rgba?\(/,'').replace(')','').split(',');
         this.r = +c[0];
         this.g = +c[1];
         this.b = +c[2];
@@ -115,12 +115,12 @@ export default class Colour {
     // Getter Functions
 
     get hex() {
-        let c = [this.r, this.g, this.b].map(function(x) { return pad2(Math.round(x).toString(16)); });
+        let c = [this.r, this.g, this.b].map(x => pad2(Math.round(x).toString(16)));
         return '#' + c.join('');
     }
 
     get rgb() {
-        let c = [this.r, this.g, this.b].map(function(x) { return Math.round(x); }).join(',');
+        let c = [this.r, this.g, this.b].map(x => Math.round(x)).join(',');
         return 'rgba(' + c + ',' + this.a + ')';
     }
 

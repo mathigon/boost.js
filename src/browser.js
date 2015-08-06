@@ -22,6 +22,18 @@ function redraw() {
 
 
 // ---------------------------------------------------------------------------------------------
+// Resize Events
+
+window.onresize = throttle(function() {
+    browserEvents.trigger('resize', [window.innerWidth, window.innerHeight]);
+}, 100);
+
+function resize(fn) {
+    browserEvents.on('resize', fn);
+}
+
+
+// ---------------------------------------------------------------------------------------------
 // Load Events
 
 let loadQueue = [];
@@ -47,18 +59,6 @@ function ready(fn) {
     } else {
         loadQueue.push(fn);
     }
-}
-
-
-// ---------------------------------------------------------------------------------------------
-// Resize Events
-
-window.onresize = throttle(function() {
-    browserEvents.trigger('resize');
-}, 100);
-
-function resize(fn) {
-    browserEvents.on('resize', fn);
 }
 
 
@@ -117,9 +117,9 @@ function getCookie(name) {
 }
 
 function setCookie(name, value, days) {
-    var d = new Date;
+    var d = new Date();
     d.setTime(d.getTime() + 24 * 60 * 60 * 1000 * days);
-    document.cookie = name + "=" + value + ";path=/;expires=" + d.toGMTString();
+    document.cookie = name + '=' + value + ';path=/;expires=' + d.toGMTString();
 }
 
 function deleteCookie(name) {
@@ -187,82 +187,33 @@ function deleteStorage(key) {
     }
 }
 
-
 // ---------------------------------------------------------------------------------------------
-// History
-
-// TODO compare with https://github.com/router5/router5/
-
-var popped = ('state' in window.history);
-var initialURL = location.href;
-var id = 0;
-
-function goTo(n) {
-    window.history.go(n);
-},
-
-function goBack() {
-    window.history.back();
-},
-
-function goForward() {
-    window.history.forward();
-},
-
-function pushState(url, state = { url: url }) {
-    ++id;
-    window.history.pushState({id: id, state: state }, '', url);
-},
-
-function replaceState(url, state = { url: url }) {
-    iwindow.history.replaceState(state, '', url);
-}
-
-function getHash() {
-    return window.location.hash.replace(/^#/, '');
-}
-
-function setHash(newHash) {
-    ++id;
-    hash = newHash;
-    window.history.pushState({id: id, state: {}}, '', window.location.pathname + '#' + hash);
-}
-
-window.onpopstate = function(e) {
-    var validPop = popped || location.href === initialURL;
-    popped = true;
-    if (!validPop) return;
-
-    var state = e.state || { id: 0, state: { url: path } };
-    var newId = state.id;
-
-    browserEvents.trigger('change', state.state);
-    if (newId < id) browserEvents.trigger('back', state.state);
-    if (newId > id) browserEvents.trigger('forward', state.state);
-    id = newId;
-};
-
-
-// ---------------------------------------------------------------------------------------------
-// Exports
 
 export default {
     isMobile: mobileRegex.test(navigator.userAgent.toLowerCase()),
     isRetina: ((window.devicePixelRatio || 1) > 1),
-    isTouch:  ('ontouchstart' in window) || (window.DocumentTouch && document instanceof window.DocumentTouch),
+    isTouch:  ('ontouchstart' in window) ||
+        (window.DocumentTouch && document instanceof window.DocumentTouch),
     isChrome: window.chrome,
     isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
 
     redraw, ready, resize, cssTimeToNumber, addCSSRule, prefix,
     on: browserEvents.on, off: browserEvents.off, trigger: browserEvents.trigger,
 
-    get width:  function() { return window.innerWidth; },
-    get height: function() { return window.innerHeight; },
+    get width()  { return window.innerWidth; },
+    get height() { return window.innerHeight; },
 
-    get cookies(): getCookies, getCookie, setCookie, deleteCookie,
+    get cookies() { return getCookies(); },
+    getCookie, setCookie, deleteCookie,
     setStorage, getStorage, deleteStorage,
 
-    goTo, goBack, goForward, pushState, replaceState,
-    get hash(): getHash, set hash(): setHash
+    get hash() { return getHash(); },
+    set hash(h) { return setHash(h); },
+
+    get activeInput() {
+        let active = document.activeElement;
+        return active === document.body ? undefined : active;
+    }
+
 };
 

@@ -45,7 +45,7 @@ class Element {
     toggleClass(className) {
         let classes = className.words();
         for (let c of classes) {
-            this._el.classList.toggle(classes[i]);
+            this._el.classList.toggle(c);
         }
     }
 
@@ -255,6 +255,14 @@ class Element {
     show() {
         this.css('display', 'block');
         this.css('visibility', 'visible');
+    }
+
+    transitionEnd(fn) {
+        this.one('webkitTransitionEnd transitionend', fn);
+    }
+
+    animationEnd(fn) {
+        this.one('webkitAnimationEnd animationend', fn);
     }
 
 
@@ -530,4 +538,39 @@ export default {
     $window: new Element(window),
     $doc: new Element(window.document.documentElement)
 }
+
+
+
+
+/*
+
+function create(tag, options) {
+
+    let proto = Object.create(HTMLElement.prototype);
+
+    proto.createdCallback = function() {
+        if ('template' in options)
+            this.createShadowRoot().innerHTML = template;
+
+        this._el = $(this);
+        if ('created' in options) options.created.call(this._el)
+    };
+
+    proto.attachedCallback = function() {
+        if ('attached' in options) options.attached.call(this._el)
+    };
+
+    proto.detachedCallback = function() {
+        if ('detached' in options) options.detached.call(this._el)
+    };
+
+    proto.attributeChangedCallback = function(attrName, oldVal, newVal) {
+        // TODO
+    };
+
+    return document.registerElement(tag, { prototype: proto });
+}
+
+*/
+
 

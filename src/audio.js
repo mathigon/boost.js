@@ -7,13 +7,13 @@
 
 import Evented from 'evented';
 import isString from 'types';
-import $ from 'element';
+import $ from 'elements';
 
 
 // -----------------------------------------------------------------------------
 // Audio
 
-const files = Map();
+const files = new Map();
 let playing = null;
 
 function loadAudio(src) {
@@ -161,6 +161,5 @@ function SpeechRecognition() {
 
 export default {
     playing: function() { return playing; },
-    loadAudio, AudioChunk, SpeechRecognition
-};
+    loadAudio, AudioChunk, SpeechRecognition };
 

@@ -5,7 +5,13 @@
 
 
 
-M.events.isSupported = function(event) {
+import Browser from 'browser';
+
+
+// -----------------------------------------------------------------------------
+// Utilities
+
+function isSupported(event) {
     event = 'on' + event;
     var $el = $N('div');
     var isSupported = (event in $el.$el);
@@ -19,8 +25,9 @@ M.events.isSupported = function(event) {
 
 var scaleParentCache = {};
 var scaleCache = {};  // this is set to empty on resize below
+Browser.resize(function() { scaleCache = {}; });
 
-M.events.pointerOffset = function(event, $parent) {
+function pointerOffset(event, $parent) {
 
     if (event.offsetX && $parent.$el === event.target)
         return new M.geo.Point(event.offsetX, event.offsetY);
@@ -41,29 +48,29 @@ M.events.pointerOffset = function(event, $parent) {
 
     // If a CSS transform is applied, the offset is calculated in browser pixels, no $parent pixels
     return new M.geo.Point(offsetX/scaleCache[id][0], offsetY/scaleCache[id][1]);
-};
+}
 
-M.events.pointerPosition = function(e) {
-    return new M.geo.Point(
-        e.touches ? e.touches[0].clientX : e.clientX,
-        e.touches ? e.touches[0].clientY : e.clientY
-    );
-};
+function pointerPosition(e) {
+    return {
+        x: e.touches ? e.touches[0].clientX : e.clientX,
+        y: e.touches ? e.touches[0].clientY : e.clientY
+    };
+}
 
-M.events.getWheelDelta = function(e) {
+function getWheelDelta(e) {
     var delta = 0;
     if (e.wheelDelta) delta = e.wheelDelta / 40;
     if (e.detail) delta = -e.detail / 3.5;
     return delta;
-};
+}
 
-M.events.stop = function(e) {
+function stop(e) {
     e.preventDefault();
     e.stopPropagation();
-};
+}
 
 
-// =============================================================================================
+// -----------------------------------------------------------------------------
 // CLICK EVENTS
 // TODO Add ability to remove click events
 
@@ -127,7 +134,7 @@ function makeClickEvent($el) {
 }
 
 
-// =============================================================================================
+// -----------------------------------------------------------------------------
 // POINTER EVENTS
 // TODO Make pointer more efficient more efficient using *enter and *leave
 // TODO Add ability to remove pointer events
@@ -155,7 +162,7 @@ function makePointerPositionEvents($el) {
 }
 
 
-// =============================================================================================
+// -----------------------------------------------------------------------------
 // SCROLL EVENTS
 // TODO Add ability to remove scroll events
 
@@ -192,7 +199,7 @@ M.$.prototype.scrollTo = function(pos, time, easing) {
     };
 
     _this.trigger('scrollstart', {});
-    var animation = M.animate(callback, time);
+    var animation = animate(callback, time);
 
     // TODO cancel scroll events
     // this.on('scroll', function() { animation.cancel(); });
@@ -261,11 +268,10 @@ function makeScrollEvents($el) {
 }
 
 
-// =============================================================================================
-// CUSTOM EVENTS
+// -----------------------------------------------------------------------------
+// Custom Events
 
-var customEvents = {
-
+const customEvents = {
     pointerStart: 'mousedown touchstart',
     pointerMove:  'mousemove touchmove',
     pointerEnd:   'mouseup touchend mousecancel touchcancel',
@@ -285,29 +291,9 @@ var customEvents = {
     scrollEnd: makeScrollEvents  // no capture!
 };
 
-var shortcuts = ('click scroll change').split(' ');
 
-shortcuts.each(function(event) {
-    M.$.prototype[event] = function(callback) {
-        if (callback == null) {
-            this.trigger(event);
-        } else {
-            this.on(event, callback);
-        }
-    };
-});
-
-M.$.prototype.transitionEnd = function(fn) {
-    this.one('webkitTransitionEnd oTransitionEnd transitionend', fn);
-};
-
-M.$.prototype.animationEnd = function(fn) {
-    this.one('webkitAnimationEnd oAnimationEnd animationend', fn);
-};
-
-
-// =============================================================================================
-// EVENT BINDINGS
+// -----------------------------------------------------------------------------
+// Event Bindings
 
 function createEvent($el, event, fn, useCapture) {
     var custom = customEvents[event];
@@ -386,13 +372,9 @@ M.$.prototype.trigger = function(event, args) {
 // this.$el.dispatchEvent(evt);
 
 
-// =============================================================================================
-// KEYBOARD EVENTS
+// -----------------------------------------------------------------------------
+// Keyboard Events
 // TODO Make keyboard events follow .on syntax
-
-M.activeInput = function() {
-    return document.activeElement === document.body ? undefined : document.activeElement;
-};
 
 // Executes fn if any one of [keys] is pressed
 M.keyboardEvent = function(keys, fn) {
@@ -432,37 +414,3 @@ M.keyboardMultiEvent = function(key1, key2, fn1, fn2) {
     });
 };
 
-
-// =============================================================================================
-// RESIZE EVENTS
-// TODO Add ability to remove resize events
-// TODO Use M.Queue to store resize events
-
-// Multiple queues, to allow ordering of resize events
-var events = [[], [], []];
-
-var trigger = function() {
-    scaleCache = {};
-    var size = [window.innerWidth, window.innerHeight];
-    events.each(function(queue) {
-        queue.each(function(fn) {
-            fn.call(null, size);
-        });
-    });
-};
-
-M.resize = function(fn, queue) {
-    if (fn) {
-        events[queue||0].push(fn);
-    } else {
-        trigger();
-    }
-};
-
-var timeout = null;
-M.$window.on('resize', function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(function() {
-        trigger();
-    }, 50);
-});

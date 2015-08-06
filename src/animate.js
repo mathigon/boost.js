@@ -80,7 +80,7 @@ function ease(type, t = 0, s = 0) {
     if (type[1] === 'out') return 1 - easeIn(type[0], 1 - t, s);
     if (t <= 0.5)          return     easeIn(type[0], 2 * t,     s) / 2;
                            return 1 - easeIn(type[0], 2 * (1-t), s) / 2;
-};
+}
 
 
 
@@ -238,7 +238,10 @@ M.$.prototype.exit = function(effect, time, delay) {
     } else if (effect === 'draw') {
         var l = this.getStrokeLength();
         this.css('stroke-dasharray', l + ' ' + l);
-        this.animate({ css: 'stroke-dashoffset', from: 0, to: l, delay: delay, duration: time }, end);
+        this.animate({
+            css: 'stroke-dashoffset', from: 0, to: l,
+            delay: delay, duration: time
+        }, end);
     }
 };
 
@@ -296,7 +299,5 @@ effects.each(function(name){
 });
 
 
-export default {
-
-}
+export default { animate, ease };
 
