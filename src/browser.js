@@ -24,12 +24,22 @@ function redraw() {
 // ---------------------------------------------------------------------------------------------
 // Resize Events
 
+let width = window.innerWidth;
+
 window.onresize = throttle(function() {
-    browserEvents.trigger('resize', [window.innerWidth, window.innerHeight]);
+    let newWidth = window.innerWidth;
+    let height = window.innerHeight;
+    if (check && width === newWidth && width < 800 && height < 800) return;
+    width = newWidth;
+    browserEvents.trigger('resize', [width, height]);
 }, 100);
 
-function resize(fn) {
-    browserEvents.on('resize', fn);
+function resize(fn = null) {
+    if (fn) {
+        browserEvents.on('resize', fn);
+    } else {
+        browserEvents.trigger('resize', [window.innerWidth, window.innerHeight]);
+    }
 }
 
 
