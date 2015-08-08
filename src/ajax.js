@@ -62,7 +62,7 @@ export default class Ajax extends Evented {
     // ---------------------------------------------------------------------------------------------
     // Constructor Functions
 
-    constructor(type, url, data = '', options = { async: true, cache: true }) {
+    constructor(type, url, data = {}, options = { async: true, cache: true }) {
         super();
 
         // TODO use window.fetch() instead
@@ -97,11 +97,11 @@ export default class Ajax extends Evented {
         xhr.send(params);
     }
 
-    static get(url, data) {
+    static get(url, data = {}) {
         return new Ajax('GET', url, data);
     }
      
-    static post(url, data) {
+    static post(url, data = {}) {
         return new Ajax('POST', url, data);
     }
 
@@ -115,5 +115,21 @@ export default class Ajax extends Evented {
 
         document.head.appendChild(el);  // FIXME Needs Document
     }
+
+
+    // ---------------------------------------------------------------------------------------------
+    // Callbacks
+
+    then(success, error = null) {
+        if (success) this.on('success', success);
+        if (error) this.on('success', error);
+        return this;
+    }
+
+    catch(error) {
+        this.on('success', error);
+        return this;
+    }
+
 }
 
