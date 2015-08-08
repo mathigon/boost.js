@@ -6,6 +6,8 @@
 
 
 import Evented from 'evented';
+import Ajax from 'ajax';
+import { run } from 'utilities';
 
 
 // -----------------------------------------------------------------------------
@@ -43,7 +45,7 @@ let preloaded = false;
 let transition = false;
 
 let views = [];
-let errorvView = null;
+let errorView = { template: 'Error' };
 let activeView = null;
 
 let current = '';
@@ -148,19 +150,34 @@ function _renderView(newView, url, params = {}) {
 
     if (activeView) {
         activeView.exit();
-        activeView.$el.remove();  // TODO transition
+        activeView.$el.remove();  // TODO out transition
     }
-
-    let $view;
 
     if (initial && preload) {
-        $view = viewport.children[0];
-    } else {
-        template = newView.template || Ajax.load(newView.templateUrl);  // TODO promise
-        $view = $('div', { html: template });
-        viewport.addChild($view);  // TODO transition
+        let $view = viewport.children[0];
+        _renderRenderComplete(newView, $view, params);
     }
 
+    template = run(newView.template) || new Ajax.get(newView.templateUrl);
+
+    if ('then' in template) {
+        template.then(
+            function(r) { _renderViewMake(newView, r, params); },
+            function(r) { _renderViewMake(errorView, errorView.template, params); }
+        );
+    } else {
+        _renderViewMake(newView, template, params);
+    }
+
+}
+
+function _renderViewMake(newView, template, params) {
+    let $view = $('div', { html: template });
+    viewport.addChild($view);  // TODO in transition
+    _renderRenderComplete(newView, $view, params)
+}
+
+function _renderRenderComplete(newView, $view, params) {
     newView.enter($view, params);
     activeView = newView;
 }
@@ -192,7 +209,7 @@ const onPopState = (function () {
         });
     }
 
-    return function _onPopState(e) {
+    return function(e) {
         if (!loaded) return;
         _onStateChange(e);
     };
@@ -255,13 +272,13 @@ function onClick(e) {
 const Router = {
     setup, disable, view, redirect, error, 
     getHash, setHash, goTo, goBack, goForward,
-    on: RouteEvents.on, off: RouteEvents.off, trigger: RouteEvents.trigger
-};
+    on: RouteEvents.on, off: RouteEvents.off, trigger: RouteEvents.trigger };
 
 export { View, Router };
 
 
-/*
+/* Example Usage:
+
 const homeView = new View({
     load: function() { },
     enter: function($el, params) { },
