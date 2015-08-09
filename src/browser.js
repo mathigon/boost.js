@@ -197,6 +197,53 @@ function deleteStorage(key) {
     }
 }
 
+
+// -----------------------------------------------------------------------------
+// Keyboard Events
+
+function activeInput() {
+    let active = document.activeElement;
+    return active === document.body ? undefined : active;
+}
+
+// Executes fn if any one of [keys] is pressed
+function keyDown(keys, fn) {
+    if (!(keys instanceof Array)) keys = [keys];
+    document.addEventListener('keydown', function(e){
+        var key = e.keyCode || e.which;
+        for (let k of keys) {
+            if (key === k && !activeInput()) {
+                e.preventDefault();
+                fn(e);
+            }
+        }
+    });
+}
+
+// Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
+function multiKeyDown(key1, key2, fn1, fn2) {
+    var key2down = false;
+
+    document.addEventListener('keydown', function(e){
+        var k = e.keyCode || e.which;
+
+        if (k === key2) {
+            key2down = true;
+        } else if (key2down && k === key1 && !activeInput()) {
+            e.preventDefault();
+            fn2(e);
+        } else if (k === key1 && !activeInput()) {
+            e.preventDefault();
+            fn1(e);
+        }
+    });
+
+    document.addEventListener('keyup', function(e){
+        var k = e.keyCode || e.which;
+        if (k === key2) key2down = false;
+    });
+}
+
 // ---------------------------------------------------------------------------------------------
 
 export default {
@@ -220,10 +267,6 @@ export default {
     get hash() { return getHash(); },
     set hash(h) { return setHash(h); },
 
-    get activeInput() {
-        let active = document.activeElement;
-        return active === document.body ? undefined : active;
-    }
-
-};
+    get activeInput() { return activeInput(); },
+    keyDown, multiKeyDown };
 

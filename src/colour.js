@@ -9,6 +9,10 @@ import { clamp } from 'utilities';
 import { tabulate } from 'arrays';
 
 
+const shortHexRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
+
+
 // -----------------------------------------------------------------------------
 // Static Colours (gradients from http://www.sron.nl/~pault/colourschemes.pdf)
 
@@ -95,11 +99,18 @@ export default class Colour {
     }
 
     static fromHex(hex) {
-        // asset(hex, /#[0-9a-fA-f]{6}/)
-        let r = parseInt(hex.substr(1, 2), 16);
-        let g = parseInt(hex.substr(3, 2), 16);
-        let b = parseInt(hex.substr(5, 2), 16);
-        return new Colour(r, g, b);
+        hex = hex.replace(shortHexRegex, function(m, r, g, b) {
+            return r + r + g + g + b + b;
+        });
+
+        let rgbParts = longHexRegex.exec(hex);
+        if (!rgbParts) return new Colour(0,0,0);
+
+        return [
+            parseInt(rgbParts[1], 16),
+            parseInt(rgbParts[2], 16),
+            parseInt(rgbParts[3], 16)
+        ];
     }
 
     static fromRgb(rgb) {

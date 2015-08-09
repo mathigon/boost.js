@@ -5,10 +5,11 @@
 
 
 
-import { isOneOf } from 'utilities'
-
-const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
-                 'g', 'defs', 'marker', 'line', 'text', 'pattern'];
+import { isOneOf } from 'utilities';
+import { words } from 'strings';
+import Evented from 'evented';
+import { createEvent, removeEvent, fixOverflowScroll, scrollTo } from 'dom-events';
+import { transitionElement, enter, exit, action } from 'animate';
 
 
 class Element {
@@ -25,27 +26,36 @@ class Element {
     // Basic Functionality
 
     addClass(className) {
-        let classes = className.words();
-        for (let c of classes) {
-            this._el.classList.add(c);
+        let classes = words(className);
+        if (this._el.classList) {
+            for (let c of classes) this._el.classList.add(c);
+        } else {
+            this._el.className += ' ' + className;
         }
     }
 
     removeClass(className) {
-        let classes = className.words();
-        for (let c of classes) {
-            this._el.classList.remove(c);
+        let classes = words(className);
+        if (this._el.classList) {
+            for (let c of classes) this._el.classList.remove(c);
+        } else {
+            let regex = new RegExp('(^|\\s)' + classes.join('|') + '(\\s|$)', 'gi');
+            this._el.className = this._el.className.toString().replace(regex, ' ');
         }
     }
 
     hasClass(className) {
-        return (' ' + this._el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;  // FIXME
+        return (' ' + this._el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
     }
 
     toggleClass(className) {
-        let classes = className.words();
+        let classes = words(className);
         for (let c of classes) {
-            this._el.classList.toggle(c);
+            if (this._el.classList) {
+                this._el.classList.toggle(c);
+            } else {
+                this[this.hasClass(c) ? 'removeClass' : 'addClass'](c);
+            }
         }
     }
 
@@ -67,46 +77,23 @@ class Element {
         }
     }
 
-    data(key, value) {
-        if (value == null) {
-            var dataAttr = this._el.getAttribute('data-' + key);
-            return dataAttr ? dataAttr : (this._data ? this._data[key] : undefined);
-        } else {
-            this._data[key] = value;
-        }
-    }
+    get value() { return this._el.value; }
+    set value(v) { this._el.value = v; }
 
-    value(value) {
-        if (value == null) {
-            return this._el.value;
-        } else {
-            this._el.value = value;
-        }
-    }
+    get html() { return this._el.innerHTML; }
+    set html(h) { this._el.innerHTML = html; }
 
-    html(html) {
-        if (html == null) {
-            return this._el.innerHTML;
-        } else {
-            this._el.innerHTML = html;
-        }
-    }
-
-    text(text) {
-        if (text == null) {
-            return this._el.textContent.trim();
-        } else {
-            this.$el.textContent = text;
-        }
-    }
+    get text() { return this._el.textContent; }
+    set text(y) { this._el.textContent = html; }
 
     blur() { this._el.blur(); }
     focus() { this._el.focus(); }
 
 
-    // ---------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Dimensions
 
+    get bounds() { return this._el.getBoundingClientRect(); }
     get offsetTop()  { return this._el.offsetTop; }
     get offsetLeft() { return this._el.offsetLeft; }
 
@@ -117,7 +104,7 @@ class Element {
     // Doesn't include border and padding
     get innerWidth() {
         if (this._isWindow) return window.innerWidth;
-        return this._el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));  // FIXME parseFLoat
+        return this._el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
     }
     get innerHeight() {
         if (this._isWindow) return window.innerHeight;
@@ -127,124 +114,139 @@ class Element {
     // Includes Margins
     get outerWidth() {
         if (this._isWindow) return window.outerWidth;
-        return this._el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));  // FIXME parseFLoat
+        return this._el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
     }
     get outerHeight() {
         if (this._isWindow) return window.outerHeight;
         return this._el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
     }
 
-    get scrollWidth()  { return this._isWindow ? M.$body.$el.scrollWidth  : this._el.scrollWidth; }  // FIXME
-    get scrollHeight() { return this._isWindow ? M.$body.$el.scrollHeight : this._el.scrollHeight; }
-
-    scrollTop(y) {
-        if (y == null) {
-            return this._isWindow ? window.pageYOffset : this.$el.scrollTop;
-        } else {
-            if (this._isWindow) {
-                document.body.scrollTop = document.documentElement.scrollTop = y;
-            } else {
-                this.$el.scrollTop = y;
-            }
-            this.trigger('scroll', { top: y });
-        }
-    }
-
-    scrollLeft(x) {
-        if (x == null) {
-            return this._isWindow ? window.pageXOffset : this.$el.scrollLeft;
-        } else {
-            if (this._isWindow) {
-                document.body.scrollLeft = document.documentElement.scrollLeft = x;
-            } else {
-                this.$el.scrollLeft = x;
-            }
-            this.trigger('scroll', { left: x });
-        }
-    }
-
-    offset($parent) {
-
-        if ($parent === 'parent') $parent = this.parent();
-        if ($parent === 'body') $parent = M.$body;
-        var box;
+    offset(parent) {
+        if (parent === 'parent') parent = this.parent;
+        if (parent === 'body') parent = $body;
 
         // Get offset from immediate parent
-        if ($parent && $parent.$el === this.$el.offsetParent) {
-            var top = this.$el.offsetTop + $parent.$el.clientTop;
-            var left = this.$el.offsetLeft + $parent.$el.clientLeft;
-            var bottom = top +  this.$el.offsetHeight;
-            var right = left + this.$el.offsetWidth;
-            return { top: top, left: left, bottom: bottom, right: right };
+        if (parent._el === this._el.offsetParent) {
+            let top = this.offsetTop + parent._el.clientTop;
+            let left = this.offsetLeft + parent._el.clientLeft;
+            let bottom = top +  this.height;
+            let right = left + this.width;
+            return { top, left, bottom, right };
 
-        // Get offset based on any other element including $(document.body)
-        } else if ($parent) {
-            var parentBox = $parent.$el.getBoundingClientRect();
-            box = this.$el.getBoundingClientRect();
+        // Get offset based on any other element
+        } else {
+            let parentBox = parent._el.getBoundingClientRect();
+            let box = this._el.getBoundingClientRect();
             return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
                      bottom: box.bottom - parentBox.top, right: box.right - parentBox.left };
-
-        // Get offset based on viewport
-        } else {
-            return this.$el.getBoundingClientRect();
         }
     }
 
 
-    // ---------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Scrolling
+
+    get scrollWidth()  { return this._isWindow ? $body._el.scrollWidth  : this._el.scrollWidth; }
+    get scrollHeight() { return this._isWindow ? $body._el.scrollHeight : this._el.scrollHeight; }
+
+    get scrollTop() { return this._isWindow ? window.pageYOffset : this._el.scrollTop; }
+    set scrollTop(y) {
+        if (this._isWindow) {
+            document.body.scrollTop = document.documentElement.scrollTop = y;
+        } else {
+            this._el.scrollTop = y;
+        }
+        this.trigger('scroll', { top: y, left: this.scrollLeft });
+    }
+
+    get scrollLeft() { return this._isWindow ? window.pageXOffset : this.$el.scrollLeft; }
+    set scrollLeft(x) {
+        if (this._isWindow) {
+            document.body.scrollLeft = document.documentElement.scrollLeft = x;
+        } else {
+            this.$el.scrollLeft = x;
+        }
+        this.trigger('scroll', { top: this.scrollTop, left: y });
+    }
+
+    fixOverflowScroll() {
+        fixOverflowScroll(this)
+    }
+
+    scrollTo(x, time = 1000, easing = 'cubic') {
+        scrollTo (this, pos, time, easing);
+    }
+
+
+    // -------------------------------------------------------------------------
     // Styles
 
-    css(props, value) {
-        if (arguments.length === 1) {
+    css(props, value = null) {
+        if (value == null) {
             if (typeof props === 'string') {
-                return window.getComputedStyle(this.$el, null).getPropertyValue(props);
+                return window.getComputedStyle(this._el, null).getPropertyValue(props);
             } else {
-                for (var p in props) if (M.has(props, p)) this.$el.style[M.toCamelCase(p)] = props[p];
+                for (let p in props) this._el.style[toCamelCase(p)] = props[p];
             }
-        } else if (arguments.length === 2 && typeof props === 'string') {
-            this.$el.style[M.toCamelCase(props)] = value;
+        } else {
+            this._el.style[toCamelCase(props)] = value;
         }
     }
 
-    transition(property, duration, curve) {
-        if (arguments.length === 1) this.$el.style[M.prefix('transition')] = property;
+    transition(property, duration = '1s', curve = 'ease-in-out') {
+        if (arguments.length === 0) return this._el.style[prefix('transition')];
         if (typeof duration !== 'string') duration = duration + 'ms';
-        this.$el.style[M.prefix('transition')] = property + ' ' + duration + (curve ? ' ' + curve : '');
+        this._el.style[prefix('transition')] = property + ' ' + duration + ' ' + curve;
     }
 
-    transform(transform) {
-        this.$el.style[M.prefix('transform')] = (transform || '');
+    get strokeLength() {
+        if ('getTotalLength' in this._el) {
+            return this._el.getTotalLength();
+        } else {
+            var dim = this.bounds;
+            return 2 * dim.height + 2 * dim.width;
+        }
     }
 
-    getTransformMatrix() {
-        var transform = window.getComputedStyle(this.$el).getPropertyValue(M.prefix('transform'));
+    get transform() {
+        // window.getComputedStyle(this._el).getPropertyValue(prefix('transform'));
+        return this._el.style[prefix('transform')].replace('none', '');
+    }
+
+    set transform(transform) {
+        this._el.style[prefix('transform')] = transform;
+    }
+
+    get transformMatrix() {
+        let transform = window.getComputedStyle(this._el).getPropertyValue(prefix('transform'));
         if (!transform || transform === 'none') return null;
 
-        var coords = transform.match(/matrix\(([0-9\,\.\s]*)\)/);
+        let coords = transform.match(/matrix\(([0-9\,\.\s]*)\)/);
         if (!coords[1]) return null;
 
-        var matrix = coords[1].split(',');
+        let matrix = coords[1].split(',');
         return [[+matrix[0], +matrix[1]], [+matrix[2], +matrix[3]]];
     }
 
-    getScale() {
-        var matrix = this.getTransformMatrix();
+    get scale() {
+        let matrix = this.transformMatrix;
         return matrix ? [matrix[0][0], matrix[1][1]] : [1, 1];
     }
 
     translate(x, y) {
         x = Math.round(+x || 0);
-        this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
+        y = Math.round(+y || 0);
+        this._el.style[prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
     }
 
     translateX(x) {
         x = Math.round(+x || 0);
-        this.$el.style[M.prefix('transform')] = 'translate(' + x + 'px,0)';
+        this._el.style[prefix('transform')] = 'translate(' + x + 'px,0)';
     }
 
     translateY(y) {
         y = Math.round(+y || 0);
-        this._el.style[M.prefix('transform')] = 'translate(0px,' + y + 'px)';
+        this._el.style[prefix('transform')] = 'translate(0px,' + y + 'px)';
     }
 
     hide() {
@@ -266,17 +268,17 @@ class Element {
     }
 
 
-    // ---------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // DOM Manipulation
 
-    // Removes an element from the DOM for more performant node manipulation. The element
-    // is placed back into the DOM at the place it was taken from.
-    manipulate(fn){
-        var next = this.$el.nextSibling;
-        var parent = this.$el.parentNode;
-        var frag = document.createDocumentFragment();
-        frag.appendChild(this.$el);
-        var returned = fn.call(this) || this.$el;
+    // Removes an element from the DOM for more performant node manipulation.
+    // The element is placed back into the DOM at the place it was taken from.
+    manipulate(fn) {
+        let next = this._el.nextSibling;
+        let parent = this._el.parentNode;
+        let frag = document.createDocumentFragment();
+        frag.appendChild(this._el);
+        var returned = fn.call(this) || this._el;
         if (next) {
             parent.insertBefore(returned, next);
         } else {
@@ -285,77 +287,71 @@ class Element {
     }
 
     is(selector) {
-        var compareWith = document.querySelectorAll(selector);
-        for (var i = 0, l = compareWith.length; i < l; ++i)
-            if (compareWith[i] === this.$el) return true;
+        // TODO improve performance
+        let compareWith = document.querySelectorAll(selector);
+        for (let q of compareWith)
+            if (q === this._el) return true;
         return false;
     }
 
     index() {
-        var i = 0;
-        var child = this.$el;
-        while ((child = child.previousSibling) !== null) i++;
+        let i = 0;
+        let child = this._el;
+        while ((child = child.previousSibling) !== null) ++i;
         return i;
-    }
-
-    append(newChild) {
-        var _this = this;
-        if (typeof newChild === 'string') {
-            var newChildren = $$N(newChild);
-            newChildren.each(function(child) {
-                _this.$el.appendChild(child.$el);
-            });
-        } else {
-            this.$el.appendChild(newChild.$el);
-        }
     }
 
     prepend(newChild) {
         if (typeof newChild === 'string') {
-            var newChildren = $$N(newChild);
-            for (var j = newChildren.length - 1; j >= 0; j--) {
-                this.$el.insertBefore(newChildren[j], this.$el.childNodes[0]);
+            let newChildren = $$N(newChild);
+            for (let j = newChildren.length - 1; j >= 0; --j) {
+                this._el.insertBefore(newChildren[j], this._el.childNodes[0]);
             }
         } else {
-            this.$el.insertBefore(newChild.$el, this.$el.childNodes[0]);
+            this._el.insertBefore(newChild.$el, this._el.childNodes[0]);
+        }
+    }
+
+    append(newChild) {
+        if (typeof newChild === 'string') {
+            let newChildren = $$N(newChild);
+            for (c of newChildren) this._el.appendChild(c._el);
+        } else {
+            this._el.appendChild(newChild._el);
         }
     }
 
     insertBefore(newChild) {
-        var _this = this;
-        var parent = this.parent();
+        let parent = this.parent;
 
         if (typeof newChild === 'string') {
-            var newChildren = $$N(newChild);
-            for (var j = newChildren.length - 1; j >= 0; j--) {
-                parent.$el.insertBefore(newChildren[j].$el, _this.$el);
+            let newChildren = $$N(newChild);
+            for (let j = newChildren.length - 1; j >= 0; --j) {
+                parent._el.insertBefore(newChildren[j]._el, this.$el);
             }
         } else {
-            parent.$el.insertBefore(newChild.$el, _this.$el);
+            parent._el.insertBefore(newChild._el, this._el);
         }
     }
 
     insertAfter(newChild) {
-        var _this = this;
-        var parent = this.parent();
+        let parent = this.parent;
 
         if (typeof newChild === 'string') {
-            var newChildren = $$N(newChild);
-            newChildren.each(function(child) {
-                parent.$el.insertAfter(_this.$el, child.$el);
-            });
+            let newChildren = $$N(newChild);
+            for (c of newChildren) parent._el.insertAfter(_this._el, c._el);
         } else {
-            var next = _this.$el.nextSibling;
+            var next = this._el.nextSibling;
             if (next) {
-                parent.$el.insertBefore(newChild.$el, next);
+                parent._el.insertBefore(newChild._el, next);
             } else {
-                parent.$el.appendChild(newChild.$el);
+                parent._el.appendChild(newChild._el);
             }
         }
     }
 
     wrap(wrapper) {
-        if (typeof wrapper === 'string') wrapper = $(document.createElement(wrapper));
+        if (typeof wrapper === 'string') wrapper = $N(wrapper);
         this.insertBefore(wrapper);
         this.remove();
         wrapper.append(this);
@@ -370,13 +366,13 @@ class Element {
         }
     }
 
-    next() {
-        var next = this.$el.nextSibling;
+    get next() {
+        let next = this._el.nextSibling;
         return next ? $(next) : null;
     }
 
-    prev() {
-        var prev = this.$el.previousSibling;
+    get prev() {
+        let prev = this._el.previousSibling;
         return prev ? $(prev) : null;
     }
 
@@ -384,14 +380,14 @@ class Element {
         return $$(selector, this);
     }
 
-    parent() {
-        var parent = this.$el.parentNode;
+    get parent() {
+        let parent = this._el.parentNode;
         return parent ? $(parent) : null;
     }
 
     parents(selector) {
-        var parents = [];
-        var parent = this.parent();
+        let parents = [];
+        let parent = this.parent();
         while (parent) {
             if (!selector || parent.is(selector)) parents.push(parent);
             parent = parent.parent();
@@ -400,7 +396,7 @@ class Element {
     }
 
     hasParent($p) {
-        var parent = this.parent();
+        let parent = this.parent();
         while (parent) {
             if (parent.$el === $p.$el) return true;
             parent = parent.parent();
@@ -409,41 +405,34 @@ class Element {
     }
 
     children(selector) {
-        var childNodes = this.$el.children;
+        let childNodes = this._el.children;
 
         if (!childNodes) {
-            childNodes = [];
-            var nodes = this.$el.childNodes;
-            M.each(nodes, function(n) {
-                if (!n.data || n.data.trim()) childNodes.push(n);
-            });
-        }
+            let nodes = this._el.childNodes;
+            return nodes.filter(n => !n.data || n.data.trim()).map(n => $(n));
 
-        if (typeof selector === 'number') {
+        } else if (typeof selector === 'number') {
             return $(childNodes[selector]);
+
+        } else if (selector == null) {
+            return childNodes.map(n => $(n));
+
         } else {
-            var children = [];
-            for (var i = 0, l = childNodes.length; i < l; ++i)
-                if (!selector || $(childNodes[i]).is(selector))
-                    children.push($(childNodes[i]));
-            return children;
+            return childNodes.map(n => $(n)).filter($n => $n.is(selector));
         }
+    }
+
+    detach() {
+        if (this._el.parentNode) this._el.parentNode.removeChild(this._el);
     }
 
     remove() {
-        if (this.$el.parentNode) this.$el.parentNode.removeChild(this.$el);
-    }
-
-    delete() {
-        this.remove();
-        this.$el = null;
+        this.detach();
+        this._el = null;
     }
 
     clear() {
-        var _this = this;
-        this.children().each(function($el) {
-            _this.$el.removeChild($el.$el);
-        });
+        for ($c of this.children()) _this._el.removeChild($c._el);
     }
 
     replace(newEl) {
@@ -451,60 +440,122 @@ class Element {
         this.remove();
     }
 
-}
 
+    // -------------------------------------------------------------------------
+    // Events
 
-// -------------------------------------------------------------------------------------------------
-// Constructors
-
-function $(selector, context) {
-    if (typeof selector === 'string') {
-        context = context ? (context._el || context) : document;
-        var $el = context.querySelector(selector);
-        return $el ? new M.$($el) : null;
-    } else if (selector instanceof Node || selector === window) {
-        return new M.$(selector);
+    on(type, fn = null, useCapture = false) {
+        if (fn != null) {
+            for (e of words(type)) createEvent(this, e, fn, useCapture);
+        } else {
+            for (e in type) createEvent(this, e, type[e]);
+        }
     }
+
+    one(events, fn, useCapture = false) {
+        let _this = this;
+        function callback() {
+            _this.off(events, callback, useCapture);
+            fn(events, fn, useCapture);
+        }
+        this.on(events, callback, useCapture);
+    }
+
+    off(type, fn, useCapture = false) {
+        for (e of words(type)) removeEvent(this, e, fn, useCapture);
+    }
+
+    trigger(event, args = {}) {
+        if (!this._events[event]) return;
+        for (fn of this._events[event]) fn.call(this, args);
+    }
+
+    // let evt = document.createEvent('Event');
+    // evt.initEvent(eventName, true, true);
+    // evt.detail = eventData;
+    // this.$el.dispatchEvent(evt);
+
+
+    // -------------------------------------------------------------------------
+    // Animations
+
+    animate(properties) { transitionElement(this, properties); }
+
+    enter(time, effect, delay) { enter(this, time, effect, delay); }
+    exit(time, effect, delay) { exit(this, time, effect, delay); }
+    action(effect) { exit(this, effect); }
+
+    fadeIn(time) { enter(this, time, 'fade'); }
+    fadeOut(time) { exit(this, time, 'fade'); }
+
+    slideUp(t) {
+        return this.animate({ css: 'height', to: 0 });
+    }
+
+    slideDown(t) {
+        let _this = this;
+
+        let h = element.children(0).outerHeight();  // TODO make more generic
+        let a = this.animate({ css: 'height', to: h });
+        a.then(function() { _this.css('height', 'auto'); });
+        return a;
+    }
+
 }
 
-function $I(selector, context) {
-    context = (context && context.$el.getElementById) ? context.$el : document;
-    var $el = context.getElementById(selector);
-    return $el ? new M.$($el) : null;
+
+// -----------------------------------------------------------------------------
+// Element Selectors
+
+const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
+                 'g', 'defs', 'marker', 'line', 'text', 'pattern'];
+
+function $(selector, context = $doc) {
+    if (typeof selector === 'string')
+        selector = context._el.querySelector(selector);
+
+    if (selector instanceof Node || selector === window)
+        return new Element(selector);
+
+    return null;
 }
 
-function $C(selector, context) {
-    context = context ? (context._el || context) : document;
-    var els = context.getElementsByClassName(selector);
+function $I(selector) {
+    let el = document.getElementById(selector);
+    return el ? new Element(el) : null;
+}
+
+function $C(selector, context = $doc) {
+    let els = context._el.getElementsByClassName(selector);
     return els.length ? new Element(els[0]) : null;
 }
 
-function $T(selector, context) {
-    context = context ? (context._el || context) : document;
-    var els = context.getElementsByTagName(selector);
+function $T(selector, context = $doc) {
+    let els = context._el.getElementsByTagName(selector);
     return els.length ? new Element(els[0]) : null;
 }
 
-function $$(selector, context) {
-    context = context ? (context._el || context) : document;
-    var els = context.querySelectorAll(selector);
-    return els.map(function($el) { return new Element(el); });
+function $$(selector, context = $doc) {
+    let els = context._el.querySelectorAll(selector);
+    return els.map(el => new Element(el));
 }
 
-function $$C(selector, context) {
-    context = context ? (context._el || context) : document;
-    var els = context.getElementsByClassName(selector);
-    return els.map(function(el) { return new Element(el); });
+function $$C(selector, context = $doc) {
+    let els = context._el.getElementsByClassName(selector);
+    return els.map(el => new Element(el));
 }
 
-function $$T(selector, context) {
-    context = context ? (context._el || context) : document;
-    var $els = context.getElementsByTagName(selector);
-    return $els.map(function($el) { return new Element($el); });
+function $$T(selector, context = $doc) {
+    let els = context._el.getElementsByTagName(selector);
+    return els.map(el => new Element($el));
 }
+
+
+// -----------------------------------------------------------------------------
+// Element Constructors
 
 function $N(tag, attributes = {}, parent = null) {
-    var t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
+    let t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
                 document.createElementNS('http://www.w3.org/2000/svg', tag);
 
     for (let a in attributes) {
@@ -517,60 +568,69 @@ function $N(tag, attributes = {}, parent = null) {
         }
     }
 
-    var $el = new Element(t);
+    let $el = new Element(t);
     if (parent) parent.append($el);
     return $el;
 }
 
 function $$N(html) {
     let tempDiv = $N('div', { html: html });
-    return tempDiv.children;
+    return tempDiv.children();
 }
 
 
-// -------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Custom Elements
+
+function customElement(tag, options) {
+
+    var attrs = options.attributeChange || {};
+
+    class CustomElement extends HTMLElement {
+
+        createdCallback() {
+            if ('template' in options)
+                this.createShadowRoot().innerHTML = template;
+
+            let events = new Evented();
+            this.on = events.on;
+            this.off = events.off;
+            this.trigger = events.trigger;
+
+            this._el = $N(this);
+            if ('created' in options) options.created.call(this)
+        }
+
+        attachedCallback() {
+            if ('attached' in options) options.attached.call(this)
+        }
+
+        detachedCallback() {
+            if ('detached' in options) options.detached.call(this)
+        }
+
+        attributeChangedCallback(attrName, oldVal, newVal) {
+            if (attrName in attrs) {
+                attrs[attrName].call(this, newVal, oldVal);
+            }
+        }
+
+    }
+
+    return document.registerElement(tag, CustomElement);
+}
+
+ 
+// -----------------------------------------------------------------------------
 // Exports
+
+const $body = new Element(document.body);
+const $html = $T('html');
+const $window = new Element(window);
+const $doc = new Element(window.document.documentElement);
 
 export default {
     $, $I, $C, $T, $N, $$, $$C, $$T, $$N,
-    $body: new Element(document.body),
-    $html: $T('html'),
-    $window: new Element(window),
-    $doc: new Element(window.document.documentElement)
+    $body, $html, $window, $doc,
+    customElement
 }
-
-
-
-
-/*
-
-function create(tag, options) {
-
-    let proto = Object.create(HTMLElement.prototype);
-
-    proto.createdCallback = function() {
-        if ('template' in options)
-            this.createShadowRoot().innerHTML = template;
-
-        this._el = $(this);
-        if ('created' in options) options.created.call(this._el)
-    };
-
-    proto.attachedCallback = function() {
-        if ('attached' in options) options.attached.call(this._el)
-    };
-
-    proto.detachedCallback = function() {
-        if ('detached' in options) options.detached.call(this._el)
-    };
-
-    proto.attributeChangedCallback = function(attrName, oldVal, newVal) {
-        // TODO
-    };
-
-    return document.registerElement(tag, { prototype: proto });
-}
-
-*/
-
-
