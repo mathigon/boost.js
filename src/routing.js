@@ -7,7 +7,12 @@
 
 import Evented from 'evented';
 import Ajax from 'ajax';
+import Browser from 'browser';
+import { $N } from 'elements';
 import { run } from 'utilities';
+import { $body } from 'elements';
+import { zip } from 'arrays';
+import { isString } from 'types';
 
 
 // -----------------------------------------------------------------------------
@@ -20,18 +25,22 @@ const location = window.history.location || window.location;
 
 function noop() {}
 
+function getPath() {
+    return window.location.href.replace(window.location.origin, '');
+}
+
 
 // -----------------------------------------------------------------------------
 // Views
 
 class View {
-    constructor(options) {
+    constructor(options = {}) {
         this.load  = ('load'  in options) ? options.load  : noop;
         this.enter = ('enter' in options) ? options.enter : noop;
         this.exit  = ('exit'  in options) ? options.exit  : noop;
 
         this.template = ('template' in options) ? options.template : null;
-        this.data     = ('data' in options)     ? options.data     : null;
+        this.templateUrl = ('templateUrl' in options) ? options.templateUrl : null;
     }
 }
 
@@ -45,7 +54,7 @@ let preloaded = false;
 let transition = false;
 
 let views = [];
-let errorView = { template: 'Error' };
+let errorView = { view: new View({ template: 'Error' }), $el: null, params: [] };
 let activeView = null;
 
 let current = '';
@@ -57,7 +66,7 @@ function setup(options) {
     if ('preloaded' in options) preloaded = options.preloaded;
     if ('transition' in options) transition = options.transition;
 
-    if (!(click in options) || options.click)
+    if (!('click' in options) || options.click)
         document.addEventListener(clickEvent, onClick, false);
 
     window.addEventListener('popstate', onPopState, false);
@@ -77,14 +86,25 @@ function disable() {
 
 function view(url, _view) {
     // TODO case insensitive, trailing slashes, more options
-    // TODO multiple matching views
+    // TODO error on multiple matching views
 
-    let params = url.match(/:\w+/g).map(x => x.substr(1));
-    let regexStr = url.replace(/:\w+/g, '(\w+)').replace('/', '\\/');
+    if (isString(_view)) _view = new View({ templateUrl: _view });
+
+    let params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
+    let regexStr = url.replace(/:\w+/g, '(\\w+)').replace('/', '\\/');
     let regex = new RegExp('^' + regexStr + '$');
-    views.push({ regex, params, _view });
+    let thisView = { regex, params, view: _view, $el: null };
+    views.push(thisView);
 
-    // TODO check if initial, the run view
+    // If initial view, initialise
+    let viewParams = _getViewParams(getPath(), thisView);
+    if (!viewParams) return;
+
+    if (preloaded) {
+        _renderViewComplete(thisView, viewport.children(0), viewParams);
+    } else {
+         _renderView(thisView, viewParams);
+    }
 }
 
 function redirect(from, to) {
@@ -94,7 +114,7 @@ function redirect(from, to) {
 }
 
 function error(view) {
-    errorView = view;
+    errorView = { view, $el: null };
 }
 
 
@@ -104,14 +124,10 @@ function error(view) {
 
 function goTo(url) {
     for (let v of views) {
-        let match = v.regex.exec(url);
-        if (match) {
-            match.shift();
-            let params = zip(v.params, match);
-            _renderView(v, url, params);
-        }
+        let params = _getViewParams(url, v);
+        if (params) return _renderView(v, params);
     }
-    _renderView(errorvView, url);
+    return _renderView(errorView);
 }
 
 function goBack() {
@@ -136,34 +152,42 @@ function setHash(newHash) {
 // -----------------------------------------------------------------------------
 // Render Functions
 
+function _getViewParams(url, view) {
+    let match = view.regex.exec(url);
+    if (match) {
+        match.shift();
+        return zip(view.params, match);
+    } else {
+        return null;
+    }
+}
+
 function _pushState(url, state = {}) {
     ++id;
     window.history.pushState({ id: id, state: state }, '', url);
+    _onStateChange({ url: url });
 }
 
 function _replaceState(url, state = {}) {
     window.history.replaceState({ id: id, state: state }, '', url);
 }
 
-function _renderView(newView, url, params = {}) {
-    newView.load();
+function _renderView(newView, params = {}) {
+    newView.view.load();
 
     if (activeView) {
-        activeView.exit();
+        activeView.view.exit();
         activeView.$el.remove();  // TODO out transition
     }
 
-    if (initial && preload) {
-        let $view = viewport.children[0];
-        _renderRenderComplete(newView, $view, params);
-    }
+    // TODO scroll to top
 
-    template = run(newView.template) || new Ajax.get(newView.templateUrl);
+    let template = run(newView.view.template) || new Ajax.get(newView.view.templateUrl);
 
-    if ('then' in template) {
+    if (template.then) {
         template.then(
             function(r) { _renderViewMake(newView, r, params); },
-            function(r) { _renderViewMake(errorView, errorView.template, params); }
+            function(r) { _renderViewMake(errorView, errorView.view.template, params); }
         );
     } else {
         _renderViewMake(newView, template, params);
@@ -172,13 +196,14 @@ function _renderView(newView, url, params = {}) {
 }
 
 function _renderViewMake(newView, template, params) {
-    let $view = $('div', { html: template });
-    viewport.addChild($view);  // TODO in transition
-    _renderRenderComplete(newView, $view, params)
+    let $view = $N('div', { html: template });
+    viewport.append($view);  // TODO in transition
+    _renderViewComplete(newView, $view, params);
 }
 
-function _renderRenderComplete(newView, $view, params) {
-    newView.enter($view, params);
+function _renderViewComplete(newView, $view, params) {
+    newView.view.enter($view, params);
+    newView.$el = $view;
     activeView = newView;
 }
 
@@ -186,9 +211,9 @@ function _onStateChange(e) {
     goTo(e.url);
     let newId = 10; // TODO
 
-    browserEvents.trigger('change', activeView);
-    if (newId < id) browserEvents.trigger('back', activeView);
-    if (newId > id) browserEvents.trigger('forward', activeView);
+    Browser.trigger('change', activeView);
+    if (newId < id) Browser.trigger('back', activeView);
+    if (newId > id) Browser.trigger('forward', activeView);
     id = newId;
 }
 
@@ -197,6 +222,7 @@ function _onStateChange(e) {
 // Events
 
 const onPopState = (function () {
+
     let loaded = false;
 
     if (document.readyState === 'complete') {
@@ -226,41 +252,32 @@ function onClick(e) {
     if (e.metaKey || e.ctrlKey || e.shiftKey) return;
     if (e.defaultPrevented) return;
 
-    var el = e.target;
+    let el = e.target;
     while (el && 'A' !== el.nodeName) el = el.parentNode;
     if (!el || 'A' !== el.nodeName) return;
 
     // Ignore if tag has "download" attribute or rel="external" attribute
     if (el.hasAttribute('download') || el.getAttribute('rel') === 'external') return;
 
-    // ensure non-hash for the same path
-    var link = el.getAttribute('href');
-    if (el.pathname === location.pathname && (el.hash || '#' === link)) return;
+    // Ensure non-hash for the same path
+    let link = el.getAttribute('href');
+    if (el.pathname === location.pathname && (el.hash || link === '#')) return;
 
     // Check for mailto: in the href
     if (link && link.indexOf('mailto:') > -1) return;
 
-    // check target
+    // Check target
     if (el.target) return;
 
-    // x-origin
-    if (!sameOrigin(el.href)) return;
+    // Different origin
+    if (el.origin !== window.location.origin) return;
 
-    // rebuild path
-    var path = el.pathname + el.search + (el.hash || '');
+    // Rebuild path
+    let path = el.pathname + el.search + (el.hash || '');
 
-    // strip leading "/[drive letter]:" on NW.js on Windows
-    if (typeof process !== 'undefined' && path.match(/^\/[a-zA-Z]:\//)) {
-      path = path.replace(/^\/[a-zA-Z]:\//, '/');
-    }
-
-    // same page
-    var orig = path;
-
-    if (path.indexOf(base) === 0) {
-      path = path.substr(base.length);
-    }
-
+    // Same page
+    let orig = path;
+    if (path.indexOf(base) === 0) path = path.substr(base.length);
     if (base && orig === path) return;
 
     e.preventDefault();

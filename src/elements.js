@@ -5,11 +5,17 @@
 
 
 
-import { isOneOf } from 'utilities';
-import { words } from 'strings';
+import { uid, run, isOneOf } from 'utilities';
+import { words, toCamelCase } from 'strings';
 import Evented from 'evented';
-import { createEvent, removeEvent, fixOverflowScroll, scrollTo } from 'dom-events';
-import { transitionElement, enter, exit, action } from 'animate';
+import { createEvent, removeEvent } from 'dom-events';
+import { easing, transitionElement, enter, exit, action } from 'animate';
+import { prefix } from 'browser';
+
+
+function cssN(element, property) {
+    return parseFloat(element.css(property));
+}
 
 
 class Element {
@@ -104,21 +110,21 @@ class Element {
     // Doesn't include border and padding
     get innerWidth() {
         if (this._isWindow) return window.innerWidth;
-        return this._el.clientWidth - parseFloat(this.css('padding-left')) - parseFloat(this.css('padding-right'));
+        return this._el.clientWidth - cssN(this, 'padding-left') - cssN(this, 'padding-right');
     }
     get innerHeight() {
         if (this._isWindow) return window.innerHeight;
-        return this._el.clientHeight - parseFloat(this.css('padding-bottom')) - parseFloat(this.css('padding-top'));
+        return this._el.clientHeight - cssN(this, 'padding-bottom') - cssN(this, 'padding-top');
     }
 
     // Includes Margins
     get outerWidth() {
         if (this._isWindow) return window.outerWidth;
-        return this._el.offsetWidth + parseFloat(this.css('margin-right')) + parseFloat(this.css('margin-left'));
+        return this._el.offsetWidth + cssN(this, 'margin-right') + cssN(this, 'margin-left');
     }
     get outerHeight() {
         if (this._isWindow) return window.outerHeight;
-        return this._el.offsetHeight + parseFloat(this.css('margin-top')) + parseFloat(this.css('margin-bottom'));
+        return this._el.offsetHeight + cssN(this, 'margin-top') + cssN(this, 'margin-bottom');
     }
 
     offset(parent) {
@@ -170,11 +176,41 @@ class Element {
     }
 
     fixOverflowScroll() {
-        fixOverflowScroll(this)
+        let _this = this;
+
+        if (this._isWindow || this._data._fixOverflowScroll) return;
+        this._data._fixOverflowScroll = true;
+
+        this._el.addEventListener('touchstart', function(){
+            // This ensures that overflow bounces happen within container
+            let top = _this.scrollTop;
+            let bottom = _this.scrollHeight - _this.height;
+
+            if(top <= 0) _this.scrollTop = 1;
+            if(top >= bottom) _this.scrollTop = bottom - 1;
+        });
     }
 
-    scrollTo(x, time = 1000, easing = 'cubic') {
-        scrollTo (this, pos, time, easing);
+    scrollTo(pos, time = 1000, easing = 'cubic') {
+        let _this = this;
+        let uid = uid();
+        if (pos < 0) pos = 0;
+
+        let startPosition = this.scrollTop;
+        let distance = pos - startPosition;
+
+        function callback(t) {
+            var x = startPosition + distance * easing(easing, t);
+            _this.scrollTop = x;
+            _this.trigger('scroll', { top: x, id: uid });
+        }
+
+        this.trigger('scrollstart');
+        let animation = animate(callback, time);
+
+        // Cancel animation if something else triggers scroll event
+        this.on('scroll', function(x) { if (x.id !== uid) animation.cancel(); });
+        this.on('touchstart', function() { animation.cancel(); });
     }
 
 
@@ -288,6 +324,7 @@ class Element {
 
     is(selector) {
         // TODO improve performance
+        // Element.prototype.matches / matchesSelector / webkitMatchesSelector / msMatchesSelector
         let compareWith = document.querySelectorAll(selector);
         for (let q of compareWith)
             if (q === this._el) return true;
@@ -315,7 +352,7 @@ class Element {
     append(newChild) {
         if (typeof newChild === 'string') {
             let newChildren = $$N(newChild);
-            for (c of newChildren) this._el.appendChild(c._el);
+            for (let c of newChildren) this._el.appendChild(c._el);
         } else {
             this._el.appendChild(newChild._el);
         }
@@ -339,7 +376,7 @@ class Element {
 
         if (typeof newChild === 'string') {
             let newChildren = $$N(newChild);
-            for (c of newChildren) parent._el.insertAfter(_this._el, c._el);
+            for (let c of newChildren) parent._el.insertAfter(_this._el, c._el);
         } else {
             var next = this._el.nextSibling;
             if (next) {
@@ -385,14 +422,26 @@ class Element {
         return parent ? $(parent) : null;
     }
 
+    get offsetParent() {
+        let parent = this._el.offsetParent;
+        return parent ? $(parent) : null;
+    }
+
+    get siblings() {
+        let siblings = [];
+        let el = this._el.parentNode.firstChild;
+        do { siblings.push($(el)); } while (el = el.nextSibling);
+        return siblings;
+    }
+
     parents(selector) {
-        let parents = [];
+        let result = [];
         let parent = this.parent();
         while (parent) {
-            if (!selector || parent.is(selector)) parents.push(parent);
+            if (!selector || parent.is(selector)) result.push(parent);
             parent = parent.parent();
         }
-        return parents;
+        return result;
     }
 
     hasParent($p) {
@@ -432,7 +481,7 @@ class Element {
     }
 
     clear() {
-        for ($c of this.children()) _this._el.removeChild($c._el);
+        for (let $c of this.children()) _this._el.removeChild($c._el);
     }
 
     replace(newEl) {
@@ -446,9 +495,9 @@ class Element {
 
     on(type, fn = null, useCapture = false) {
         if (fn != null) {
-            for (e of words(type)) createEvent(this, e, fn, useCapture);
+            for (let e of words(type)) createEvent(this, e, fn, useCapture);
         } else {
-            for (e in type) createEvent(this, e, type[e]);
+            for (let e in type) createEvent(this, e, type[e]);
         }
     }
 
@@ -462,12 +511,12 @@ class Element {
     }
 
     off(type, fn, useCapture = false) {
-        for (e of words(type)) removeEvent(this, e, fn, useCapture);
+        for (let e of words(type)) removeEvent(this, e, fn, useCapture);
     }
 
     trigger(event, args = {}) {
         if (!this._events[event]) return;
-        for (fn of this._events[event]) fn.call(this, args);
+        for (let fn of this._events[event]) fn.call(this, args);
     }
 
     // let evt = document.createEvent('Event');
@@ -510,12 +559,14 @@ class Element {
 const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
                  'g', 'defs', 'marker', 'line', 'text', 'pattern'];
 
-function $(selector, context = $doc) {
+const _doc = { _el: document };
+
+function $(selector, context = _doc) {
     if (typeof selector === 'string')
         selector = context._el.querySelector(selector);
 
     if (selector instanceof Node || selector === window)
-        return new Element(selector);
+        return selector._el || new Element(selector);
 
     return null;
 }
@@ -525,27 +576,27 @@ function $I(selector) {
     return el ? new Element(el) : null;
 }
 
-function $C(selector, context = $doc) {
+function $C(selector, context = _doc) {
     let els = context._el.getElementsByClassName(selector);
     return els.length ? new Element(els[0]) : null;
 }
 
-function $T(selector, context = $doc) {
+function $T(selector, context = _doc) {
     let els = context._el.getElementsByTagName(selector);
     return els.length ? new Element(els[0]) : null;
 }
 
-function $$(selector, context = $doc) {
+function $$(selector, context = _doc) {
     let els = context._el.querySelectorAll(selector);
     return els.map(el => new Element(el));
 }
 
-function $$C(selector, context = $doc) {
+function $$C(selector, context = _doc) {
     let els = context._el.getElementsByClassName(selector);
     return els.map(el => new Element(el));
 }
 
-function $$T(selector, context = $doc) {
+function $$T(selector, context = _doc) {
     let els = context._el.getElementsByTagName(selector);
     return els.map(el => new Element($el));
 }
@@ -584,29 +635,30 @@ function $$N(html) {
 
 function customElement(tag, options) {
 
-    var attrs = options.attributeChange || {};
+    var attrs = options.attributes || {};
 
     class CustomElement extends HTMLElement {
 
         createdCallback() {
             if ('template' in options)
-                this.createShadowRoot().innerHTML = template;
+                this.createShadowRoot().innerHTML = run(options.template);
 
             let events = new Evented();
             this.on = events.on;
             this.off = events.off;
             this.trigger = events.trigger;
 
-            this._el = $N(this);
-            if ('created' in options) options.created.call(this)
+            this.$el = $(this);
+            this.$shadow = $(this.shadowRoot);
+            if ('created' in options) options.created.call(this, this.$el, this.$shadow);
         }
 
         attachedCallback() {
-            if ('attached' in options) options.attached.call(this)
+            if ('attached' in options) options.attached.call(this, this.$el, this.$shadow);
         }
 
         detachedCallback() {
-            if ('detached' in options) options.detached.call(this)
+            if ('detached' in options) options.detached.call(this, this.$el, this.$shadow);
         }
 
         attributeChangedCallback(attrName, oldVal, newVal) {
@@ -632,5 +684,4 @@ const $doc = new Element(window.document.documentElement);
 export default {
     $, $I, $C, $T, $N, $$, $$C, $$T, $$N,
     $body, $html, $window, $doc,
-    customElement
-}
+    customElement };

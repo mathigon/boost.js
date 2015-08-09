@@ -5,6 +5,7 @@
 
 
 
+import { toCamelCase } from 'strings';
 import { cache, throttle } from 'utilities';
 import Evented from 'evented';
 
@@ -17,7 +18,7 @@ const ua = window.navigator.userAgent;
 const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
 
 function redraw() {
-    document.body.offsetHeight;
+    document.body.offsetHeight; /* jshint ignore:line */
 }
 
 
@@ -29,7 +30,7 @@ let width = window.innerWidth;
 window.onresize = throttle(function() {
     let newWidth = window.innerWidth;
     let height = window.innerHeight;
-    if (check && width === newWidth && width < 800 && height < 800) return;
+    if (width === newWidth && width < 800 && height < 800) return;
     width = newWidth;
     browserEvents.trigger('resize', [width, height]);
 }, 100);
@@ -96,7 +97,7 @@ const prefixes = ['webkit', 'Moz', 'ms', 'O'];
 const style = document.createElement('div').style;
 
 const prefix = cache(function(name, dashes) {
-    let rule = name.toCamelCase();
+    let rule = toCamelCase(name);
     if (style[rule] != null) return dashes ? name : rule; 
 
     rule = rule.toTitleCase();
@@ -255,7 +256,10 @@ export default {
     isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
 
     redraw, ready, resize, cssTimeToNumber, addCSSRule, prefix,
-    on: browserEvents.on, off: browserEvents.off, trigger: browserEvents.trigger,
+    
+    on: browserEvents.on.bind(browserEvents),
+    off: browserEvents.off.bind(browserEvents),
+    trigger: browserEvents.trigger.bind(browserEvents),
 
     get width()  { return window.innerWidth; },
     get height() { return window.innerHeight; },

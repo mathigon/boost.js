@@ -1,7 +1,7 @@
-// =================================================================================================
+// =============================================================================
 // Boost.js | AJAX Functions
-// (c) 2015 Mathigon / Philipp Legner
-// =================================================================================================
+// (c) 2015 Mathigon
+// =============================================================================
 
 
 
@@ -11,13 +11,13 @@ import Evented from 'evented';
 
 export default class Ajax extends Evented {
 
-    // ---------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Static Methods
 
     static toQueryString(data) {
         let pairs = [];
 
-        for (let key of data) {
+        for (let key in data) {
             let value = data[key];
             key = encodeURIComponent(key);
             if (value == null) { pairs.push(key); return; }
@@ -59,10 +59,10 @@ export default class Ajax extends Evented {
     }
 
 
-    // ---------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Constructor Functions
 
-    constructor(type, url, data = {}, options = { async: true, cache: true }) {
+    constructor(type, url, data = null, options = { async: true, cache: true }) {
         super();
 
         // TODO use window.fetch() instead
@@ -92,16 +92,16 @@ export default class Ajax extends Evented {
             if (!options.cache) url += '&_cachebust=' + Date.now();
         }
 
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         xhr.open(type, url, options.async, options.user, options.password);
+        xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
         xhr.send(params);
     }
 
-    static get(url, data = {}) {
+    static get(url, data = null) {
         return new Ajax('GET', url, data);
     }
      
-    static post(url, data = {}) {
+    static post(url, data = null) {
         return new Ajax('POST', url, data);
     }
 
@@ -117,12 +117,12 @@ export default class Ajax extends Evented {
     }
 
 
-    // ---------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Callbacks
 
     then(success, error = null) {
         if (success) this.on('success', success);
-        if (error) this.on('success', error);
+        if (error) this.on('error', error);
         return this;
     }
 

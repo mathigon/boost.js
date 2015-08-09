@@ -28,15 +28,14 @@ function animate(callback, duration) {
         if (running && (!duration || time <= duration)) animationFrame(getFrame);
         time = Date.now() - startTime;
         callback(duration ? Math.min(1,time/duration) : time);
-        if (duration && time >= duration)) deferred.resolve();
+        if (duration && time >= duration) deferred.resolve();
     }
 
     getFrame();
 
 	return {
 		cancel: function() { running = false; deferred.reject(); },
-        then
-	};
+        then };
 }
 
 
@@ -223,7 +222,7 @@ function enter(element, time = 400, effect = 'fade', delay = 0) {
             delay: delay,
             duration: time
         });
-        animation.finally(function() { element.css('stroke-dasharray', ''); })
+        animation.finally(function() { element.css('stroke-dasharray', ''); });
     }
 
     return animation;
