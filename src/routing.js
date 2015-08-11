@@ -39,6 +39,7 @@ class View {
         this.enter = ('enter' in options) ? options.enter : noop;
         this.exit  = ('exit'  in options) ? options.exit  : noop;
 
+        this.title = ('title' in options) ? options.title : null;
         this.template = ('template' in options) ? options.template : null;
         this.templateUrl = ('templateUrl' in options) ? options.templateUrl : null;
     }
@@ -202,6 +203,7 @@ function _renderViewMake(newView, template, params) {
 }
 
 function _renderViewComplete(newView, $view, params) {
+    if (newView.title) document.title = newView.title;
     newView.view.enter($view, params);
     newView.$el = $view;
     activeView = newView;
@@ -292,34 +294,3 @@ const Router = {
     on: RouteEvents.on, off: RouteEvents.off, trigger: RouteEvents.trigger };
 
 export { View, Router };
-
-
-/* Example Usage:
-
-const homeView = new View({
-    load: function() { },
-    enter: function($el, params) { },
-    exit: function() { },
-
-    template: '<div></div>',
-    templateUrl: '/my-page',
-    template: function(params) { return '<div></div>'; },
-
-    data: { }
-});
-
-Router.setup({
-    viewport: $('#main'),
-    initial: 'preloaded', // template for first view is already in place
-    transition: 'fade',
-    click: true,
-    popstate: true,
-    base: '/'
-});
-
-Router.view('/home', homeView);
-Router.redirect('/other', '/home');
-Router.error(errorView)
-*/
-
-
