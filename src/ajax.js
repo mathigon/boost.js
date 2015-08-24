@@ -42,7 +42,7 @@ export default class Ajax extends Evented {
         return result;
     }
 
-    static formatResponse(response, type) {
+    static formatResponse(response, type = 'json') {
         switch(type) {
 
             case 'html':
@@ -80,6 +80,8 @@ export default class Ajax extends Evented {
             _this.trigger(success ? 'success' : 'error', success ? xhr.responseText : xhr);
         };
 
+        xhr.open(type, url, options.async, options.user, options.password);
+
         if (type === 'GET') {
             url += (url.indexOf('?') >= 0 ? '&' : '?');
             if (data) url += Ajax.toQueryString(data) + '&';
@@ -92,7 +94,6 @@ export default class Ajax extends Evented {
             if (!options.cache) url += '&_cachebust=' + Date.now();
         }
 
-        xhr.open(type, url, options.async, options.user, options.password);
         xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
         xhr.send(params);
     }
@@ -126,7 +127,7 @@ export default class Ajax extends Evented {
         return this;
     }
 
-    catch(error) {
+    ['catch'](error) {
         this.on('success', error);
         return this;
     }

@@ -9,7 +9,7 @@ import { uid, run, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
 import Evented from 'evented';
 import { createEvent, removeEvent } from 'dom-events';
-import { easing, transitionElement, enter, exit, action } from 'animate';
+import { easing, transitionElement, enter, exit, effect } from 'animate';
 import { prefix } from 'browser';
 
 
@@ -91,6 +91,16 @@ class Element {
 
     get text() { return this._el.textContent; }
     set text(y) { this._el.textContent = html; }
+
+    get action() { return this._el.action; }
+    get formData() {
+        let data = {};
+        let els = this._el.elements; // TODO array from
+        for (var i=0; i<els.length; ++i) {
+          data[els[i].name || els[i].id] = els[i].value;
+        }
+        return data;
+    }
 
     blur() { this._el.blur(); }
     focus() { this._el.focus(); }
@@ -414,6 +424,10 @@ class Element {
     }
 
     find(selector) {
+        return $(selector, this);
+    }
+
+    findAll(selector) {
         return $$(selector, this);
     }
 
@@ -458,16 +472,16 @@ class Element {
 
         if (!childNodes) {
             let nodes = this._el.childNodes;
-            return nodes.filter(n => !n.data || n.data.trim()).map(n => $(n));
+            return Array.from(nodes).filter(n => !n.data || n.data.trim()).map(n => $(n));
 
         } else if (typeof selector === 'number') {
             return $(childNodes[selector]);
 
         } else if (selector == null) {
-            return childNodes.map(n => $(n));
+            return Array.from(childNodes, n => $(n));
 
         } else {
-            return childNodes.map(n => $(n)).filter($n => $n.is(selector));
+            return Array.from(childNodes, n => $(n)).filter($n => $n.is(selector));
         }
     }
 
@@ -481,7 +495,7 @@ class Element {
     }
 
     clear() {
-        for (let $c of this.children()) _this._el.removeChild($c._el);
+        for (let $c of this.children()) this._el.removeChild($c._el);
     }
 
     replace(newEl) {
@@ -530,9 +544,9 @@ class Element {
 
     animate(properties) { transitionElement(this, properties); }
 
-    enter(time, effect, delay) { enter(this, time, effect, delay); }
-    exit(time, effect, delay) { exit(this, time, effect, delay); }
-    action(effect) { exit(this, effect); }
+    enter(time, type, delay) { enter(this, time, type, delay); }
+    exit(time, type, delay) { exit(this, time, type, delay); }
+    effect(type) { effect(this, type); }
 
     fadeIn(time) { enter(this, time, 'fade'); }
     fadeOut(time) { exit(this, time, 'fade'); }
@@ -550,6 +564,29 @@ class Element {
         return a;
     }
 
+
+    // -------------------------------------------------------------------------
+    // SVG Methods
+
+    // TODO caching for this._data._points
+
+    get points() {
+        let points = this._el.attr('d').replace('M','').split('L');
+        return points.map(function(x){
+            p = x.split(',');
+            return { x: p[0], y: p[1] };
+        });
+    }
+
+    set points(p) {
+        let d = p.length ? 'M' + p.map(x => x.x + ',' + x.y).join('L') : '';
+        this.attr('d', d);
+    }
+
+    addPoint(p) {
+        let d = this.attr('d') + ' L ' + p.x + ',' + p.y;
+        this.attr('d', d);
+    }
 }
 
 
@@ -588,17 +625,17 @@ function $T(selector, context = _doc) {
 
 function $$(selector, context = _doc) {
     let els = context._el.querySelectorAll(selector);
-    return els.map(el => new Element(el));
+    return Array.from(els, el => new Element(el));
 }
 
 function $$C(selector, context = _doc) {
     let els = context._el.getElementsByClassName(selector);
-    return els.map(el => new Element(el));
+    return Array.from(els, el => new Element(el));
 }
 
 function $$T(selector, context = _doc) {
     let els = context._el.getElementsByTagName(selector);
-    return els.map(el => new Element($el));
+    return Array.from(els, el => new Element($el));
 }
 
 
@@ -643,22 +680,37 @@ function customElement(tag, options) {
             if ('template' in options)
                 this.createShadowRoot().innerHTML = run(options.template);
 
+            if ('styles' in options) {
+                let s = document.createElement('style');
+                s.innerHTML = options.styles;
+                (this.shadowRoot || this).appendChild(s);
+            }
+
             let events = new Evented();
-            this.on = events.on;
-            this.off = events.off;
-            this.trigger = events.trigger;
+            // Element events with .on
+            this.on = events.on.bind(events);
+            this.off = events.off.bind(events);
+            this.trigger = events.trigger.bind(events);
+
+            this.state = {};
+            this.setState = function() {};
+            this.render = function() {};
 
             this.$el = $(this);
             this.$shadow = $(this.shadowRoot);
-            if ('created' in options) options.created.call(this, this.$el, this.$shadow);
+
+            if ('created' in options)
+                options.created.call(this, this.$el, this.$shadow);
         }
 
         attachedCallback() {
-            if ('attached' in options) options.attached.call(this, this.$el, this.$shadow);
+            if ('attached' in options)
+                options.attached.call(this, this.$el, this.$shadow);
         }
 
         detachedCallback() {
-            if ('detached' in options) options.detached.call(this, this.$el, this.$shadow);
+            if ('detached' in options)
+                options.detached.call(this, this.$el, this.$shadow);
         }
 
         attributeChangedCallback(attrName, oldVal, newVal) {
@@ -667,6 +719,13 @@ function customElement(tag, options) {
             }
         }
 
+    }
+
+    // TODO fix custom methods
+    for (let k of Object.keys(options)) {
+        if (!isOneOf(k, 'created', 'attached', 'detached', 'template', 'styles', 'attributes')) {
+            CustomElement.prototype[k] = options[k];
+        }
     }
 
     return document.registerElement(tag, CustomElement);

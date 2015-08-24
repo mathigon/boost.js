@@ -5,7 +5,7 @@
 
 
 
-import { defer } from 'utilities';
+import { defer, extend } from 'utilities';
 import { prefix, redraw } from 'browser';
 
 
@@ -143,7 +143,7 @@ function transitionElement(element, properties) {
     var s = window.getComputedStyle(element._el);
     properties.forEach(function(p) {
         if (p.from != null) {
-            element.css(p.css, options.from);
+            element.css(p.css, p.from);
         } else if (p.css === 'height') {
             element.css('height', parseFloat(s.getPropertyValue('height')));
         } else if (p.css === 'width') {
@@ -266,7 +266,7 @@ function exit(element, time = 400, effect = 'fade', delay = 0) {
 }
 
 // pulseDown, pulseUp, flash, bounceUp, bounceRight
-function action(element, effect) {
+function effect(element, effect) {
     element.animationEnd(function(){
         element.removeClass('effects-' + effect);
     });
@@ -275,5 +275,6 @@ function action(element, effect) {
 
 // -----------------------------------------------------------------------------
 
-export default { animate, ease, transitionElement, enter, exit, action };
+export default { animationFrame, animate, ease, transitionElement,
+    enter, exit, effect };
 

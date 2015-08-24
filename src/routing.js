@@ -85,14 +85,14 @@ function disable() {
 // Routing Functions
 // (when setting up the page)
 
-function view(url, _view) {
+function view(url, _view = null) {
     // TODO case insensitive, trailing slashes, more options
     // TODO error on multiple matching views
 
-    if (isString(_view)) _view = new View({ templateUrl: _view });
+    if (!_view) _view = new View({ templateUrl: url });
 
     let params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
-    let regexStr = url.replace(/:\w+/g, '(\\w+)').replace('/', '\\/');
+    let regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/');
     let regex = new RegExp('^' + regexStr + '$');
     let thisView = { regex, params, view: _view, $el: null };
     views.push(thisView);
@@ -124,6 +124,7 @@ function error(view) {
 // (when navigating the page)
 
 function goTo(url) {
+    console.info('[boost] Routing to ' + url);
     for (let v of views) {
         let params = _getViewParams(url, v);
         if (params) return _renderView(v, params);
@@ -179,6 +180,8 @@ function _renderView(newView, params = {}) {
     if (activeView) {
         activeView.view.exit();
         activeView.$el.remove();  // TODO out transition
+    } else {
+        viewport.clear();
     }
 
     // TODO scroll to top

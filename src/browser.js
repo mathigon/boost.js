@@ -5,7 +5,7 @@
 
 
 
-import { toCamelCase } from 'strings';
+import { words, toCamelCase } from 'strings';
 import { cache, throttle } from 'utilities';
 import Evented from 'evented';
 
@@ -81,6 +81,13 @@ function cssTimeToNumber(cssTime) {
     let matches = regex.exec(cssTime.trim());
     if (matches === null) return null;
     return (+matches[1]) * (matches[3] === 's' ? 1000 : 1);
+}
+
+function addCSS(css) {
+    let style = document.createElement("style");
+    style.type = "text/css";
+    style.innerHTML = css;
+    document.head.appendChild(style);
 }
 
 function addCSSRule(selector, rules) {
@@ -202,27 +209,46 @@ function deleteStorage(key) {
 // -----------------------------------------------------------------------------
 // Keyboard Events
 
+const keyCodes = {
+    backspace: 8,
+    tab: 9,
+    enter: 13,
+    shift: 16,
+    ctrl: 17,
+    alt: 18,
+    pause: 19,
+    capslock: 20,
+    escape: 27,
+    space: 32,
+    pageup: 33,
+    pagedown: 34,
+    end: 35,
+    home: 36,
+    left: 37,
+    up: 38,
+    right: 39,
+    down: 40,
+    insert: 45,
+    'delete': 46
+};
+
 function activeInput() {
     let active = document.activeElement;
     return active === document.body ? undefined : active;
 }
 
 // Executes fn if any one of [keys] is pressed
-function keyDown(keys, fn) {
-    if (!(keys instanceof Array)) keys = [keys];
+function onKey(keys, fn) {
+    keys = words(keys).map(k => keyCodes[k] || k);
     document.addEventListener('keydown', function(e){
-        var key = e.keyCode || e.which;
-        for (let k of keys) {
-            if (key === k && !activeInput()) {
-                e.preventDefault();
-                fn(e);
-            }
-        }
+        if (activeInput()) return;
+        let key = e.which || e.keyCode;
+        if (keys.indexOf(key) >= 0) fn(e);
     });
 }
 
 // Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
-function multiKeyDown(key1, key2, fn1, fn2) {
+function onMultiKey(key1, key2, fn1, fn2) {
     var key2down = false;
 
     document.addEventListener('keydown', function(e){
@@ -255,7 +281,7 @@ export default {
     isChrome: window.chrome,
     isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
 
-    redraw, ready, resize, cssTimeToNumber, addCSSRule, prefix,
+    redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, prefix,
     
     on: browserEvents.on.bind(browserEvents),
     off: browserEvents.off.bind(browserEvents),
@@ -272,5 +298,5 @@ export default {
     set hash(h) { return setHash(h); },
 
     get activeInput() { return activeInput(); },
-    keyDown, multiKeyDown };
+    onKey, onMultiKey };
 
