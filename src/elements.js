@@ -9,7 +9,7 @@ import { uid, run, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
 import Evented from 'evented';
 import { createEvent, removeEvent } from 'dom-events';
-import { easing, transitionElement, enter, exit, effect } from 'animate';
+import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
 import { prefix } from 'browser';
 
 
@@ -203,24 +203,28 @@ class Element {
 
     scrollTo(pos, time = 1000, easing = 'cubic') {
         let _this = this;
-        let uid = uid();
+        let id = uid();
         if (pos < 0) pos = 0;
 
         let startPosition = this.scrollTop;
         let distance = pos - startPosition;
 
         function callback(t) {
-            var x = startPosition + distance * easing(easing, t);
+            let x = startPosition + distance * ease(easing, t);
             _this.scrollTop = x;
-            _this.trigger('scroll', { top: x, id: uid });
+            _this.trigger('scroll', { top: x, id });
         }
 
         this.trigger('scrollstart');
         let animation = animate(callback, time);
 
         // Cancel animation if something else triggers scroll event
-        this.on('scroll', function(x) { if (x.id !== uid) animation.cancel(); });
-        this.on('touchstart', function() { animation.cancel(); });
+        // this.one('scroll', function(x) {  if (x.id !== id) animation.cancel(); });
+        // this.one('touchstart', function() { animation.cancel(); });
+    }
+
+    scrollBy(distance, time = 1000, easing = 'cubic') {
+        this.scrollTo(this.scrollTop + distance, time, easing);
     }
 
 
@@ -594,7 +598,7 @@ class Element {
 // Element Selectors
 
 const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
-                 'g', 'defs', 'marker', 'line', 'text', 'pattern'];
+                 'g', 'defs', 'marker', 'line', 'text', 'pattern', 'mask', 'svg'];
 
 const _doc = { _el: document };
 
