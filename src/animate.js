@@ -6,7 +6,7 @@
 
 
 import { defer, extend } from 'utilities';
-import { prefix, redraw } from 'browser';
+import { prefix, redraw, cssTimeToNumber } from 'browser';
 
 
 const animationFrame = window.requestAnimationFrame ||
@@ -108,8 +108,8 @@ function getTransitions(element) {
     for (let i = 0; i < property.length; ++i) {
         result.push({
             css:      property[i].trim(),
-            delay:    M.cssTimeToNumber(delay[i]),
-            duration: M.cssTimeToNumber(duration[i]),
+            delay:    cssTimeToNumber(delay[i]),
+            duration: cssTimeToNumber(duration[i]),
             timing:   timing[i]
         });
     }

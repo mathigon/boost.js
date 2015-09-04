@@ -43,6 +43,8 @@ function resize(fn = null) {
     }
 }
 
+setTimeout(resize);
+
 
 // ---------------------------------------------------------------------------------------------
 // Load Events
@@ -61,6 +63,7 @@ window.onload = function() {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+    resize();
     if (!loaded) afterLoad();
 });
 
@@ -84,8 +87,8 @@ function cssTimeToNumber(cssTime) {
 }
 
 function addCSS(css) {
-    let style = document.createElement("style");
-    style.type = "text/css";
+    let style = document.createElement('style');
+    style.type = 'text/css';
     style.innerHTML = css;
     document.head.appendChild(style);
 }
@@ -105,7 +108,7 @@ const style = document.createElement('div').style;
 
 const prefix = cache(function(name, dashes) {
     let rule = toCamelCase(name);
-    if (style[rule] != null) return dashes ? name : rule; 
+    if (style[rule] != null) return dashes ? name : rule;
 
     rule = rule.toTitleCase();
     for (let i = 0; i < prefixes.length; ++i) {
@@ -130,7 +133,7 @@ function getCookies() {  // FIXME
 }
 
 function getCookie(name) {
-    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    var v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
     return v ? v[2] : null;
 }
 
@@ -185,9 +188,9 @@ function setStorage(key, value) {
 }
 
 function getStorage(key) {
-    var keys = (key||'').split('.');
-    var storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
-    var path = storage;
+    let keys = (key||'').split('.');
+    let storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
+    let path = storage;
 
     for (var i=0; i<keys.length-1; ++i) {
         if (path[keys[i]] == null) return null;
@@ -282,7 +285,7 @@ export default {
     isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
 
     redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, prefix,
-    
+
     on: browserEvents.on.bind(browserEvents),
     off: browserEvents.off.bind(browserEvents),
     trigger: browserEvents.trigger.bind(browserEvents),
@@ -294,9 +297,5 @@ export default {
     getCookie, setCookie, deleteCookie,
     setStorage, getStorage, deleteStorage,
 
-    get hash() { return getHash(); },
-    set hash(h) { return setHash(h); },
-
     get activeInput() { return activeInput(); },
     onKey, onMultiKey };
-

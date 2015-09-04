@@ -5,7 +5,7 @@
 
 
 
-import $ from 'elements';
+import { $ } from 'elements';
 import Evented from 'evented';
 
 
@@ -49,7 +49,7 @@ export default class Ajax extends Evented {
             var doc = document.implementation.createHTMLDocument('');
             doc.documentElement.innerHTML = response;
             return $(doc);
- 
+
             case 'json':
             return JSON.parse(response);
 
@@ -101,7 +101,7 @@ export default class Ajax extends Evented {
     static get(url, data = null) {
         return new Ajax('GET', url, data);
     }
-     
+
     static post(url, data = null) {
         return new Ajax('POST', url, data);
     }
@@ -133,4 +133,3 @@ export default class Ajax extends Evented {
     }
 
 }
-

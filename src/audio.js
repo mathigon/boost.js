@@ -162,4 +162,3 @@ function SpeechRecognition() {
 export default {
     playing: function() { return playing; },
     loadAudio, AudioChunk, SpeechRecognition };
-

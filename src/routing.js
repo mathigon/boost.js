@@ -206,7 +206,7 @@ function _renderViewMake(newView, template, params) {
 }
 
 function _renderViewComplete(newView, $view, params) {
-    if (newView.title) document.title = newView.title;
+    if (newView.title) document.title = run(newView.title, params);
     newView.view.enter($view, params);
     newView.$el = $view;
     activeView = newView;

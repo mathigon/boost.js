@@ -87,10 +87,10 @@ class Element {
     set value(v) { this._el.value = v; }
 
     get html() { return this._el.innerHTML; }
-    set html(h) { this._el.innerHTML = html; }
+    set html(h) { this._el.innerHTML = h; }
 
     get text() { return this._el.textContent; }
-    set text(y) { this._el.textContent = html; }
+    set text(t) { this._el.textContent = t; }
 
     get action() { return this._el.action; }
     get formData() {
