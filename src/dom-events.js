@@ -40,9 +40,9 @@ function pointerOffset(event, $parent) {
         return { x: event.offsetX, y: event.offsetY };
 
     // Cache the scale parent and scale transform for better performance
-    var id = $parent._data.id = $parent._data.id || uid();
+    var id = $parent._data.scaleid = $parent._data.scaleid || uid();
     if (!scaleParentCache[id]) scaleParentCache[id] = $parent.parents('.frame')[0] || $parent;
-    if (!scaleCache[id]) scaleCache[id] = scaleParentCache[id].getScale();
+    if (!scaleCache[id]) scaleCache[id] = scaleParentCache[id].scale;
     
     if (!$parent) $parent = $(event.target);
     var parentXY = $parent.bounds;

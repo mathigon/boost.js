@@ -31,6 +31,8 @@ class Element {
     // -------------------------------------------------------------------------
     // Basic Functionality
 
+    get id() { return this._el.id; }
+
     addClass(className) {
         let classes = words(className);
         if (this._el.classList) {
@@ -115,7 +117,7 @@ class Element {
 
     // Includes border and padding
     get width()  { return this._isWindow ? window.innerWidth  : this._el.offsetWidth; }
-    get height() { return this._isWindow ? window.innerHeight : this.$el.offsetHeight; }
+    get height() { return this._isWindow ? window.innerHeight : this._el.offsetHeight; }
 
     // Doesn't include border and padding
     get innerWidth() {
@@ -137,10 +139,27 @@ class Element {
         return this._el.offsetHeight + cssN(this, 'margin-top') + cssN(this, 'margin-bottom');
     }
 
-    offset(parent) {
-        if (parent === 'parent') parent = this.parent;
-        if (parent === 'body') parent = $body;
+    get positionTop() {
+        let element = this;
+        let offset = 0;
 
+        do { offset += element.offsetTop; }
+        while (element = element.offsetParent);
+
+        return offset;
+    }
+
+    get positionLeft() {
+        let element = this;
+        let offset = 0;
+
+        do { offset += element.offsetLeft; }
+        while (element = element.offsetParent);
+        
+        return offset;
+    }
+
+    offset(parent) {
         // Get offset from immediate parent
         if (parent._el === this._el.offsetParent) {
             let top = this.offsetTop + parent._el.clientTop;
@@ -404,12 +423,12 @@ class Element {
     wrap(wrapper) {
         if (typeof wrapper === 'string') wrapper = $N(wrapper);
         this.insertBefore(wrapper);
-        this.remove();
+        this.detach();
         wrapper.append(this);
     }
 
     moveTo(newParent, before) {
-        this.remove();
+        this.detach();
         if (before) {
             newParent.prepend(this);
         } else {
@@ -454,19 +473,19 @@ class Element {
 
     parents(selector) {
         let result = [];
-        let parent = this.parent();
+        let parent = this.parent;
         while (parent) {
             if (!selector || parent.is(selector)) result.push(parent);
-            parent = parent.parent();
+            parent = parent.parent;
         }
         return result;
     }
 
     hasParent($p) {
-        let parent = this.parent();
+        let parent = this.parent;
         while (parent) {
             if (parent.$el === $p.$el) return true;
-            parent = parent.parent();
+            parent = parent.parent;
         }
         return false;
     }
@@ -639,7 +658,7 @@ function $$C(selector, context = _doc) {
 
 function $$T(selector, context = _doc) {
     let els = context._el.getElementsByTagName(selector);
-    return Array.from(els, el => new Element($el));
+    return Array.from(els, el => new Element(el));
 }
 
 
@@ -690,18 +709,16 @@ function customElement(tag, options) {
                 (this.shadowRoot || this).appendChild(s);
             }
 
-            let events = new Evented();
-            // Element events with .on
-            this.on = events.on.bind(events);
-            this.off = events.off.bind(events);
-            this.trigger = events.trigger.bind(events);
-
             this.state = {};
             this.setState = function() {};
             this.render = function() {};
 
             this.$el = $(this);
             this.$shadow = $(this.shadowRoot);
+
+            this.on = this.$el.on.bind(this.$el);
+            this.off = this.$el.off.bind(this.$el);
+            this.trigger = this.$el.trigger.bind(this.$el);
 
             if ('created' in options)
                 options.created.call(this, this.$el, this.$shadow);

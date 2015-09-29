@@ -8,6 +8,7 @@
 import { words, toCamelCase } from 'strings';
 import { cache, throttle } from 'utilities';
 import Evented from 'evented';
+import { $body } from 'elements';
 
 
 // ---------------------------------------------------------------------------------------------
@@ -32,14 +33,18 @@ window.onresize = throttle(function() {
     let height = window.innerHeight;
     if (width === newWidth && width < 800 && height < 800) return;
     width = newWidth;
-    browserEvents.trigger('resize', [width, height]);
+    browserEvents.trigger('resize', { width, height });
+    // $body.trigger('scroll', { top: $body.scrollTop });
 }, 100);
 
 function resize(fn = null) {
     if (fn) {
         browserEvents.on('resize', fn);
     } else {
-        browserEvents.trigger('resize', [window.innerWidth, window.innerHeight]);
+        browserEvents.trigger('resize', {
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
     }
 }
 

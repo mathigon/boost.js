@@ -103,58 +103,41 @@ class AudioChunk extends Evented {
 // -----------------------------------------------------------------------------
 // Speech Recognition
 
-function SpeechRecognition() {
+class SpeechRecognition extends Evented {
 
-    if (!('webkitSpeechRecognition' in window)) {
-        return {
-            start: function() { rec.start(); },
-            stop: function() { rec.stop(); },
-            addCommand: function(){},
-            removeCommand: function(){},
-            available: false
+    constructor() {
+        super({ splitBy: '|', lowercase: true });
+        if (!this.isAvailable) return;
+
+        this.rec = new window.webkitSpeechRecognition();
+        this.rec.continuous = true;
+        this.rec.language = 'en-US';
+        //rec.interimResults = true;
+        //rec.onstart = function() { ... }
+        //rec.onerror = function(event) { ... }
+        //rec.onend = function() { ... }
+
+        this.rec.onresult = (event) => {
+            for (var i = event.resultIndex; i < event.results.length; ++i) {
+                let msg = event.results[i][0].transcript;
+                console.debug('Voice Input: ', msg);
+                this.trigger(msg);
+            }
         };
     }
 
-    var rec = new window.webkitSpeechRecognition();
-    rec.continuous = true;
-    rec.language = 'en-US';
-    //rec.interimResults = true;
+    start() {
+        if (this.rec) this.rec.start();
+    }
 
-    var commands = {};
+    stop() {
+        if (this.rec) this.rec.stop();
+    }
 
-    var processCommand = function(name) {
-        name = name.toLowerCase().trim();
-        if (commands[name]) commands[name]();
-    };
+    get isAvailable() {
+        return 'webkitSpeechRecognition' in window;
+    }
 
-    rec.onresult = function(event) {
-        for (var i = event.resultIndex; i < event.results.length; ++i) {
-            console.debug('Voice Input: ', event.results[i][0].transcript);
-            processCommand(event.results[i][0].transcript);
-        }
-    };
-
-    //rec.onstart = function() { ... }
-    //rec.onerror = function(event) { ... }
-    //rec.onend = function() { ... }
-
-    var addCommand = function(name, fn) {
-        if (!(name instanceof Array)) name = [name];
-        for (var i=0; i<name.length; ++i) commands[name[i].toLowerCase()] = fn;
-    };
-
-    var removeCommand = function(name) {
-        if (!(name instanceof Array)) name = [name];
-        for (var i=0; i<name.length; ++i) commands[name[i].toLowerCase()] = undefined;
-    };
-
-    return {
-        start: function() { rec.start(); },
-        stop: function() { rec.stop(); },
-        addCommand: addCommand,
-        removeCommand: removeCommand,
-        available: true
-    };
 }
 
 // -----------------------------------------------------------------------------
