@@ -8,7 +8,7 @@
 // TODO Improve performance after removing click, pointer and scroll events
 
 import { uid } from 'utilities';
-import { $ } from 'elements';
+import Elements from 'elements';
 import Browser from 'browser';
 import { animate } from 'animate';
 import { isString } from 'types';
@@ -30,33 +30,6 @@ function isSupported(event) {
     return result;
 }
 
-var scaleParentCache = {};
-var scaleCache = {};
-Browser.resize(function() { scaleCache = {}; });
-
-function pointerOffset(event, $parent) {
-
-    if (event.offsetX && $parent._el === event.target)
-        return { x: event.offsetX, y: event.offsetY };
-
-    // Cache the scale parent and scale transform for better performance
-    var id = $parent._data.scaleid = $parent._data.scaleid || uid();
-    if (!scaleParentCache[id]) scaleParentCache[id] = $parent.parents('.frame')[0] || $parent;
-    if (!scaleCache[id]) scaleCache[id] = scaleParentCache[id].scale;
-    
-    if (!$parent) $parent = $(event.target);
-    var parentXY = $parent.bounds;
-
-    var eventX = event.touches ? event.touches[0].clientX : event.clientX;
-    var eventY = event.touches ? event.touches[0].clientY : event.clientY;
-
-    var offsetX = eventX - parentXY.left;
-    var offsetY = eventY - parentXY.top;
-
-    // If a CSS transform is applied, the offset is calculated in browser pixels, no $parent pixels
-    return { x: offsetX/scaleCache[id][0], y: offsetY/scaleCache[id][1] };
-}
-
 function pointerPosition(e) {
     return {
         x: e.touches ? e.touches[0].clientX : e.clientX,
@@ -71,9 +44,22 @@ function getWheelDelta(e) {
     return delta;
 }
 
-function stop(event) {
+function stopEvent(event) {
     event.preventDefault();
     event.stopPropagation();
+}
+
+function svgPointerPosn(event, $svg) {
+    // TODO cache values for efficiency
+    let matrix = $svg._el.getScreenCTM().inverse();
+    let posn = pointerPosition(event);
+
+    let point = $svg._el.createSVGPoint();
+    point.x = posn.x;
+    point.y = posn.y;
+
+    point = point.matrixTransform(matrix);
+    return { x: point.x, y: point.y };
 }
 
 
@@ -139,6 +125,16 @@ function makeClickEvent($el) {
     });
 }
 
+function makeClickOutsideEvent($el) {
+    if ($el._events._clickOutside) return;
+    $el._events._clickOutside = true;
+
+    Elements.$body.on('click', function(e) {
+        if (Elements.$(e.target).hasParent($el)) return;
+        $el.trigger('clickOutside');
+    });
+}
+
 
 // -----------------------------------------------------------------------------
 // Pointer Events
@@ -153,7 +149,7 @@ function makePointerPositionEvents(element) {
     if (element._data._pointerEvents) return;
     element._data._pointerEvents = true;
 
-    let parent = element.offsetParent;
+    let parent = element.parent;
     let isInside = null;
     parent.on('pointerEnd', function(e) { isInside = null; });
 
@@ -244,6 +240,7 @@ const customEvents = {
     scrollwheel: 'DOMMouseScroll mousewheel',
 
     click: makeClickEvent,  // no capture!
+    clickOutside: makeClickOutsideEvent,  // no capture!
 
     pointerEnter: makePointerPositionEvents,  // no capture!
     pointerLeave: makePointerPositionEvents,  // no capture!
@@ -287,5 +284,5 @@ function removeEvent($el, event, fn, useCapture) {
 
 // -----------------------------------------------------------------------------
 
-export default { createEvent, removeEvent, pointerOffset };
+export default { createEvent, removeEvent, svgPointerPosn, stopEvent };
 

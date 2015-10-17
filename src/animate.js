@@ -215,20 +215,21 @@ function enter(element, time = 400, effect = 'fade', delay = 0) {
 
     } else if (effect === 'draw') {
         let l = element.strokeLength;
-        element.css('stroke-dasharray', l + ' ' + l);
+        element.css({ 'opacity': 1, 'stroke-dasharray': l + ' ' + l});
         animation = transitionElement(element, {
             css: 'stroke-dashoffset',
             from: l, to: 0,
             delay: delay,
             duration: time
         });
-        animation.finally(function() { element.css('stroke-dasharray', ''); });
+        animation.then(function() { element.css('stroke-dasharray', ''); });
     }
 
     return animation;
 }
 
 function exit(element, time = 400, effect = 'fade', delay = 0) {
+    if (element.css('display') == 'none') return;
     let animation;
 
     if (effect === 'fade') {

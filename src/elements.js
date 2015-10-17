@@ -10,12 +10,15 @@ import { words, toCamelCase } from 'strings';
 import Evented from 'evented';
 import { createEvent, removeEvent } from 'dom-events';
 import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
-import { prefix } from 'browser';
+import { prefix, addCSS } from 'browser';
 
 
 function cssN(element, property) {
     return parseFloat(element.css(property));
 }
+
+const p = window.Element.prototype;
+const elementMatches = p.matches || p.webkitMatchesSelector || p.mozMatchesSelector || p.msMatchesSelector;
 
 
 class Element {
@@ -107,6 +110,12 @@ class Element {
     blur() { this._el.blur(); }
     focus() { this._el.focus(); }
 
+    change(callback) {
+        this.on('change', () => {
+            callback(this.value);
+        });
+    }
+
 
     // -------------------------------------------------------------------------
     // Dimensions
@@ -155,7 +164,7 @@ class Element {
 
         do { offset += element.offsetLeft; }
         while (element = element.offsetParent);
-        
+
         return offset;
     }
 
@@ -356,12 +365,8 @@ class Element {
     }
 
     is(selector) {
-        // TODO improve performance
-        // Element.prototype.matches / matchesSelector / webkitMatchesSelector / msMatchesSelector
-        let compareWith = document.querySelectorAll(selector);
-        for (let q of compareWith)
-            if (q === this._el) return true;
-        return false;
+        if (elementMatches) return elementMatches.call(this._el, selector);
+        return [].indexOf.call(document.querySelectorAll(selector), this._el) > -1;
     }
 
     index() {
@@ -372,13 +377,19 @@ class Element {
     }
 
     prepend(newChild) {
+        let children = this._el.childNodes;
+
         if (typeof newChild === 'string') {
             let newChildren = $$N(newChild);
             for (let j = newChildren.length - 1; j >= 0; --j) {
                 this._el.insertBefore(newChildren[j], this._el.childNodes[0]);
             }
         } else {
-            this._el.insertBefore(newChild.$el, this._el.childNodes[0]);
+            if (children.length) {
+                this._el.insertBefore(newChild._el, children[0]);
+            } else {
+                this._el.appendChild(newChild._el);
+            }
         }
     }
 
@@ -425,6 +436,7 @@ class Element {
         this.insertBefore(wrapper);
         this.detach();
         wrapper.append(this);
+        return wrapper;
     }
 
     moveTo(newParent, before) {
@@ -482,10 +494,10 @@ class Element {
     }
 
     hasParent($p) {
-        let parent = this.parent;
+        let parent = this._el.parentNode;
         while (parent) {
-            if (parent.$el === $p.$el) return true;
-            parent = parent.parent;
+            if (parent === $p._el) return true;
+            parent = parent.parentNode;
         }
         return false;
     }
@@ -596,7 +608,7 @@ class Element {
     get points() {
         let points = this._el.attr('d').replace('M','').split('L');
         return points.map(function(x){
-            p = x.split(',');
+            let p = x.split(',');
             return { x: p[0], y: p[1] };
         });
     }
@@ -695,43 +707,45 @@ function $$N(html) {
 
 function customElement(tag, options) {
 
-    var attrs = options.attributes || {};
+    let attrs = options.attributes || {};
+    if ('styles' in options) addCSS(options.styles);
 
     class CustomElement extends HTMLElement {
 
         createdCallback() {
-            if ('template' in options)
-                this.createShadowRoot().innerHTML = run(options.template);
-
-            if ('styles' in options) {
-                let s = document.createElement('style');
-                s.innerHTML = options.styles;
-                (this.shadowRoot || this).appendChild(s);
-            }
-
-            this.state = {};
-            this.setState = function() {};
-            this.render = function() {};
 
             this.$el = $(this);
-            this.$shadow = $(this.shadowRoot);
 
-            this.on = this.$el.on.bind(this.$el);
-            this.off = this.$el.off.bind(this.$el);
-            this.trigger = this.$el.trigger.bind(this.$el);
+            if ('template' in options) {
+                let children = this.$el.children();
+
+                this.$el.clear();
+                this.$el.html = run(options.template);
+
+                $$T('content', this.$el).forEach(function($content) {
+                    let select = $content.attr('select');
+                    children.forEach(function($c, i) {
+                        if ($c && (!select || $c.is(select))) {
+                            $content.insertAfter($c);
+                            children[i] = null;
+                        }
+                    });
+                    $content.remove();
+                });
+            }
 
             if ('created' in options)
-                options.created.call(this, this.$el, this.$shadow);
+                options.created.call(this, this.$el, this.$el);
         }
 
         attachedCallback() {
             if ('attached' in options)
-                options.attached.call(this, this.$el, this.$shadow);
+                options.attached.call(this, this.$el, this.$el);
         }
 
         detachedCallback() {
             if ('detached' in options)
-                options.detached.call(this, this.$el, this.$shadow);
+                options.detached.call(this, this.$el, this.$el);
         }
 
         attributeChangedCallback(attrName, oldVal, newVal) {
@@ -752,7 +766,7 @@ function customElement(tag, options) {
     return document.registerElement(tag, CustomElement);
 }
 
- 
+
 // -----------------------------------------------------------------------------
 // Exports
 

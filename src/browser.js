@@ -27,6 +27,7 @@ function redraw() {
 // Resize Events
 
 let width = window.innerWidth;
+let height = window.innerHeight;
 
 window.onresize = throttle(function() {
     let newWidth = window.innerWidth;
@@ -41,10 +42,9 @@ function resize(fn = null) {
     if (fn) {
         browserEvents.on('resize', fn);
     } else {
-        browserEvents.trigger('resize', {
-            width: window.innerWidth,
-            height: window.innerHeight
-        });
+        width = window.innerWidth;
+        height = window.innerHeight;
+        browserEvents.trigger('resize', { width, height });
     }
 }
 
@@ -295,8 +295,8 @@ export default {
     off: browserEvents.off.bind(browserEvents),
     trigger: browserEvents.trigger.bind(browserEvents),
 
-    get width()  { return window.innerWidth; },
-    get height() { return window.innerHeight; },
+    get width()  { return width; },
+    get height() { return height; },
 
     get cookies() { return getCookies(); },
     getCookie, setCookie, deleteCookie,

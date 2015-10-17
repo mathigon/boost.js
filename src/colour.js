@@ -16,17 +16,6 @@ const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
 // -----------------------------------------------------------------------------
 // Static Colours (gradients from http://www.sron.nl/~pault/colourschemes.pdf)
 
-const red    = '#D90000';
-const orange = '#F15A24';
-const yellow = '#edd200';
-const lime   = '#b2d300';
-const green  = '#00B200';
-const cyan   = '#29ABE2';
-const blue   = '#006DD9';
-const violet = '#662D91';
-const purple = '#9d0069';
-const pink   = '#ED1E79';
-
 const rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', 
                  '#63AD99', '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
 
@@ -44,33 +33,44 @@ function pad2(str) {
     return str.length === 1 ? '0' + str : str;
 }
 
+function interpolate(c1, c2, p) {
+    p = clamp(p, 0, 1);
+
+    if (!(c1 instanceof Colour)) c1 = Colour.fromHex(c1);
+    if (!(c2 instanceof Colour)) c2 = Colour.fromHex(c2);
+
+    return new Colour(
+        p * c1.r + (1 - p) * c2.r,
+        p * c1.g + (1 - p) * c2.g,
+        p * c1.b + (1 - p) * c2.b,
+        p * c1.a + (1 - p) * c2.a
+    );
+}
+
+// Gets the colour of a multi-step gradient at a given percentage p
+function getColourAt(gradient, p) {
+    p = clamp(p, 0, 0.9999);  // FIXME
+    let r = Math.floor(p * (gradient.length - 1));
+    let q = p * (gradient.length - 1) - r;
+    return interpolate(gradient[r + 1], gradient[r], q);
+}
+
 
 export default class Colour {
 
     // -------------------------------------------------------------------------
-    // Static Methods
+    // Static Colours
 
-    static interpolate(c1, c2, p) {
-        p = clamp(p, 0, 1);
-
-        if (!(c1 instanceof Colour)) c1 = new Colour(c1);
-        if (!(c2 instanceof Colour)) c2 = new Colour(c2);
-
-        return makeRgb([
-            p * c1[0] + (1 - p) * c2[0],
-            p * c1[1] + (1 - p) * c2[1],
-            p * c1[2] + (1 - p) * c2[2],
-            alpha ? p * c1[3] + (1 - p) * c2[3] : null
-        ]);
-    }
-
-    // Gets the colour of a multi-step gradient at a given percentage p
-    static getColourAt(gradient, p) {
-        p = clamp(p, 0, 0.9999);  // FIXME
-        let r = Math.floor(p * (gradient.length - 1));
-        let q = p * (gradient.length - 1) - r;
-        return interpolate(gradient[r + 1], gradient[r], q);
-    }
+    static get red()    { return '#D90000'; }
+    static get orange() { return '#F15A24'; }
+    static get yellow() { return '#edd200'; }
+    static get lime()   { return '#b2d300'; }
+    static get green()  { return '#00B200'; }
+    static get cyan()   { return '#29ABE2'; }
+    static get blue()   { return '#006DD9'; }
+    static get violet() { return '#662D91'; }
+    static get purple() { return '#9d0069'; }
+    static get pink()   { return '#ED1E79'; }
 
     static rainbow(steps) {
         let scale = clamp(0.4 + 0.15 * steps, 0, 1);
@@ -106,19 +106,22 @@ export default class Colour {
         let rgbParts = longHexRegex.exec(hex);
         if (!rgbParts) return new Colour(0,0,0);
 
-        return [
+        return new Colour(
             parseInt(rgbParts[1], 16),
             parseInt(rgbParts[2], 16),
             parseInt(rgbParts[3], 16)
-        ];
+        );
     }
 
     static fromRgb(rgb) {
         let c = rgb.replace(/rgba?\(/,'').replace(')','').split(',');
-        this.r = +c[0];
-        this.g = +c[1];
-        this.b = +c[2];
-        this.a = (c.length > 3) ? +c[3] : 1;
+        
+        return new Colour(
+            +c[0],
+            +c[1],
+            +c[2],
+            (c.length > 3) ? +c[3] : 1
+        );
     }
 
 
@@ -199,3 +202,6 @@ export default class Colour {
     }
 
 }
+
+window.CC = Colour;
+
