@@ -250,8 +250,7 @@ function onKey(keys, fn) {
     keys = words(keys).map(k => keyCodes[k] || k);
     document.addEventListener('keydown', function(e){
         if (activeInput()) return;
-        let key = e.which || e.keyCode;
-        if (keys.indexOf(key) >= 0) fn(e);
+        if (keys.indexOf(e.keyCode) >= 0) fn(e);
     });
 }
 
@@ -260,7 +259,7 @@ function onMultiKey(key1, key2, fn1, fn2) {
     var key2down = false;
 
     document.addEventListener('keydown', function(e){
-        var k = e.keyCode || e.which;
+        var k = e.keyCode;
 
         if (k === key2) {
             key2down = true;
@@ -303,4 +302,4 @@ export default {
     setStorage, getStorage, deleteStorage,
 
     get activeInput() { return activeInput(); },
-    onKey, onMultiKey };
+    keyCodes, onKey, onMultiKey };

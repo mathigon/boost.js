@@ -134,7 +134,7 @@ class SpeechRecognition extends Evented {
         if (this.rec) this.rec.stop();
     }
 
-    get isAvailable() {
+    static get isAvailable() {
         return 'webkitSpeechRecognition' in window;
     }
 

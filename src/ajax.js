@@ -88,6 +88,7 @@ export default class Ajax extends Evented {
             if (!options.cache) url += '_cachebust=' + Date.now();
         } else {
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('X-CSRF-Token', window.csrfToken || '');
             params = typeof data == 'string' ? '?' + data : Object.keys(data).map(
                 function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); }
             ).join('&');

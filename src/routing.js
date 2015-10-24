@@ -9,7 +9,7 @@ import Evented from 'evented';
 import Ajax from 'ajax';
 import Browser from 'browser';
 import { $N } from 'elements';
-import { run } from 'utilities';
+import { noop, run } from 'utilities';
 import { $body } from 'elements';
 import { zip } from 'arrays';
 import { isString } from 'types';
@@ -22,12 +22,6 @@ const RouteEvents = new Evented();
 
 const clickEvent = document.ontouchstart ? 'touchstart' : 'click';
 const location = window.history.location || window.location;
-
-function noop() {}
-
-function getPath() {
-    return window.location.href.replace(window.location.origin, '');
-}
 
 
 // -----------------------------------------------------------------------------
@@ -98,7 +92,7 @@ function view(url, _view = null) {
     views.push(thisView);
 
     // If initial view, initialise
-    let viewParams = _getViewParams(getPath(), thisView);
+    let viewParams = _getViewParams(window.location.pathname, thisView);
     if (!viewParams) return;
 
     if (preloaded) {
@@ -144,9 +138,8 @@ function getHash() {
     return window.location.hash.replace(/^#/, '');
 }
 
-function setHash(newHash) {
-    hash = newHash;
-    _pushState(window.location.pathname + '#' + hash, currentState); // TODO
+function setHash(hash) {
+    _pushState(window.location.pathname + '#' + hash, current); // TODO
     RouteEvents.trigger('hashChange');
 }
 
@@ -292,8 +285,9 @@ function onClick(e) {
 // -----------------------------------------------------------------------------
 
 const Router = {
-    setup, disable, view, redirect, error, 
-    getHash, setHash, goTo, goBack, goForward,
+    setup, disable, view, redirect, error, goTo, goBack, goForward,
+    get hash() { return getHash(); },
+    set hash(h) { setHash(h); },
     on: RouteEvents.on, off: RouteEvents.off, trigger: RouteEvents.trigger };
 
 export { View, Router };

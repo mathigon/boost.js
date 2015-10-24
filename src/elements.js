@@ -10,7 +10,7 @@ import { words, toCamelCase } from 'strings';
 import Evented from 'evented';
 import { createEvent, removeEvent } from 'dom-events';
 import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
-import { prefix, addCSS } from 'browser';
+import Browser from 'browser';
 
 
 function cssN(element, property) {
@@ -203,14 +203,14 @@ class Element {
         this.trigger('scroll', { top: y, left: this.scrollLeft });
     }
 
-    get scrollLeft() { return this._isWindow ? window.pageXOffset : this.$el.scrollLeft; }
+    get scrollLeft() { return this._isWindow ? window.pageXOffset : this._el.scrollLeft; }
     set scrollLeft(x) {
         if (this._isWindow) {
             document.body.scrollLeft = document.documentElement.scrollLeft = x;
         } else {
-            this.$el.scrollLeft = x;
+            this._el.scrollLeft = x;
         }
-        this.trigger('scroll', { top: this.scrollTop, left: y });
+        this.trigger('scroll', { top: this.scrollTop, left: x });
     }
 
     fixOverflowScroll() {
@@ -238,17 +238,17 @@ class Element {
         let distance = pos - startPosition;
 
         function callback(t) {
-            let x = startPosition + distance * ease(easing, t);
-            _this.scrollTop = x;
-            _this.trigger('scroll', { top: x, id });
+            let y = startPosition + distance * ease(easing, t);
+            _this.scrollTop = y;
+            _this.trigger('scroll', { top: y, id });
         }
 
-        this.trigger('scrollstart');
+        this.trigger('scrollStart');
         let animation = animate(callback, time);
 
         // Cancel animation if something else triggers scroll event
         // this.one('scroll', function(x) {  if (x.id !== id) animation.cancel(); });
-        // this.one('touchstart', function() { animation.cancel(); });
+        // this.one('touchStart', function() { animation.cancel(); });
     }
 
     scrollBy(distance, time = 1000, easing = 'cubic') {
@@ -272,9 +272,9 @@ class Element {
     }
 
     transition(property, duration = '1s', curve = 'ease-in-out') {
-        if (arguments.length === 0) return this._el.style[prefix('transition')];
+        if (arguments.length === 0) return this._el.style[Browser.prefix('transition')];
         if (typeof duration !== 'string') duration = duration + 'ms';
-        this._el.style[prefix('transition')] = property + ' ' + duration + ' ' + curve;
+        this._el.style[Browser.prefix('transition')] = property + ' ' + duration + ' ' + curve;
     }
 
     get strokeLength() {
@@ -287,16 +287,16 @@ class Element {
     }
 
     get transform() {
-        // window.getComputedStyle(this._el).getPropertyValue(prefix('transform'));
-        return this._el.style[prefix('transform')].replace('none', '');
+        // window.getComputedStyle(this._el).getPropertyValue(Browser.prefix('transform'));
+        return this._el.style[Browser.prefix('transform')].replace('none', '');
     }
 
     set transform(transform) {
-        this._el.style[prefix('transform')] = transform;
+        this._el.style[Browser.prefix('transform')] = transform;
     }
 
     get transformMatrix() {
-        let transform = window.getComputedStyle(this._el).getPropertyValue(prefix('transform'));
+        let transform = window.getComputedStyle(this._el).getPropertyValue(Browser.prefix('transform'));
         if (!transform || transform === 'none') return null;
 
         let coords = transform.match(/matrix\(([0-9\,\.\s]*)\)/);
@@ -314,17 +314,17 @@ class Element {
     translate(x, y) {
         x = Math.round(+x || 0);
         y = Math.round(+y || 0);
-        this._el.style[prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
+        this._el.style[Browser.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
     }
 
     translateX(x) {
         x = Math.round(+x || 0);
-        this._el.style[prefix('transform')] = 'translate(' + x + 'px,0)';
+        this._el.style[Browser.prefix('transform')] = 'translate(' + x + 'px,0)';
     }
 
     translateY(y) {
         y = Math.round(+y || 0);
-        this._el.style[prefix('transform')] = 'translate(0px,' + y + 'px)';
+        this._el.style[Browser.prefix('transform')] = 'translate(0px,' + y + 'px)';
     }
 
     hide() {
@@ -408,7 +408,7 @@ class Element {
         if (typeof newChild === 'string') {
             let newChildren = $$N(newChild);
             for (let j = newChildren.length - 1; j >= 0; --j) {
-                parent._el.insertBefore(newChildren[j]._el, this.$el);
+                parent._el.insertBefore(newChildren[j]._el, this._el);
             }
         } else {
             parent._el.insertBefore(newChild._el, this._el);
@@ -420,7 +420,7 @@ class Element {
 
         if (typeof newChild === 'string') {
             let newChildren = $$N(newChild);
-            for (let c of newChildren) parent._el.insertAfter(_this._el, c._el);
+            for (let c of newChildren) parent._el.insertAfter(this._el, c._el);
         } else {
             var next = this._el.nextSibling;
             if (next) {
@@ -520,6 +520,11 @@ class Element {
         }
     }
 
+    get childNodes() {
+        let childNodes = this._el.childNodes;
+        return Array.from(childNodes, n => $(n));
+    }
+
     detach() {
         if (this._el.parentNode) this._el.parentNode.removeChild(this._el);
     }
@@ -568,6 +573,13 @@ class Element {
         for (let fn of this._events[event]) fn.call(this, args);
     }
 
+    onKeyDown(keys, fn) {
+        keys = words(keys).map(k => Browser.keyCodes[k] || k);
+        this._el.addEventListener('keydown', function(e){
+            if (keys.indexOf(e.keyCode) >= 0) fn(e);
+        });
+    }
+
     // let evt = document.createEvent('Event');
     // evt.initEvent(eventName, true, true);
     // evt.detail = eventData;
@@ -575,9 +587,20 @@ class Element {
 
 
     // -------------------------------------------------------------------------
+    // Bindings
+
+    toggleClick(observable, property, callback) {
+        observable.watch(property, callback);
+        this.on('click', function() {
+            observable[property] = !observable[property];
+        });
+    }
+
+
+    // -------------------------------------------------------------------------
     // Animations
 
-    animate(properties) { transitionElement(this, properties); }
+    animate(properties) { return transitionElement(this, properties); }
 
     enter(time, type, delay) { enter(this, time, type, delay); }
     exit(time, type, delay) { exit(this, time, type, delay); }
@@ -587,15 +610,13 @@ class Element {
     fadeOut(time) { exit(this, time, 'fade'); }
 
     slideUp(t) {
-        return this.animate({ css: 'height', to: 0 });
+        return this.animate({ css: 'height', to: 0, duration: t });
     }
 
     slideDown(t) {
-        let _this = this;
-
-        let h = element.children(0).outerHeight();  // TODO make more generic
-        let a = this.animate({ css: 'height', to: h });
-        a.then(function() { _this.css('height', 'auto'); });
+        let h = this.children(0).outerHeight;  // TODO make more generic
+        let a = this.animate({ css: 'height', to: h + 'px', duration: t });
+        a.then(() => { this.css('height', 'auto'); });
         return a;
     }
 
@@ -708,25 +729,25 @@ function $$N(html) {
 function customElement(tag, options) {
 
     let attrs = options.attributes || {};
-    if ('styles' in options) addCSS(options.styles);
+    if ('styles' in options) Browser.addCSS(options.styles);
 
     class CustomElement extends HTMLElement {
 
         createdCallback() {
 
-            this.$el = $(this);
+            let $el = this.$el = $(this);
 
             if ('template' in options) {
-                let children = this.$el.children();
+                let children = $el.childNodes;
 
-                this.$el.clear();
-                this.$el.html = run(options.template);
+                $el.clear();
+                $el.html = run(options.template);
 
-                $$T('content', this.$el).forEach(function($content) {
+                $$T('content', $el).forEach(function($content) {
                     let select = $content.attr('select');
                     children.forEach(function($c, i) {
                         if ($c && (!select || $c.is(select))) {
-                            $content.insertAfter($c);
+                            $content.insertBefore($c);
                             children[i] = null;
                         }
                     });
@@ -734,18 +755,15 @@ function customElement(tag, options) {
                 });
             }
 
-            if ('created' in options)
-                options.created.call(this, this.$el, this.$el);
+            if ('created' in options) options.created.call(this, $el);
         }
 
         attachedCallback() {
-            if ('attached' in options)
-                options.attached.call(this, this.$el, this.$el);
+            if ('attached' in options) options.attached.call(this, this.$el);
         }
 
         detachedCallback() {
-            if ('detached' in options)
-                options.detached.call(this, this.$el, this.$el);
+            if ('detached' in options) options.detached.call(this, this.$el);
         }
 
         attributeChangedCallback(attrName, oldVal, newVal) {

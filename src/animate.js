@@ -9,10 +9,6 @@ import { defer, extend } from 'utilities';
 import { prefix, redraw, cssTimeToNumber } from 'browser';
 
 
-const animationFrame = window.requestAnimationFrame ||
-    function (callback) { return window.setTimeout(callback, 20); };
-
-
 // -----------------------------------------------------------------------------
 // Simple Animations
 
@@ -25,7 +21,9 @@ function animate(callback, duration) {
     let then = deferred.promise.then.bind(deferred.promise);
 
     function getFrame() {
-        if (running && (!duration || time <= duration)) animationFrame(getFrame);
+        if (running && (!duration || time <= duration))
+            window.requestAnimationFrame(getFrame);
+
         time = Date.now() - startTime;
         callback(duration ? Math.min(1,time/duration) : time);
         if (duration && time >= duration) deferred.resolve();
@@ -266,16 +264,16 @@ function exit(element, time = 400, effect = 'fade', delay = 0) {
     return animation;
 }
 
-// pulseDown, pulseUp, flash, bounceUp, bounceRight
-function effect(element, effect) {
+// these animations are defined in effects.css
+// pulse-down, pulse-up, flash, bounce-up, bounce-right
+function effect(element, name) {
     element.animationEnd(function(){
-        element.removeClass('effects-' + effect);
+        element.removeClass('effects-' + name);
     });
-    element.addClass('effects-' + effect);
+    element.addClass('effects-' + name);
 }
 
 // -----------------------------------------------------------------------------
 
-export default { animationFrame, animate, ease, transitionElement,
-    enter, exit, effect };
+export default { animate, ease, transitionElement, enter, exit, effect };
 

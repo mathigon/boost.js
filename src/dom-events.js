@@ -239,7 +239,7 @@ const customEvents = {
 
     scrollwheel: 'DOMMouseScroll mousewheel',
 
-    click: makeClickEvent,  // no capture!
+    // click: makeClickEvent,  // no capture!
     clickOutside: makeClickOutsideEvent,  // no capture!
 
     pointerEnter: makePointerPositionEvents,  // no capture!
