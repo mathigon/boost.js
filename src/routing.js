@@ -27,7 +27,7 @@ const location = window.history.location || window.location;
 // -----------------------------------------------------------------------------
 // Views
 
-class View {
+export class View {
     constructor(options = {}) {
         this.load  = ('load'  in options) ? options.load  : noop;
         this.enter = ('enter' in options) ? options.enter : noop;
@@ -139,7 +139,7 @@ function getHash() {
 }
 
 function setHash(hash) {
-    _pushState(window.location.pathname + '#' + hash, current); // TODO
+    window.location.hash = hash;
     RouteEvents.trigger('hashChange');
 }
 
@@ -169,17 +169,7 @@ function _replaceState(url, state = {}) {
 
 function _renderView(newView, params = {}) {
     newView.view.load();
-
-    if (activeView) {
-        activeView.view.exit();
-        activeView.$el.remove();  // TODO out transition
-    } else {
-        viewport.clear();
-    }
-
-    // TODO scroll to top
-
-    let template = run(newView.view.template) || new Ajax.get(newView.view.templateUrl);
+    let template = run(newView.view.template) || Ajax.get(newView.view.templateUrl);
 
     if (template.then) {
         template.then(
@@ -193,6 +183,16 @@ function _renderView(newView, params = {}) {
 }
 
 function _renderViewMake(newView, template, params) {
+
+    if (activeView) {
+        activeView.view.exit();
+        activeView.$el.remove();  // TODO out transition
+    } else {
+        viewport.clear();
+    }
+
+    // TODO scroll to top
+
     let $view = $N('div', { html: template });
     viewport.append($view);  // TODO in transition
     _renderViewComplete(newView, $view, params);
@@ -206,6 +206,7 @@ function _renderViewComplete(newView, $view, params) {
 }
 
 function _onStateChange(e) {
+    if (!e.url) return;
     goTo(e.url);
     let newId = 10; // TODO
 
@@ -284,10 +285,9 @@ function onClick(e) {
 
 // -----------------------------------------------------------------------------
 
-const Router = {
+export const Router = {
     setup, disable, view, redirect, error, goTo, goBack, goForward,
     get hash() { return getHash(); },
     set hash(h) { setHash(h); },
-    on: RouteEvents.on, off: RouteEvents.off, trigger: RouteEvents.trigger };
-
-export { View, Router };
+    on: RouteEvents.on, off: RouteEvents.off, trigger: RouteEvents.trigger
+};

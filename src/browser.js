@@ -5,9 +5,9 @@
 
 
 
+import Evented from 'evented';
 import { words, toCamelCase } from 'strings';
 import { cache, throttle } from 'utilities';
-import Evented from 'evented';
 import { $body } from 'elements';
 
 
@@ -18,7 +18,7 @@ const browserEvents = new Evented();
 const ua = window.navigator.userAgent;
 const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
 
-function redraw() {
+export function redraw() {
     document.body.offsetHeight; /* jshint ignore:line */
 }
 
@@ -38,7 +38,7 @@ window.onresize = throttle(function() {
     // $body.trigger('scroll', { top: $body.scrollTop });
 }, 100);
 
-function resize(fn = null) {
+export function resize(fn = null) {
     if (fn) {
         browserEvents.on('resize', fn);
     } else {
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!loaded) afterLoad();
 });
 
-function ready(fn) {
+export function ready(fn) {
     if (loaded) {
         fn();
     } else {
@@ -84,21 +84,21 @@ function ready(fn) {
 // ---------------------------------------------------------------------------------------------
 // CSS
 
-function cssTimeToNumber(cssTime) {
+export function cssTimeToNumber(cssTime) {
     let regex = /^([\-\+]?[0-9]+(\.[0-9]+)?)(m?s)$/;
     let matches = regex.exec(cssTime.trim());
     if (matches === null) return null;
     return (+matches[1]) * (matches[3] === 's' ? 1000 : 1);
 }
 
-function addCSS(css) {
+export function addCSS(css) {
     let style = document.createElement('style');
     style.type = 'text/css';
     style.innerHTML = css;
     document.head.appendChild(style);
 }
 
-function addCSSRule(selector, rules) {
+export function addCSSRule(selector, rules) {
     let css = document.styleSheets[document.styleSheets.length-1];
     let index = css.cssRules.length - 1;
     if(css.insertRule) {
@@ -111,7 +111,7 @@ function addCSSRule(selector, rules) {
 const prefixes = ['webkit', 'Moz', 'ms', 'O'];
 const style = document.createElement('div').style;
 
-const prefix = cache(function(name, dashes) {
+export const prefix = cache(function(name, dashes) {
     let rule = toCamelCase(name);
     if (style[rule] != null) return dashes ? name : rule;
 
@@ -126,7 +126,7 @@ const prefix = cache(function(name, dashes) {
 // ---------------------------------------------------------------------------------------------
 // Cookies TODO
 
-function getCookies() {  // FIXME
+export function getCookies() {  // FIXME
     let pairs = document.cookie.split(';');
     let result = {};
     for (let i = 0, n = pairs.length; i < n; ++i) {
@@ -137,40 +137,20 @@ function getCookies() {  // FIXME
     return result;
 }
 
-function getCookie(name) {
+export function getCookie(name) {
     var v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
     return v ? v[2] : null;
 }
 
-function setCookie(name, value, days) {
+export function setCookie(name, value, days) {
     var d = new Date();
     d.setTime(d.getTime() + 24 * 60 * 60 * 1000 * days);
     document.cookie = name + '=' + value + ';path=/;expires=' + d.toGMTString();
 }
 
-function deleteCookie(name) {
+export function deleteCookie(name) {
     setCookie(name, '', -1);
 }
-
-/* Possible optional options:
-// path     Specify path within the current domain, for example '/'
-// domain   Specify the (sub)domain the cookie pertains to. Can range from the root domain
-//          ('mathigon.org') up to the current subdomain ('test.world.mathigon.org').
-// maxAge   Specify, in seconds, the lifespan of the cookie.
-// expires  Set cookie expiry using an absolute GMT date/time string with an RFC2822 format
-//          (e.g. 'Tue, 02 Feb 2010 22:04:47 GMT')or a JS Date object.
-// secure   Specify whether the cookie should only be passed through HTTPS connections.
-function setCookie(name, value, options) {
-    options = options || {};
-    var cookie = [encodeURIComponent(name) + '=' + encodeURIComponent(value)];
-    if (options.path)    cookie.push('path=' + options.path);
-    if (options.domain)  cookie.push('domain=' + options.domain);
-    if (options.maxAge)  cookie.push('max-age=' + options.maxAge);
-    if (options.expires) cookie.push('expires=' + (M.isDate(options.expires) ?
-                                     options.expires.toUTCString() : options.expires));
-    if (options.secure)  cookie.push('secure');
-    document.cookie = cookie.join(';');
-} */
 
 
 // ---------------------------------------------------------------------------------------------
@@ -178,7 +158,7 @@ function setCookie(name, value, options) {
 
 const STORAGE_KEY = '_M';
 
-function setStorage(key, value) {
+export function setStorage(key, value) {
     var keys = (key||'').split('.');
     var storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
     var path = storage;
@@ -192,7 +172,7 @@ function setStorage(key, value) {
     window.localStorage.setItem('M', JSON.stringify(storage));
 }
 
-function getStorage(key) {
+export function getStorage(key) {
     let keys = (key||'').split('.');
     let storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
     let path = storage;
@@ -205,7 +185,7 @@ function getStorage(key) {
     return key ? path[keys[keys.length - 1]] : path;
 }
 
-function deleteStorage(key) {
+export function deleteStorage(key) {
     if (key) {
         setStorage(key, null);
     } else {
@@ -240,13 +220,13 @@ const keyCodes = {
     'delete': 46
 };
 
-function activeInput() {
+export function activeInput() {
     let active = document.activeElement;
     return active === document.body ? undefined : active;
 }
 
 // Executes fn if any one of [keys] is pressed
-function onKey(keys, fn) {
+export function onKey(keys, fn) {
     keys = words(keys).map(k => keyCodes[k] || k);
     document.addEventListener('keydown', function(e){
         if (activeInput()) return;
@@ -255,7 +235,7 @@ function onKey(keys, fn) {
 }
 
 // Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
-function onMultiKey(key1, key2, fn1, fn2) {
+export function onMultiKey(key1, key2, fn1, fn2) {
     var key2down = false;
 
     document.addEventListener('keydown', function(e){
@@ -302,4 +282,5 @@ export default {
     setStorage, getStorage, deleteStorage,
 
     get activeInput() { return activeInput(); },
-    keyCodes, onKey, onMultiKey };
+    keyCodes, onKey, onMultiKey
+};

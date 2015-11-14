@@ -5,8 +5,8 @@
 
 
 
-import { $ } from 'elements';
 import Evented from 'evented';
+import { $ } from 'elements';
 
 
 export default class Ajax extends Evented {

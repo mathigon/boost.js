@@ -12,7 +12,7 @@ import { prefix, redraw, cssTimeToNumber } from 'browser';
 // -----------------------------------------------------------------------------
 // Simple Animations
 
-function animate(callback, duration) {
+export function animate(callback, duration) {
     var startTime = Date.now();
     var time = 0;
 	var running = true;
@@ -76,7 +76,7 @@ function easeIn(type, t = 0, s = 0) {
     }
 }
 
-function ease(type, t = 0, s = 0) {
+export function ease(type, t = 0, s = 0) {
 
     if (t === 0) return 0;
     if (t === 1) return 1;
@@ -128,7 +128,7 @@ function setTransitions(element, transitions) {
     element.css('transition', styles.join(', '));
 }
 
-function transitionElement(element, properties) {
+export function transitionElement(element, properties) {
     if (!Array.isArray(properties)) properties = [properties];
 
     let deferred = defer();
@@ -188,7 +188,7 @@ function transitionElement(element, properties) {
 // -----------------------------------------------------------------------------
 // Element CSS Animations Effects
 
-function enter(element, time = 400, effect = 'fade', delay = 0) {
+export function enter(element, time = 400, effect = 'fade', delay = 0) {
     element.show();
     let animation;
 
@@ -226,7 +226,7 @@ function enter(element, time = 400, effect = 'fade', delay = 0) {
     return animation;
 }
 
-function exit(element, time = 400, effect = 'fade', delay = 0) {
+export function exit(element, time = 400, effect = 'fade', delay = 0) {
     if (element.css('display') == 'none') return;
     let animation;
 
@@ -266,14 +266,9 @@ function exit(element, time = 400, effect = 'fade', delay = 0) {
 
 // these animations are defined in effects.css
 // pulse-down, pulse-up, flash, bounce-up, bounce-right
-function effect(element, name) {
+export function effect(element, name) {
     element.animationEnd(function(){
         element.removeClass('effects-' + name);
     });
     element.addClass('effects-' + name);
 }
-
-// -----------------------------------------------------------------------------
-
-export default { animate, ease, transitionElement, enter, exit, effect };
-

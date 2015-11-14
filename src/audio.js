@@ -6,17 +6,17 @@
 
 
 import Evented from 'evented';
-import isString from 'types';
-import $ from 'elements';
+import { isString } from 'types';
+import { $ } from 'elements';
 
 
 // -----------------------------------------------------------------------------
 // Audio
 
 const files = new Map();
-let playing = null;
+let active = null;
 
-function loadAudio(src) {
+export function loadAudio(src) {
     let audio = new window.Audio(src);
     audio.load();
     audio.addEventListener('timeupdate', function() { audio.update(); });
@@ -25,8 +25,9 @@ function loadAudio(src) {
     return audio;
 }
 
+export class Audio extends Evented {
 
-class AudioChunk extends Evented {
+    static playing() { return active; }
 
     constructor(src, times) {
         super();
@@ -49,8 +50,8 @@ class AudioChunk extends Evented {
             return;
         }
 
-        if (playing) playing.pause();
-        playing = this;
+        if (active) active.pause();
+        active = this;
 
         this.status = 'playing';
         this.player.currentTime = this.currentTime;
@@ -63,7 +64,7 @@ class AudioChunk extends Evented {
 
     pause() {
         this.status = 'paused';
-        if (playing === this) this.player.pause();
+        if (active === this) this.player.pause();
         this.trigger('pause');
     }
 
@@ -73,7 +74,7 @@ class AudioChunk extends Evented {
     }
 
     reset() {
-        if (playing === this) this.player.pause();
+        if (active === this) this.player.pause();
         if (this.player.readyState) this.currentTime = this.times[0];
         this.status = 'paused';
         this.trigger('reset');
@@ -82,7 +83,7 @@ class AudioChunk extends Evented {
     update() {
         if (this.status === 'ended') return;
 
-        if (playing === this)
+        if (active === this)
             this.currentTime = this.player.currentTime;
 
         if (this.currentTime >= this.times[1]) {
@@ -103,7 +104,7 @@ class AudioChunk extends Evented {
 // -----------------------------------------------------------------------------
 // Speech Recognition
 
-class SpeechRecognition extends Evented {
+export class SpeechRecognition extends Evented {
 
     constructor() {
         super({ splitBy: '|', lowercase: true });
@@ -139,9 +140,3 @@ class SpeechRecognition extends Evented {
     }
 
 }
-
-// -----------------------------------------------------------------------------
-
-export default {
-    playing: function() { return playing; },
-    loadAudio, AudioChunk, SpeechRecognition };

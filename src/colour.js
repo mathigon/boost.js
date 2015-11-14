@@ -8,7 +8,6 @@
 import { clamp } from 'utilities';
 import { tabulate } from 'arrays';
 
-
 const shortHexRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
 const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
 
@@ -16,13 +15,13 @@ const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
 // -----------------------------------------------------------------------------
 // Static Colours (gradients from http://www.sron.nl/~pault/colourschemes.pdf)
 
-const rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972', 
+const rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C', '#7FB972',
                  '#63AD99', '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
 
-const temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2', 
+const temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE', '#FFFAD2',
                      '#FFE3AA', '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
 
-const solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29', 
+const solar = ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FB9A29',
                '#EC7014', '#CC4C02', '#993404', '#662506'];
 
 
@@ -115,7 +114,7 @@ export default class Colour {
 
     static fromRgb(rgb) {
         let c = rgb.replace(/rgba?\(/,'').replace(')','').split(',');
-        
+
         return new Colour(
             +c[0],
             +c[1],
@@ -142,7 +141,7 @@ export default class Colour {
         let r = this.r / 255;
         let g = this.g / 255;
         let b = this.b / 255;
-        
+
         let max = Math.max(r, g, b);
         let min = Math.min(r, g, b);
 
@@ -202,6 +201,3 @@ export default class Colour {
     }
 
 }
-
-window.CC = Colour;
-

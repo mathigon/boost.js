@@ -5,12 +5,12 @@
 
 
 
+import Evented from 'evented';
+import Browser from 'browser';
 import { uid, run, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
-import Evented from 'evented';
 import { createEvent, removeEvent } from 'dom-events';
 import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
-import Browser from 'browser';
 
 
 function cssN(element, property) {
@@ -21,7 +21,7 @@ const p = window.Element.prototype;
 const elementMatches = p.matches || p.webkitMatchesSelector || p.mozMatchesSelector || p.msMatchesSelector;
 
 
-class Element {
+export default class Element {
 
     constructor(el) {
         this._el = el;
@@ -543,6 +543,13 @@ class Element {
         this.remove();
     }
 
+    applyTemplate($template) {
+        if (!$template) throw new Error('Template not found');
+        this.clear();
+        var clone = document.importNode($template._el.content, true);
+        this._el.appendChild(clone);
+    }
+
 
     // -------------------------------------------------------------------------
     // Events
@@ -620,6 +627,40 @@ class Element {
         return a;
     }
 
+    sticky(bounds) {
+        // TODO sticky bottom
+        // TODO remove body scroll events on destroy
+
+        let _this = this;
+        let sticky;
+        let offset = this.positionTop;
+
+        let $placeholder = $N('div', { style: `height: ${this.height}px; display: none;` });
+        this.insertAfter($placeholder);
+
+        function position({ top }) {
+            let shouldStick = offset - top < bounds.top;
+
+            if (shouldStick && !sticky) {
+                sticky = true;
+                _this.addClass('sticky-top');
+                $placeholder.show();
+            } else if (!shouldStick && sticky) {
+                sticky = false;
+                _this.removeClass('sticky-top');
+                $placeholder.hide();
+            }
+        }
+
+        $body.on('scroll', position);
+
+        Browser.resize(() => {
+            // TODO what if already sticky?
+            // offset = this.positionTop;
+            position({ top: $body.scrollTop });
+        });
+    }
+
 
     // -------------------------------------------------------------------------
     // SVG Methods
@@ -643,6 +684,52 @@ class Element {
         let d = this.attr('d') + ' L ' + p.x + ',' + p.y;
         this.attr('d', d);
     }
+
+
+    // -------------------------------------------------------------------------
+    // Cursor and Selections
+
+    get cursor() {
+        if (!window.getSelection) return 0;
+
+        var sel = window.getSelection();
+
+        if (sel.rangeCount > 0) {
+            var range = sel.getRangeAt(0);
+            var preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(this._el);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            return preCaretRange.toString().length;
+        }
+    }
+
+    set cursor(offset) {
+        var parents = [this._el];
+        var node = this._el.childNodes[0];
+
+        while (node) {
+            // Elements like <span> have further children
+            if (node.childNodes.length) {
+                parents.push(node);
+                node = node.childNodes[0];
+
+            // Text Node
+            } else if (offset > node.length) {
+                offset -= node.length;
+                node = node.nextSibling || parents.pop().nextSibling;
+
+            // Final Text Node
+            } else {
+                let range = document.createRange();
+                range.setStart(node, offset);
+                range.collapse(true);
+                let sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                return;
+            }
+        }
+    }
 }
 
 
@@ -654,7 +741,7 @@ const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
 
 const _doc = { _el: document };
 
-function $(selector, context = _doc) {
+export function $(selector, context = _doc) {
     if (typeof selector === 'string')
         selector = context._el.querySelector(selector);
 
@@ -664,32 +751,32 @@ function $(selector, context = _doc) {
     return null;
 }
 
-function $I(selector) {
+export function $I(selector) {
     let el = document.getElementById(selector);
     return el ? new Element(el) : null;
 }
 
-function $C(selector, context = _doc) {
+export function $C(selector, context = _doc) {
     let els = context._el.getElementsByClassName(selector);
     return els.length ? new Element(els[0]) : null;
 }
 
-function $T(selector, context = _doc) {
+export function $T(selector, context = _doc) {
     let els = context._el.getElementsByTagName(selector);
     return els.length ? new Element(els[0]) : null;
 }
 
-function $$(selector, context = _doc) {
+export function $$(selector, context = _doc) {
     let els = context._el.querySelectorAll(selector);
     return Array.from(els, el => new Element(el));
 }
 
-function $$C(selector, context = _doc) {
+export function $$C(selector, context = _doc) {
     let els = context._el.getElementsByClassName(selector);
     return Array.from(els, el => new Element(el));
 }
 
-function $$T(selector, context = _doc) {
+export function $$T(selector, context = _doc) {
     let els = context._el.getElementsByTagName(selector);
     return Array.from(els, el => new Element(el));
 }
@@ -698,7 +785,7 @@ function $$T(selector, context = _doc) {
 // -----------------------------------------------------------------------------
 // Element Constructors
 
-function $N(tag, attributes = {}, parent = null) {
+export function $N(tag, attributes = {}, parent = null) {
     let t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
                 document.createElementNS('http://www.w3.org/2000/svg', tag);
 
@@ -717,7 +804,7 @@ function $N(tag, attributes = {}, parent = null) {
     return $el;
 }
 
-function $$N(html) {
+export function $$N(html) {
     let tempDiv = $N('div', { html: html });
     return tempDiv.children();
 }
@@ -726,7 +813,7 @@ function $$N(html) {
 // -----------------------------------------------------------------------------
 // Custom Elements
 
-function customElement(tag, options) {
+export function customElement(tag, options) {
 
     let attrs = options.attributes || {};
     if ('styles' in options) Browser.addCSS(options.styles);
@@ -736,24 +823,21 @@ function customElement(tag, options) {
         createdCallback() {
 
             let $el = this.$el = $(this);
+            let children = $el.childNodes;
 
-            if ('template' in options) {
-                let children = $el.childNodes;
+            if ('template' in options) $el.html = options.template;
+            if ('templateId' in options) $el.applyTemplate($(options.templateId));
 
-                $el.clear();
-                $el.html = run(options.template);
-
-                $$T('content', $el).forEach(function($content) {
-                    let select = $content.attr('select');
-                    children.forEach(function($c, i) {
-                        if ($c && (!select || $c.is(select))) {
-                            $content.insertBefore($c);
-                            children[i] = null;
-                        }
-                    });
-                    $content.remove();
+            $$T('content', $el).forEach(function($content) {
+                let select = $content.attr('select');
+                children.forEach(function($c, i) {
+                    if ($c && (!select || $c.is(select))) {
+                        $content.insertBefore($c);
+                        children[i] = null;
+                    }
                 });
-            }
+                $content.remove();
+            });
 
             if ('created' in options) options.created.call(this, $el);
         }
@@ -786,14 +870,9 @@ function customElement(tag, options) {
 
 
 // -----------------------------------------------------------------------------
-// Exports
+// Special Elements
 
-const $body = new Element(document.body);
-const $html = $T('html');
-const $window = new Element(window);
-const $doc = new Element(window.document.documentElement);
-
-export default {
-    $, $I, $C, $T, $N, $$, $$C, $$T, $$N,
-    $body, $html, $window, $doc,
-    customElement };
+export const $body = new Element(document.body);
+export const $html = $T('html');
+export const $window = new Element(window);
+export const $doc = new Element(window.document.documentElement);

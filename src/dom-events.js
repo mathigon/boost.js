@@ -7,18 +7,18 @@
 
 // TODO Improve performance after removing click, pointer and scroll events
 
-import { uid } from 'utilities';
-import Elements from 'elements';
+import * as Elements from 'elements';
 import Browser from 'browser';
-import { animate } from 'animate';
+import { uid } from 'utilities';
 import { isString } from 'types';
 import { without } from 'arrays';
+import { animate } from 'animate';
 
 
 // -----------------------------------------------------------------------------
 // Utilities
 
-function isSupported(event) {
+export function isSupported(event) {
     event = 'on' + event;
     let $el = $N('div');
     let result = (event in $el._el);
@@ -30,7 +30,7 @@ function isSupported(event) {
     return result;
 }
 
-function pointerPosition(e) {
+export function pointerPosition(e) {
     return {
         x: e.touches ? e.touches[0].clientX : e.clientX,
         y: e.touches ? e.touches[0].clientY : e.clientY
@@ -44,12 +44,12 @@ function getWheelDelta(e) {
     return delta;
 }
 
-function stopEvent(event) {
+export function stopEvent(event) {
     event.preventDefault();
     event.stopPropagation();
 }
 
-function svgPointerPosn(event, $svg) {
+export function svgPointerPosn(event, $svg) {
     // TODO cache values for efficiency
     let matrix = $svg._el.getScreenCTM().inverse();
     let posn = pointerPosition(event);
@@ -74,10 +74,6 @@ function makeClickEvent($el) {
     let startX, startY;
     let preventMouse = false;
 
-    $el._el.addEventListener('click', function(e){
-        e.preventDefault();
-    });
-
     $el._el.addEventListener('mousedown', function(e){
         if (preventMouse) return;
         waitForEvent = true;
@@ -94,7 +90,7 @@ function makeClickEvent($el) {
             let endX = e.clientX;
             let endY = e.clientY;
             if (Math.abs(endX - startX) < 2 && Math.abs(endY - startY) < 2) {
-                $el.trigger('click', e);
+                $el.trigger('fastClick', e);
             }
         }
         waitForEvent = false;
@@ -114,7 +110,7 @@ function makeClickEvent($el) {
             let endX = e.changedTouches[0].clientX;
             let endY = e.changedTouches[0].clientY;
             if (Math.abs(endX - startX) < 5 && Math.abs(endY - startY) < 5) {
-                $el.trigger('click', e);
+                $el.trigger('fastClick', e);
             }
         }
         waitForEvent = false;
@@ -239,7 +235,7 @@ const customEvents = {
 
     scrollwheel: 'DOMMouseScroll mousewheel',
 
-    // click: makeClickEvent,  // no capture!
+    fastClick: makeClickEvent,  // no capture!
     clickOutside: makeClickOutsideEvent,  // no capture!
 
     pointerEnter: makePointerPositionEvents,  // no capture!
@@ -251,7 +247,7 @@ const customEvents = {
     scrollEnd: makeScrollEvents  // no capture!
 };
 
-function createEvent($el, event, fn, useCapture) {
+export function createEvent($el, event, fn, useCapture) {
     let custom = customEvents[event];
 
     if (isString(custom)) {
@@ -269,7 +265,7 @@ function createEvent($el, event, fn, useCapture) {
     }
 }
 
-function removeEvent($el, event, fn, useCapture) {
+export function removeEvent($el, event, fn, useCapture) {
     let custom = customEvents[event];
 
     if (isString(custom)) {
@@ -281,8 +277,3 @@ function removeEvent($el, event, fn, useCapture) {
 
     if (event in $el._events) $el._events[event] = without($el._events[event], fn);
 }
-
-// -----------------------------------------------------------------------------
-
-export default { createEvent, removeEvent, svgPointerPosn, stopEvent };
-
