@@ -9,7 +9,7 @@ import Evented from 'evented';
 import Browser from 'browser';
 import { uid, run, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
-import { createEvent, removeEvent } from 'dom-events';
+import { createEvent, removeEvent } from 'events';
 import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
 
 

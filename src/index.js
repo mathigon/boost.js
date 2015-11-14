@@ -5,14 +5,11 @@
 
 
 
-import Ajax from 'ajax';
-import Animate from 'animate';
-import Audio from 'audio';
-import Browser from 'browser';
-import Colour from 'colour';
-import Elements from 'elements';
-import Events from 'events';
-import Routing from 'routing';
-
-global.Boost = {
-    Ajax, Animate, Audio, Browser, Colour, Elements, Events, Routing };
+export * from 'ajax';
+export * from 'animate';
+export * from 'audio';
+export * from 'browser';
+export * from 'colour';
+export * from 'elements';
+export * from 'events';
+export * from 'routing';
