@@ -125,8 +125,19 @@ export default class Element {
     get offsetLeft() { return this._el.offsetLeft; }
 
     // Includes border and padding
-    get width()  { return this._isWindow ? window.innerWidth  : this._el.offsetWidth; }
-    get height() { return this._isWindow ? window.innerHeight : this._el.offsetHeight; }
+    get width()  {
+        if (this._isWindow) return window.innerWidth;
+        // TODO see https://www.chromestatus.com/features/5724912467574784
+        if (this._el instanceof SVGElement) return this.bounds.width;
+        return this._el.offsetWidth;
+    }
+
+    get height() {
+        if (this._isWindow) return window.innerHeight;
+        // TODO see https://www.chromestatus.com/features/5724912467574784
+        if (this._el instanceof SVGElement) return this.bounds.height;
+        return this._el.offsetHeight;
+    }
 
     // Doesn't include border and padding
     get innerWidth() {
@@ -535,7 +546,7 @@ export default class Element {
     }
 
     clear() {
-        for (let $c of this.children()) this._el.removeChild($c._el);
+        while (this._el.firstChild) this._el.removeChild(this._el.firstChild);
     }
 
     replace(newEl) {

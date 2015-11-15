@@ -236,24 +236,26 @@ export function onKey(keys, fn) {
 
 // Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
 export function onMultiKey(key1, key2, fn1, fn2) {
-    var key2down = false;
+    let key2down = false;
 
-    document.addEventListener('keydown', function(e){
-        var k = e.keyCode;
+    key1 = keyCodes[key1] || key1;
+    key2 = keyCodes[key2] || key2;
+
+    document.addEventListener('keydown', function(e) {
+        if (activeInput()) return;
+        let k = e.keyCode;
 
         if (k === key2) {
             key2down = true;
-        } else if (key2down && k === key1 && !activeInput()) {
-            e.preventDefault();
+        } else if (key2down && k === key1) {
             fn2(e);
-        } else if (k === key1 && !activeInput()) {
-            e.preventDefault();
+        } else if (k === key1) {
             fn1(e);
         }
     });
 
     document.addEventListener('keyup', function(e){
-        var k = e.keyCode || e.which;
+        let k = e.keyCode;
         if (k === key2) key2down = false;
     });
 }
