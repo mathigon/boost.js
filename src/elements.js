@@ -620,12 +620,12 @@ export default class Element {
 
     animate(properties) { return transitionElement(this, properties); }
 
-    enter(time, type, delay) { enter(this, time, type, delay); }
-    exit(time, type, delay) { exit(this, time, type, delay); }
+    enter(time, type, delay) { return enter(this, time, type, delay); }
+    exit(time, type, delay) { return exit(this, time, type, delay); }
     effect(type) { effect(this, type); }
 
-    fadeIn(time) { enter(this, time, 'fade'); }
-    fadeOut(time) { exit(this, time, 'fade'); }
+    fadeIn(time) { return enter(this, time, 'fade'); }
+    fadeOut(time) { return exit(this, time, 'fade'); }
 
     slideUp(t) {
         return this.animate({ css: 'height', to: 0, duration: t });

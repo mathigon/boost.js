@@ -12,4 +12,4 @@ export * from 'browser';
 export * from 'colour';
 export * from 'elements';
 export * from 'events';
-export * from 'routing';
+export * from 'router';
