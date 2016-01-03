@@ -37,20 +37,13 @@ export function pointerPosition(e) {
     };
 }
 
-function getWheelDelta(e) {
-    let delta = 0;
-    if (e.wheelDelta) delta = e.wheelDelta / 40;
-    if (e.detail) delta = -e.detail / 3.5;
-    return delta;
-}
-
 export function stopEvent(event) {
     event.preventDefault();
     event.stopPropagation();
 }
 
 export function svgPointerPosn(event, $svg) {
-    // TODO cache values for efficiency
+    // TODO cache values fr efficiency
     let matrix = $svg._el.getScreenCTM().inverse();
     let posn = pointerPosition(event);
 
@@ -162,6 +155,19 @@ function makePointerPositionEvents(element) {
 // -----------------------------------------------------------------------------
 // Scroll Events
 
+function simpleAnimate(callback) {
+    let running = true;
+
+    function getFrame() {
+        if (running) window.requestAnimationFrame(getFrame);
+        callback();
+    }
+
+    getFrame();
+    return { stop: function() { running = false; } };
+}
+
+
 function makeScrollEvents(element) {
     if (element._data._scrollEvents) return;
     element._data._scrollEvents = true;
@@ -184,40 +190,35 @@ function makeScrollEvents(element) {
         }
     }
 
-    function start() {
-        if (scrolling) return;
+    function start(e) {
+        if (scrolling || e.deltaX === 0) return;
         scrolling = true;
         scrollTop = element.scrollTop;
-        scrollAnimation = animate(onScroll);
+        scrollAnimation = simpleAnimate(onScroll);
         element.trigger('scrollstart');
     }
 
-    function move() {
-        if (!scrolling) start();
-    }
-
     function end() {
+        if (!scrolling) return;
         scrolling = false;
-        scrollAnimation.cancel();
+        scrollAnimation.stop();
         element.trigger('scrollend');
     }
 
     function touchStart() {
-        window.addEventListener('touchmove', move);
+        window.addEventListener('touchmove', start);
         window.addEventListener('touchend', touchEnd);
     }
 
     function touchEnd() {
-        window.removeEventListener('touchmove', move);
+        window.removeEventListener('touchmove', start);
         window.removeEventListener('touchend', touchEnd);
     }
 
     if (!element._isWindow) element.fixOverflowScroll();
 
-    var target = element._isWindow ? window : element._el;
-    target.addEventListener('wheel', move);
-    target.addEventListener('mousewheel', move);
-    target.addEventListener('DOMMouseScroll', move);
+    let target = element._isWindow ? window : element._el;
+    target.addEventListener('wheel', start);
 
     element._el.addEventListener('touchstart', touchStart);
 }

@@ -5,6 +5,7 @@
 
 
 
+import { defer } from 'utilities';
 import Evented from 'evented';
 import { $ } from 'elements';
 
@@ -108,14 +109,17 @@ export default class Ajax extends Evented {
     }
 
     static script(src) {
-        var el = document.createElement('script');
+        let deferred = defer();
+
+        let el = document.createElement('script');
         el.type = 'text/javascript';  // TODO needed?
         el.src = src;
 
-        if (error) el.onerror = error;  // FIXME
-        if (success) el.onload = success;  // FIXME
+        el.onerror = function(error) { deferred.reject(error); };
+        el.onload = function(success) { deferred.resolve(success); };
 
         document.head.appendChild(el);  // FIXME Needs Document
+        return deferred.promise;
     }
 
 

@@ -586,9 +586,11 @@ export default class Element {
         for (let e of words(type)) removeEvent(this, e, fn, useCapture);
     }
 
-    trigger(event, args = {}) {
-        if (!this._events[event]) return;
-        for (let fn of this._events[event]) fn.call(this, args);
+    trigger(events, args = {}) {
+        for (let e of words(events)) {
+            if (!this._events[e]) return;
+            for (let fn of this._events[e]) fn.call(this, args);
+        }
     }
 
     onKeyDown(keys, fn) {
@@ -643,7 +645,7 @@ export default class Element {
         // TODO remove body scroll events on destroy
 
         let _this = this;
-        let sticky;
+        let isSticky;
         let offset = this.positionTop;
 
         let $placeholder = $N('div', { style: `height: ${this.height}px; display: none;` });
@@ -652,12 +654,12 @@ export default class Element {
         function position({ top }) {
             let shouldStick = offset - top < bounds.top;
 
-            if (shouldStick && !sticky) {
-                sticky = true;
+            if (shouldStick && !isSticky) {
+                isSticky = true;
                 _this.addClass('sticky-top');
                 $placeholder.show();
-            } else if (!shouldStick && sticky) {
-                sticky = false;
+            } else if (!shouldStick && isSticky) {
+                isSticky = false;
                 _this.removeClass('sticky-top');
                 $placeholder.hide();
             }
@@ -824,12 +826,19 @@ export function $$N(html) {
 // -----------------------------------------------------------------------------
 // Custom Elements
 
+// Polyfill for Safari, where HTMLElement instanceof 'object' and can't be extended
+let _HTMLElement = HTMLElement;
+if (typeof HTMLElement !== 'function'){
+    _HTMLElement = function(){};
+    _HTMLElement.prototype = HTMLElement.prototype;
+}
+
 export function customElement(tag, options) {
 
     let attrs = options.attributes || {};
     if ('styles' in options) Browser.addCSS(options.styles);
 
-    class CustomElement extends HTMLElement {
+    class CustomElement extends _HTMLElement {
 
         createdCallback() {
 

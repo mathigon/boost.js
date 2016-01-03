@@ -44,8 +44,7 @@ const onPopState = (function () {
     }
 
     return function(e) {
-        console.log('popstate', e.state);
-        if (ready) this.goToState(e.state);
+        if (ready && e.state) this.goToState(e.state);
     };
 })();
 
@@ -155,7 +154,7 @@ class Router extends Evented {
         window.history.replaceState(this.active, '', this.active.path + this.active.hash);
 
         if (this.preloaded) {
-            if (thisView.enter) thisView.enter($viewport, viewParams);
+            if (thisView.enter) thisView.enter(this.$viewport, viewParams);
         } else {
             loadView(this, thisView, viewParams, this.location.pathname);
         }
@@ -185,7 +184,7 @@ class Router extends Evented {
             this.trigger('change', path + hash);
             return true;
 
-        } else if (go) {
+        } else if (go && path != this.active.path) {
             console.info('[boost] Routing to ' + path + hash);
             this.trigger('change', path + hash);
             loadView(this, go.view, go.params, path);
