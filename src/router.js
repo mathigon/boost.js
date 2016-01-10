@@ -28,6 +28,9 @@ function getViewParams(url, view) {
     }
 }
 
+// Prevent scroll restoration on popstate
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
 
 // -----------------------------------------------------------------------------
 // Browser History
@@ -81,13 +84,14 @@ function onLinkClick(e) {
 function renderView(router, view, template, params) {
     router.$viewport.css('opacity', 0);
 
-    setTimeout(function() {
+    setTimeout(() => {
         router.$viewport.clear();
         $body.scrollTop = 0;
         router.$viewport.html = template;
         Browser.resize();
         router.$viewport.css({ opacity: 1, 'pointer-events': 'all' });
         document.title = router.$viewport.find('title').text;
+        router.initialise(router.$viewport, params);
         if (view.enter) view.enter(router.$viewport, params);
     }, 350);
 }
@@ -113,6 +117,7 @@ class Router extends Evented {
         this.$viewport = options.$viewport || $body;
         this.preloaded = options.preloaded || false;
         this.transition = options.transition || false;
+        this.initialise = options.initialise || noop;
 
         this.views = [];
         this.active = null;
@@ -154,6 +159,7 @@ class Router extends Evented {
         window.history.replaceState(this.active, '', this.active.path + this.active.hash);
 
         if (this.preloaded) {
+            this.initialise(this.$viewport, viewParams);
             if (thisView.enter) thisView.enter(this.$viewport, viewParams);
         } else {
             loadView(this, thisView, viewParams, this.location.pathname);

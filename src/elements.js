@@ -450,7 +450,7 @@ export default class Element {
         return wrapper;
     }
 
-    moveTo(newParent, before) {
+    moveTo(newParent, before = false) {
         this.detach();
         if (before) {
             newParent.prepend(this);

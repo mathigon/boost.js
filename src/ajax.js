@@ -6,6 +6,7 @@
 
 
 import { defer } from 'utilities';
+import { isString } from 'types';
 import Evented from 'evented';
 import { $ } from 'elements';
 
@@ -81,21 +82,20 @@ export default class Ajax extends Evented {
             _this.trigger(success ? 'success' : 'error', success ? xhr.responseText : xhr);
         };
 
-        xhr.open(type, url, options.async, options.user, options.password);
+        url += (url.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1');
+        if (!options.cache) url += '_cachebust=' + Date.now();
 
-        if (type === 'GET') {
-            url += (url.indexOf('?') >= 0 ? '&' : '?');
-            if (data) url += Ajax.toQueryString(data) + '&';
-            if (!options.cache) url += '_cachebust=' + Date.now();
-        } else {
+        if (type === 'GET' && data) {
+            url += Ajax.toQueryString(data) + '&';
+        } else if (type === 'POST') {
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRF-Token', window.csrfToken || '');
-            params = typeof data == 'string' ? '?' + data : Object.keys(data).map(
-                function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); }
+            params = isString(data) ? '?' + data : Object.keys(data).map(
+                k => encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
             ).join('&');
-            if (!options.cache) url += '&_cachebust=' + Date.now();
         }
 
+        xhr.open(type, url, options.async, options.user, options.password);
         xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
         xhr.send(params);
     }
