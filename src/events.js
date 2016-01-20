@@ -151,6 +151,29 @@ function makePointerPositionEvents(element) {
     });
 }
 
+export function slide($el, fns) {
+
+    function start(e) {
+        e.preventDefault();
+        if ('start' in fns) fns.start(pointerPosition(e));
+        Elements.$body.on('pointerMove', move);
+        Elements.$body.on('pointerEnd', end);
+    }
+
+    function move(e) {
+        e.preventDefault();
+        if ('move' in fns) fns.move(pointerPosition(e));
+    }
+
+    function end() {
+        if ('end' in fns) fns.end();
+        Elements.$body.off('pointerMove', move);
+        Elements.$body.off('pointerEnd', end);
+    }
+
+    $el.on('pointerStart', start);
+}
+
 
 // -----------------------------------------------------------------------------
 // Scroll Events

@@ -11,6 +11,7 @@ import { uid, run, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
 import { createEvent, removeEvent } from 'events';
 import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
+import { bind } from 'template';
 
 
 function cssN(element, property) {
@@ -616,6 +617,10 @@ export default class Element {
         });
     }
 
+    model(state, noIterate = false) {
+        bind(this._el, state, noIterate);
+    }
+
 
     // -------------------------------------------------------------------------
     // Animations
@@ -841,9 +846,9 @@ export function customElement(tag, options) {
     class CustomElement extends _HTMLElement {
 
         createdCallback() {
-
             let $el = this.$el = $(this);
             let children = $el.childNodes;
+            this.isCustomElement = true;
 
             if ('template' in options) $el.html = options.template;
             if ('templateId' in options) $el.applyTemplate($(options.templateId));
