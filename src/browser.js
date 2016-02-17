@@ -260,6 +260,18 @@ export function onMultiKey(key1, key2, fn1, fn2) {
     });
 }
 
+
+// -----------------------------------------------------------------------------
+// Visibility API
+
+let isOldWebkit = !('hidden' in document) && ('webkitHidden' in document);
+let visibilityProperty = isOldWebkit ? 'webkitHidden' : 'hidden';
+let visibilityEvent = isOldWebkit ? 'webkitvisibilitychange' : 'visibilitychange';
+
+document.addEventListener(visibilityEvent, function() {
+    browserEvents.trigger(document[visibilityProperty] ? 'focus' : 'blur');
+});
+
 // ---------------------------------------------------------------------------------------------
 
 export default {

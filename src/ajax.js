@@ -82,12 +82,14 @@ export default class Ajax extends Evented {
             _this.trigger(success ? 'success' : 'error', success ? xhr.responseText : xhr);
         };
 
-        url += (url.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1');
-        if (!options.cache) url += '_cachebust=' + Date.now();
+        if (type === 'GET') {
+            url += (url.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1');
+            if (!options.cache) url += '_cachebust=' + Date.now();
+            if (data) url += Ajax.toQueryString(data) + '&';
+            xhr.open(type, url, options.async, options.user, options.password);
 
-        if (type === 'GET' && data) {
-            url += Ajax.toQueryString(data) + '&';
         } else if (type === 'POST') {
+            xhr.open(type, url, options.async, options.user, options.password);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRF-Token', window.csrfToken || '');
             params = isString(data) ? '?' + data : Object.keys(data).map(
@@ -95,7 +97,6 @@ export default class Ajax extends Evented {
             ).join('&');
         }
 
-        xhr.open(type, url, options.async, options.user, options.password);
         xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
         xhr.send(params);
     }
@@ -133,7 +134,7 @@ export default class Ajax extends Evented {
     }
 
     ['catch'](error) {
-        this.on('success', error);
+        this.on('error', error);
         return this;
     }
 

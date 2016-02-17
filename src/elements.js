@@ -89,6 +89,10 @@ export default class Element {
         }
     }
 
+    hasAttribute(attr) {
+        return this._el.hasAttribute(attr);
+    }
+
     get value() { return this._el.value; }
     set value(v) { this._el.value = v; }
 
@@ -538,7 +542,7 @@ export default class Element {
     }
 
     detach() {
-        if (this._el.parentNode) this._el.parentNode.removeChild(this._el);
+        if (this._el && this._el.parentNode) this._el.parentNode.removeChild(this._el);
     }
 
     remove() {

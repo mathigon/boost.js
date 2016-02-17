@@ -93,6 +93,7 @@ function renderView(router, view, template, params) {
         document.title = router.$viewport.find('title').text;
         router.initialise(router.$viewport, params);
         if (view.enter) view.enter(router.$viewport, params);
+        router.trigger('afterChange');
     }, 350);
 }
 
