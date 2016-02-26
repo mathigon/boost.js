@@ -214,7 +214,7 @@ function makeScrollEvents(element) {
     }
 
     function start(e) {
-        if (scrolling || e.deltaX === 0) return;
+        if (scrolling || e.deltaY === 0) return;
         scrolling = true;
         scrollTop = element.scrollTop;
         scrollAnimation = simpleAnimate(onScroll);
