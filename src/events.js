@@ -178,71 +178,37 @@ export function slide($el, fns) {
 // -----------------------------------------------------------------------------
 // Scroll Events
 
-function simpleAnimate(callback) {
-    let running = true;
-
-    function getFrame() {
-        if (running) window.requestAnimationFrame(getFrame);
-        callback();
-    }
-
-    getFrame();
-    return { stop: function() { running = false; } };
-}
-
-
 function makeScrollEvents(element) {
     if (element._data._scrollEvents) return;
     element._data._scrollEvents = true;
 
-    let scrollTimeout = null;
-    let scrolling = false;
-    let scrollAnimation;
-    let scrollTop;
-
-    function onScroll() {
-        var newScrollTop = element.scrollTop;
-
-        if (Math.abs(newScrollTop - scrollTop) > 1) {
-            if (scrollTimeout) window.clearTimeout(scrollTimeout);
-            scrollTimeout = null;
-            element.trigger('scroll', { top: newScrollTop });
-            scrollTop = newScrollTop;
-        } else if (!scrollTimeout) {
-            scrollTimeout = window.setTimeout(end, 100);
-        }
-    }
-
-    function start(e) {
-        if (scrolling || e.deltaY === 0) return;
-        scrolling = true;
-        scrollTop = element.scrollTop;
-        scrollAnimation = simpleAnimate(onScroll);
-        element.trigger('scrollstart');
-    }
-
-    function end() {
-        if (!scrolling) return;
-        scrolling = false;
-        scrollAnimation.stop();
-        element.trigger('scrollend');
-    }
-
-    function touchStart() {
-        window.addEventListener('touchmove', start);
-        window.addEventListener('touchend', touchEnd);
-    }
-
-    function touchEnd() {
-        window.removeEventListener('touchmove', start);
-        window.removeEventListener('touchend', touchEnd);
-    }
-
     if (!element._isWindow) element.fixOverflowScroll();
 
-    let target = element._isWindow ? window : element._el;
-    target.addEventListener('wheel', start);
+    let ticking = false;
 
+    function scroll() {
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                element.trigger('scroll', { top: element.scrollTop });
+                ticking = false;
+            });
+        }
+        ticking = true;
+    }
+
+    // Mouse Events
+    let target = element._isWindow ? window : element._el;
+    target.addEventListener('scroll', scroll);
+
+    // Touch Events
+    function touchStart() {
+        window.addEventListener('touchmove', scroll);
+        window.addEventListener('touchend', touchEnd);
+    }
+    function touchEnd() {
+        window.removeEventListener('touchmove', scroll);
+        window.removeEventListener('touchend', touchEnd);
+    }
     element._el.addEventListener('touchstart', touchStart);
 }
 

@@ -5,10 +5,32 @@
 
 
 
-import { defer } from 'utilities';
+import { defer, deepExtend, throttle } from 'utilities';
 import { isString } from 'types';
 import Evented from 'evented';
 import { $ } from 'elements';
+
+
+
+const STORAGE_KEY = 'ajax_post_daya';
+const postData = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
+window.localStorage.setItem(STORAGE_KEY, {});
+
+const doDeferredPost = throttle(function() {
+    if (!navigator.onLine) return;
+    Object.keys(postData).forEach(function(url) {
+        if (postData[url])
+            Ajax.post(url, { data: JSON.stringify(postData[url]) })
+                .then(function() { postData[url] = null; });
+    });
+}, 5000);
+
+window.addEventListener('online', doDeferredPost);
+
+window.onbeforeunload = function() {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(postData));
+};
+
 
 
 export default class Ajax extends Evented {
@@ -121,6 +143,15 @@ export default class Ajax extends Evented {
 
         document.head.appendChild(el);  // FIXME Needs Document
         return deferred.promise;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Deferred Post
+
+    static deferredPost(url, data) {
+        deepExtend(postData, { [url]: data });
+        doDeferredPost();
     }
 
 

@@ -10,7 +10,7 @@ import Browser from 'browser';
 import { uid, run, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
 import { createEvent, removeEvent } from 'events';
-import { ease, animate, transitionElement, enter, exit, effect } from 'animate';
+import { ease, animate, transition, enter, exit, effect } from 'animate';
 import { bind } from 'template';
 
 
@@ -259,15 +259,15 @@ export default class Element {
             _this.trigger('scroll', { top: y, id });
         }
 
-        this.trigger('scrollStart');
         let animation = animate(callback, time);
 
-        // Cancel animation if something else triggers scroll event
+        // TODO Cancel animation if something else triggers scroll event
         // this.one('scroll', function(x) {  if (x.id !== id) animation.cancel(); });
         // this.one('touchStart', function() { animation.cancel(); });
     }
 
     scrollBy(distance, time = 1000, easing = 'cubic') {
+        if (!distance) return;
         this.scrollTo(this.scrollTop + distance, time, easing);
     }
 
@@ -605,21 +605,9 @@ export default class Element {
         });
     }
 
-    // let evt = document.createEvent('Event');
-    // evt.initEvent(eventName, true, true);
-    // evt.detail = eventData;
-    // this.$el.dispatchEvent(evt);
-
 
     // -------------------------------------------------------------------------
-    // Bindings
-
-    toggleClick(observable, property, callback) {
-        observable.watch(property, callback);
-        this.on('click', function() {
-            observable[property] = !observable[property];
-        });
-    }
+    // Templates
 
     model(state, noIterate = false) {
         bind(this._el, state, noIterate);
@@ -629,25 +617,14 @@ export default class Element {
     // -------------------------------------------------------------------------
     // Animations
 
-    animate(properties) { return transitionElement(this, properties); }
+    animate(properties) { return transition(this, properties); }
 
-    enter(time, type, delay) { return enter(this, time, type, delay); }
-    exit(time, type, delay) { return exit(this, time, type, delay); }
+    enter(type, time = 400, delay = 0) { return enter(this, type, time, delay); }
+    exit(type, time = 400, delay = 0) { return exit(this, type, time, delay); }
     effect(type) { effect(this, type); }
 
-    fadeIn(time) { return enter(this, time, 'fade'); }
-    fadeOut(time) { return exit(this, time, 'fade'); }
-
-    slideUp(t) {
-        return this.animate({ css: 'height', to: 0, duration: t });
-    }
-
-    slideDown(t) {
-        let h = this.children(0).outerHeight;  // TODO make more generic
-        let a = this.animate({ css: 'height', to: h + 'px', duration: t });
-        a.then(() => { this.css('height', 'auto'); });
-        return a;
-    }
+    fadeIn(time = 400) { return enter(this, 'fade', time); }
+    fadeOut(time = 400) { return exit(this, 'fade', time); }
 
     sticky(bounds) {
         // TODO sticky bottom

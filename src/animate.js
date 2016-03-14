@@ -6,6 +6,7 @@
 
 
 import { defer, extend } from 'utilities';
+import { total, contains } from 'arrays';
 import { prefix, redraw, cssTimeToNumber } from 'browser';
 
 
@@ -13,9 +14,11 @@ import { prefix, redraw, cssTimeToNumber } from 'browser';
 // Simple Animations
 
 export function animate(callback, duration) {
-    var startTime = Date.now();
-    var time = 0;
-	var running = true;
+    if (duration === 0) {callback(); return; }
+
+    let startTime = Date.now();
+    let time = 0;
+	let running = true;
 
     let deferred = defer();
     let then = deferred.promise.then.bind(deferred.promise);
@@ -120,7 +123,7 @@ function setTransitions(element, transitions) {
         return [
             t.css,
             (t.duration || 1000) + 'ms',
-            t.timing || 'linear',
+            t.timing || 'ease-out',
             (t.delay || 0) + 'ms'
         ].join(' ');
     });
@@ -128,7 +131,7 @@ function setTransitions(element, transitions) {
     element.css('transition', styles.join(', '));
 }
 
-export function transitionElement(element, properties) {
+export function transition(element, properties) {
     if (!Array.isArray(properties)) properties = [properties];
 
     let deferred = defer();
@@ -143,9 +146,9 @@ export function transitionElement(element, properties) {
         if (p.from != null) {
             element.css(p.css, p.from);
         } else if (p.css === 'height') {
-            element.css('height', parseFloat(s.getPropertyValue('height')));
+            element.css('height', parseFloat(s.getPropertyValue('height')) + 'px');
         } else if (p.css === 'width') {
-            element.css('width', parseFloat(s.getPropertyValue('width')));
+            element.css('width', parseFloat(s.getPropertyValue('width')) + 'px');
         }
     });
 
@@ -188,79 +191,91 @@ export function transitionElement(element, properties) {
 // -----------------------------------------------------------------------------
 // Element CSS Animations Effects
 
-export function enter(element, time = 400, effect = 'fade', delay = 0) {
-    element.show();
+export function enter($el, effect = 'fade', duration = 400, delay = 0) {
+    $el.show();
     let animation;
 
     if (effect === 'fade') {
-        animation = transitionElement(element, {
-            css: 'opacity',
-            from: 0,
-            to: 1,
-            duration: time
-        });
+        animation = transition($el, { css: 'opacity', from: 0, to: 1, delay, duration });
 
     } else if (effect === 'pop') {
-        let transform = element.transform.replace(/scale\([0-9\.]*\)/, '');
+        let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '');
         let from = transform + ' scale(0.5)';
         let to   = transform + ' scale(1)';
-
-        animation = transitionElement(element, [
-            { css: prefix('transform'), from: from, to: to, delay: delay,
-              duration: time, timing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' },
-            { css: 'opacity', from: 0, to: 1, delay: delay, duration: time }
+        animation = transition($el, [
+            { css: prefix('transform'), from, to, delay, duration,
+                timing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' },
+            { css: 'opacity', from: 0, to: 1, delay: delay, duration }
         ]);
 
+    } else if (effect.startsWith('slide')) {
+        let options = effect.split('-');
+        let properties = [];
+
+        if (contains(options, 'left') || contains(options, 'right')) {
+            let transform = contains(options,'right') ? 'translateX(50%)' : 'translateX(-50%)';
+            properties.push({ css: 'opacity', from: 0, to: 1, delay, duration },
+                { css: prefix('transform'), from: transform, to: '', delay, duration })
+        }
+
+        if (contains(options, 'down')) {
+            let height = total($el.children().map($x => $x.outerHeight));
+            properties.push({ css: 'height', from: 0, to: height + 'px', delay, duration });
+        }
+
+        animation = transition($el, properties);
+        if (contains(options, 'down')) animation.then(() => { $el.css('height', 'auto'); });
+
     } else if (effect === 'draw') {
-        let l = element.strokeLength;
-        element.css({ 'opacity': 1, 'stroke-dasharray': l + ' ' + l});
-        animation = transitionElement(element, {
-            css: 'stroke-dashoffset',
-            from: l, to: 0,
-            delay: delay,
-            duration: time
-        });
-        animation.then(function() { element.css('stroke-dasharray', ''); });
+        let l = $el.strokeLength;
+        $el.css({ 'opacity': 1, 'stroke-dasharray': l + ' ' + l});
+        animation = transition($el, { css: 'stroke-dashoffset', from: l, to: 0, delay, duration });
+        animation.then(function() { $el.css('stroke-dasharray', ''); });
     }
 
     return animation;
 }
 
-export function exit(element, time = 400, effect = 'fade', delay = 0) {
-    if (element.css('display') == 'none') return;
+export function exit($el, effect = 'fade', duration = 400, delay = 0) {
+    if ($el.css('display') == 'none') return;
     let animation;
 
     if (effect === 'fade') {
-        animation = transitionElement(element, {
-            css: 'opacity',
-            from: 1, to: 0,
-            delay: delay,
-            duration: time
-        });
+        animation = transition($el, { css: 'opacity', from: 1, to: 0, delay, duration });
 
     } else if (effect === 'pop') {
-        let transform = element.transform.replace(/scale\([0-9\.]*\)/, '');
+        let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '');
         var from = transform + ' scale(1)';
         var to   = transform + ' scale(0.5)';
-
-        animation = transitionElement(element, [
-            { css: prefix('transform'), from: from, to: to, delay: delay,
-              duration: time, timing: 'cubic-bezier(0.68, -0.275, 0.825, 0.115)' },
-            { css: 'opacity', from: 1, to: 0, delay: delay, duration: time }
+        animation = transition($el, [
+            { css: prefix('transform'), from: from, to: to, delay, duration,
+                timing: 'cubic-bezier(0.68, -0.275, 0.825, 0.115)' },
+            { css: 'opacity', from: 1, to: 0, delay, duration }
         ]);
+
+    } else if (effect.startsWith('slide')) {
+        let options = effect.split('-');
+        let properties = [];
+
+        if (contains(options, 'left') || contains(options, 'right')) {
+            let transform = contains(options,'right') ? 'translateX(50%)' : 'translateX(-50%)';
+            properties.push({ css: 'opacity', from: 1, to: 0, delay: delay, duration },
+                { css: prefix('transform'), from: '', to: transform, delay, duration });
+        }
+
+        if (contains(options, 'up')) {
+            properties.push({ css: 'height', from: $el.height + 'px', to: 0, delay, duration });
+        }
+
+        animation = transition($el, properties);
 
     } else if (effect === 'draw') {
         var l = element.getStrokeLength();
-        element.css('stroke-dasharray', l + ' ' + l);
-        animation = transitionElement(element, {
-            css: 'stroke-dashoffset',
-            from: 0, to: l,
-            delay: delay,
-            duration: time
-        });
+        $el.css('stroke-dasharray', l + ' ' + l);
+        animation = transition($el, { css: 'stroke-dashoffset', from: 0, to: l, delay, duration });
     }
 
-    animation.then(function() { element.hide(); });
+    animation.then(function() { $el.hide(); });
     return animation;
 }
 
