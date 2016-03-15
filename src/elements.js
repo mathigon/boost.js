@@ -102,6 +102,10 @@ export default class Element {
     get text() { return this._el.textContent; }
     set text(t) { this._el.textContent = t; }
 
+
+    // -------------------------------------------------------------------------
+    // Form Actions
+
     get action() { return this._el.action; }
     get formData() {
         let data = {};
@@ -119,6 +123,18 @@ export default class Element {
         this.on('change', () => {
             callback(this.value);
         });
+    }
+
+    validate(callback) {
+        this.change(value => { this.setValidity(callback(value)); });
+    }
+
+    setValidity(str) {
+        this._el.setCustomValidity(str || '');
+    }
+
+    get isValid() {
+        return this._el.checkValidity();
     }
 
 
@@ -878,7 +894,6 @@ export function customElement(tag, options) {
 // -----------------------------------------------------------------------------
 // Special Elements
 
-export const $body = new Element(document.body);
-export const $html = $T('html');
 export const $window = new Element(window);
-export const $doc = new Element(window.document.documentElement);
+export const $html = new Element(window.document.documentElement);
+export const $body = new Element(document.body);
