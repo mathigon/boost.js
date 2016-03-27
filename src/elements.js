@@ -5,10 +5,10 @@
 
 
 
-import Evented from 'evented';
 import Browser from 'browser';
-import { uid, run, isOneOf } from 'utilities';
+import { uid, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
+import { square } from 'arithmetic';
 import { createEvent, removeEvent } from 'events';
 import { ease, animate, transition, enter, exit, effect } from 'animate';
 import { bind } from 'template';
@@ -160,6 +160,14 @@ export default class Element {
         return this._el.offsetHeight;
     }
 
+    get svgWidth() {
+        return this._el.viewBox.baseVal.width || this.width;
+    }
+
+    get svgHeight() {
+        return this._el.viewBox.baseVal.height || this.height;
+    }
+
     // Doesn't include border and padding
     get innerWidth() {
         if (this._isWindow) return window.innerWidth;
@@ -307,15 +315,6 @@ export default class Element {
         if (arguments.length === 0) return this._el.style[Browser.prefix('transition')];
         if (typeof duration !== 'string') duration = duration + 'ms';
         this._el.style[Browser.prefix('transition')] = property + ' ' + duration + ' ' + curve;
-    }
-
-    get strokeLength() {
-        if ('getTotalLength' in this._el) {
-            return this._el.getTotalLength();
-        } else {
-            var dim = this.bounds;
-            return 2 * dim.height + 2 * dim.width;
-        }
     }
 
     get transform() {
@@ -633,10 +632,9 @@ export default class Element {
     // -------------------------------------------------------------------------
     // Animations
 
-    animate(properties) { return transition(this, properties); }
-
-    enter(type, time = 400, delay = 0) { return enter(this, type, time, delay); }
-    exit(type, time = 400, delay = 0) { return exit(this, type, time, delay); }
+    animate(rules, duration, delay, ease) { return transition(this, rules, duration, delay, ease); }
+    enter(type, duration, delay) { return enter(this, type, duration, delay); }
+    exit(type, duration, delay) { return exit(this, type, duration, delay); }
     effect(type) { effect(this, type); }
 
     fadeIn(time = 400) { return enter(this, 'fade', time); }
@@ -679,8 +677,19 @@ export default class Element {
 
     // -------------------------------------------------------------------------
     // SVG Methods
-
     // TODO caching for this._data._points
+
+    get strokeLength() {
+        if ('getTotalLength' in this._el) {
+            return this._el.getTotalLength();
+        } else if (this._el instanceof SVGLineElement) {
+            return Math.sqrt(square(this._el.x2.baseVal.value - this._el.x1.baseVal.value) +
+                square(this._el.y2.baseVal.value - this._el.y1.baseVal.value));
+        } else {
+            let dim = this.bounds;
+            return 2 * dim.height + 2 * dim.width;
+        }
+    }
 
     get points() {
         let points = this._el.attr('d').replace('M','').split('L');

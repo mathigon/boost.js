@@ -74,7 +74,7 @@ function onLinkClick(e) {
     if (link && link.indexOf('mailto:') > -1) return;
 
     let success = this.goTo(el.pathname + el.search, el.hash);
-    if (success) event.preventDefault();
+    if (success) e.preventDefault();
 }
 
 
@@ -124,8 +124,7 @@ class Router extends Evented {
         this.active = null;
         this.current = '';
 
-        let clickEvent = document.ontouchstart ? 'touchstart' : 'click';
-        if (options.click) document.addEventListener(clickEvent, onLinkClick.bind(this));
+        if (options.click) $body.on('click', onLinkClick.bind(this));
         if (options.history) window.addEventListener('popstate', onPopState.bind(this));
     }
 
@@ -159,12 +158,16 @@ class Router extends Evented {
         this.active = { path: window.location.pathname, hash: window.location.hash, index: 0 };
         window.history.replaceState(this.active, '', this.active.path + this.active.hash);
 
-        if (this.preloaded) {
-            this.initialise(this.$viewport, viewParams);
-            if (thisView.enter) thisView.enter(this.$viewport, viewParams);
-        } else {
-            loadView(this, thisView, viewParams, this.location.pathname);
-        }
+        // The wrappers fix stupid Firefox, which doesn't seem to take its time
+        // triggering .createdCallbacks for web components...
+        Browser.ready(() => { setTimeout(() => {
+            if (this.preloaded) {
+                this.initialise(this.$viewport, viewParams);
+                if (thisView.enter) thisView.enter(this.$viewport, viewParams);
+            } else {
+                loadView(this, thisView, viewParams, this.location.pathname);
+            }
+        }); });
     }
 
     paths(...urls) {

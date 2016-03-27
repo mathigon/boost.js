@@ -12,24 +12,17 @@ import { $ } from 'elements';
 
 
 
-const STORAGE_KEY = 'ajax_post_daya';
-const postData = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
-window.localStorage.setItem(STORAGE_KEY, {});
+let postData = {};
 
-const doDeferredPost = throttle(function() {
-    if (!navigator.onLine) return;
-    Object.keys(postData).forEach(function(url) {
-        if (postData[url])
-            Ajax.post(url, { data: JSON.stringify(postData[url]) })
-                .then(function() { postData[url] = null; });
-    });
-}, 5000);
+function sendLogs() {
+    if (navigator.onLine === false) return;
+    for (let url of Object.keys(postData)) Ajax.beacon(url, { data: JSON.stringify(postData[url]) });
+    postData = {};
+}
 
+const doDeferredPost = throttle(sendLogs, 5000);
 window.addEventListener('online', doDeferredPost);
-
-window.onbeforeunload = function() {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(postData));
-};
+window.onbeforeunload = function() { sendLogs(); };
 
 
 
@@ -129,6 +122,14 @@ export default class Ajax extends Evented {
 
     static post(url, data = null) {
         return new Ajax('POST', url, data);
+    }
+
+    static beacon(url, data = null) {
+        // TODO if (navigator.sendBeacon) {
+        //     navigator.sendBeacon(url, JSON.stringify(data));
+        // } else {
+            Ajax.post(url, data);
+        // }
     }
 
     static script(src) {

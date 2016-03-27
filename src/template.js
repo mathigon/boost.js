@@ -5,8 +5,6 @@
 
 
 
-import Evented from 'evented';
-
 export function parse(string) {
     // TODO use expressions
     // jshint evil: true

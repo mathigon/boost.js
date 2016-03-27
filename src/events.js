@@ -32,8 +32,8 @@ export function isSupported(event) {
 
 export function pointerPosition(e) {
     return {
-        x: e.touches ? e.touches[0].clientX : e.clientX,
-        y: e.touches ? e.touches[0].clientY : e.clientY
+        x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
+        y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY
     };
 }
 
@@ -63,35 +63,16 @@ function makeClickEvent($el) {
     if ($el._events._click) return;
     $el._events._click = true;
 
+    if (!navigator.userAgent.match(/iP(ad|hone|od)/g)) {
+        $el._el.addEventListener('click', function(e) { $el.trigger('click', e); });
+        return;
+    }
+
     let waitForEvent = false;
     let startX, startY;
-    let preventMouse = false;
-
-    $el._el.addEventListener('mousedown', function(e){
-        if (preventMouse) return;
-        waitForEvent = true;
-        startX = e.clientX;
-        startY = e.clientY;
-    });
-
-    $el._el.addEventListener('mouseup', function(e){
-        if (preventMouse) {
-            preventMouse = false;
-            return;
-        }
-        if (waitForEvent) {
-            let endX = e.clientX;
-            let endY = e.clientY;
-            if (Math.abs(endX - startX) < 2 && Math.abs(endY - startY) < 2) {
-                $el.trigger('fastClick', e);
-            }
-        }
-        waitForEvent = false;
-    });
 
     $el._el.addEventListener('touchstart', function(e){
-        preventMouse = true;
-        if (e.touches.length === 1) {
+        if (e.touches.length == 1) {
             waitForEvent = true;
             startX = e.changedTouches[0].clientX;
             startY = e.changedTouches[0].clientY;
@@ -99,11 +80,11 @@ function makeClickEvent($el) {
     });
 
     $el._el.addEventListener('touchend', function(e){
-        if (waitForEvent && e.changedTouches.length === 1) {
+        if (waitForEvent && e.changedTouches.length == 1) {
             let endX = e.changedTouches[0].clientX;
             let endY = e.changedTouches[0].clientY;
             if (Math.abs(endX - startX) < 5 && Math.abs(endY - startY) < 5) {
-                $el.trigger('fastClick', e);
+                $el.trigger('click', e);
             }
         }
         waitForEvent = false;
@@ -140,7 +121,7 @@ function makePointerPositionEvents(element) {
 
     let parent = element.parent;
     let isInside = null;
-    parent.on('pointerEnd', function(e) { isInside = null; });
+    parent.on('pointerEnd', function() { isInside = null; });
 
     parent.on('pointerMove', function(e) {
         let wasInside = isInside;
@@ -152,23 +133,39 @@ function makePointerPositionEvents(element) {
 }
 
 export function slide($el, fns) {
+    let isAnimating = false;
+    let posn = $el.is('svg') ? function(e) { return svgPointerPosn(e, $el); } : pointerPosition;
 
     function start(e) {
         e.preventDefault();
-        if ('start' in fns) fns.start(pointerPosition(e));
-        Elements.$body.on('pointerMove', move);
+        if(e.touches && e.touches.length > 1) return;
+
+        if ('move' in fns) Elements.$body.on('pointerMove', move);
         Elements.$body.on('pointerEnd', end);
+        if ('start' in fns) fns.start(posn(e));
     }
 
     function move(e) {
         e.preventDefault();
-        if ('move' in fns) fns.move(pointerPosition(e));
+        if(isAnimating) return;
+        isAnimating = true;
+
+        window.requestAnimationFrame(function() {
+            if(!isAnimating) return;
+            fns.move(posn(e));
+            isAnimating = false;
+        });
     }
 
-    function end() {
-        if ('end' in fns) fns.end();
-        Elements.$body.off('pointerMove', move);
+    function end(e) {
+        e.preventDefault();
+        if(e.touches && e.touches.length > 0) return;
+        isAnimating = false;
+
+        if ('move' in fns) Elements.$body.off('pointerMove', move);
         Elements.$body.off('pointerEnd', end);
+
+        if ('end' in fns) fns.end();
     }
 
     $el.on('pointerStart', start);
@@ -219,13 +216,12 @@ function makeScrollEvents(element) {
 const customEvents = {
     pointerStart: 'mousedown touchstart',
     pointerMove:  'mousemove touchmove',
-    pointerEnd:   'mouseup touchend mousecancel touchcancel',
+    pointerEnd:   'mouseup touchend touchcancel',
 
     change: 'propertychange keyup input paste',
-
     scrollwheel: 'DOMMouseScroll mousewheel',
 
-    fastClick: makeClickEvent,  // no capture!
+    click: makeClickEvent,  // no capture!
     clickOutside: makeClickOutsideEvent,  // no capture!
 
     pointerEnter: makePointerPositionEvents,  // no capture!

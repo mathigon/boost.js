@@ -35,7 +35,7 @@ window.onresize = throttle(function() {
     if (width === newWidth && width < 800 && height < 800) return;
     width = newWidth;
     browserEvents.trigger('resize', { width, height });
-    // $body.trigger('scroll', { top: $body.scrollTop });
+    $body.trigger('scroll', { top: $body.scrollTop });
 }, 100);
 
 export function resize(fn = null) {
@@ -48,8 +48,6 @@ export function resize(fn = null) {
     }
 }
 
-setTimeout(resize);
-
 
 // ---------------------------------------------------------------------------------------------
 // Load Events
@@ -58,19 +56,14 @@ let loadQueue = [];
 let loaded = false;
 
 function afterLoad() {
+    if (loaded) return;
     loaded = true;
     for (let fn of loadQueue) fn();
+    setTimeout(resize);
 }
 
-window.onload = function() {
-    if (!loaded) afterLoad();
-    resize();
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    resize();
-    if (!loaded) afterLoad();
-});
+window.onload = afterLoad;
+document.addEventListener('DOMContentLoaded', afterLoad);
 
 export function ready(fn) {
     if (loaded) {
@@ -121,6 +114,9 @@ export const prefix = cache(function(name, dashes) {
             return dashes ? '-' + prefixes[i].toLowerCase() + '-' + name : prefixes[i] + rule;
     }
 });
+
+// This fixes stupid Firefox which doesn't do web components.
+ready(function() { addCSS(':unresolved { visibility: visible; }'); });
 
 
 // ---------------------------------------------------------------------------------------------

@@ -5,9 +5,9 @@
 
 
 
-import { defer, extend } from 'utilities';
+import { defer, delay } from 'utilities';
 import { total, contains } from 'arrays';
-import { prefix, redraw, cssTimeToNumber } from 'browser';
+import { prefix } from 'browser';
 
 
 // -----------------------------------------------------------------------------
@@ -93,143 +93,80 @@ export function ease(type, t = 0, s = 0) {
 
 
 // -----------------------------------------------------------------------------
-// Element CSS Animations
+// Element Animations
 
-function getTransitions(element) {
-    let s = window.getComputedStyle(element._el);
-    if (s.getPropertyValue('transition') === 'all 0s ease 0s') return [];
+export function transition($el, properties, duration = 400, delay = 0, easing = 'ease-in-out') {
+    // Cancel any previous animations
+    if ($el._data._animation) $el._data._animation.cancel();
 
-    let delay    = s.getPropertyValue('transition-delay').split(',');
-    let duration = s.getPropertyValue('transition-duration').split(',');
-    let property = s.getPropertyValue('transition-property').split(',');
-    let timing   = s.getPropertyValue('transition-timing-function')
-                    .match(/[^\(\),]+(\([^\(\)]*\))?[^\(\),]*/g) || [];
-
-    let result = [];
-    for (let i = 0; i < property.length; ++i) {
-        result.push({
-            css:      property[i].trim(),
-            delay:    cssTimeToNumber(delay[i]),
-            duration: cssTimeToNumber(duration[i]),
-            timing:   timing[i]
-        });
-    }
-
-    return result;
-}
-
-function setTransitions(element, transitions) {
-    let styles = transitions.map(function(t) {
-        return [
-            t.css,
-            (t.duration || 1000) + 'ms',
-            t.timing || 'ease-out',
-            (t.delay || 0) + 'ms'
-        ].join(' ');
-    });
-
-    element.css('transition', styles.join(', '));
-}
-
-export function transition(element, properties) {
-    if (!Array.isArray(properties)) properties = [properties];
-
+    let to = {}, from = {};
     let deferred = defer();
-    let then = deferred.promise.then.bind(deferred.promise);
 
-    let cancelled = false;
-    if (element._data._animation) element._data._animation.cancel();
-
-    // Set start property values of elements
-    var s = window.getComputedStyle(element._el);
-    properties.forEach(function(p) {
-        if (p.from != null) {
-            element.css(p.css, p.from);
-        } else if (p.css === 'height') {
-            element.css('height', parseFloat(s.getPropertyValue('height')) + 'px');
-        } else if (p.css === 'width') {
-            element.css('width', parseFloat(s.getPropertyValue('width')) + 'px');
-        }
+    let style = window.getComputedStyle($el._el);
+    Object.keys(properties).forEach(function(k) {
+        let p = properties[k];
+        from[k] = Array.isArray(p) ? p[0] : style.getPropertyValue(k);
+        to[k] = Array.isArray(p) ? p[1] : p;
     });
 
-    // Set transition values of elements
-    var oldTransition = s.getPropertyValue('transition').replace('all 0s ease 0s', '');
-    setTransitions(element, extend(getTransitions(element), properties));
-    redraw();
+    // Special rules for animations to height: auto
+    let oldHeight = to.height;
+    if (to.height == 'auto') to.height = total($el.children().map($c => $c.outerHeight)) + 'px';
 
-    // Set end property values of elements
-    properties.forEach(function(p) {
-        element.css(p.css, p.to);
-    });
+    let player = $el._el.animate([from, to], { duration, delay, easing });
 
-    // Remove new transition values
-    element.transitionEnd(function() {
-        if (cancelled) return;
-        element.css('transition', oldTransition);
-        redraw();
-        deferred.resolve();
-    });
+    player.onfinish = function(e) {
+        if ($el._el) Object.keys(properties).forEach(k => { $el.css(k, k == 'height' ? oldHeight : to[k]); });
+        deferred.resolve(e);
+    };
 
-    function cancel() {
-        cancelled = true;
-        element.css('transition', oldTransition);
+    let animation = {
+        then: deferred.promise.then.bind(deferred.promise),
+        cancel: player.cancel.bind(player)
+    };
 
-        // Freeze property values at current position  TODO check this!
-        let s = window.getComputedStyle(element._el);
-        properties.forEach(function(p) {
-            element.css(p.css, s.getPropertyValue(p.css));
-        });
-
-        redraw();
-        deferred.reject();
-    }
-
-    return element._data._animation = { cancel, then };
+    // Only allow cancelling of animation in next thread.
+    setTimeout(function() { $el._data._animation = animation; });
+    return animation;
 }
 
 
 // -----------------------------------------------------------------------------
 // Element CSS Animations Effects
 
-export function enter($el, effect = 'fade', duration = 400, delay = 0) {
-    $el.show();
+export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
+    delay(function() { $el.show(); }, _delay);
     let animation;
 
     if (effect === 'fade') {
-        animation = transition($el, { css: 'opacity', from: 0, to: 1, delay, duration });
+        animation = transition($el, { opacity: [0, 1] }, duration, _delay);
 
     } else if (effect === 'pop') {
         let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '');
         let from = transform + ' scale(0.5)';
         let to   = transform + ' scale(1)';
-        animation = transition($el, [
-            { css: prefix('transform'), from, to, delay, duration,
-                timing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' },
-            { css: 'opacity', from: 0, to: 1, delay: delay, duration }
-        ]);
+        let easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+        transition($el, { opacity: [0, 1] }, duration, _delay);
+        animation = transition($el, { 'transform': [from, to] }, duration, _delay, easing);
 
     } else if (effect.startsWith('slide')) {
         let options = effect.split('-');
-        let properties = [];
+        let properties = {};
 
         if (contains(options, 'left') || contains(options, 'right')) {
-            let transform = contains(options,'right') ? 'translateX(50%)' : 'translateX(-50%)';
-            properties.push({ css: 'opacity', from: 0, to: 1, delay, duration },
-                { css: prefix('transform'), from: transform, to: '', delay, duration })
+            let t = contains(options,'right') ? '50%' : '-50%';
+            properties.transform = [`translateX(${t})`, 'none'];
+            properties.opacity = [0, 1];
         }
+        if (contains(options, 'down')) properties.height = [0, 'auto'];
 
-        if (contains(options, 'down')) {
-            let height = total($el.children().map($x => $x.outerHeight));
-            properties.push({ css: 'height', from: 0, to: height + 'px', delay, duration });
-        }
-
-        animation = transition($el, properties);
-        if (contains(options, 'down')) animation.then(() => { $el.css('height', 'auto'); });
+        animation = transition($el, properties, duration, _delay);
 
     } else if (effect === 'draw') {
         let l = $el.strokeLength;
-        $el.css({ 'opacity': 1, 'stroke-dasharray': l + ' ' + l});
-        animation = transition($el, { css: 'stroke-dashoffset', from: l, to: 0, delay, duration });
+        $el.css({ opacity: 1, 'stroke-dasharray': l + ' ' + l });
+        animation = transition($el, { 'strokeDashoffset': [l, 0] }, duration, _delay, 'linear');
         animation.then(function() { $el.css('stroke-dasharray', ''); });
     }
 
@@ -241,38 +178,35 @@ export function exit($el, effect = 'fade', duration = 400, delay = 0) {
     let animation;
 
     if (effect === 'fade') {
-        animation = transition($el, { css: 'opacity', from: 1, to: 0, delay, duration });
+        animation = transition($el, { opacity: [1, 0] }, duration, delay);
 
     } else if (effect === 'pop') {
         let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '');
-        var from = transform + ' scale(1)';
-        var to   = transform + ' scale(0.5)';
-        animation = transition($el, [
-            { css: prefix('transform'), from: from, to: to, delay, duration,
-                timing: 'cubic-bezier(0.68, -0.275, 0.825, 0.115)' },
-            { css: 'opacity', from: 1, to: 0, delay, duration }
-        ]);
+        let from = transform + ' scale(1)';
+        let to   = transform + ' scale(0.5)';
+        let easing = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
+
+        transition($el, { opacity: [1, 0] }, duration, delay);
+        animation = transition($el, { [prefix('transform')]: [from, to] }, duration, delay, easing);
 
     } else if (effect.startsWith('slide')) {
         let options = effect.split('-');
-        let properties = [];
+        let properties = {};
 
         if (contains(options, 'left') || contains(options, 'right')) {
-            let transform = contains(options,'right') ? 'translateX(50%)' : 'translateX(-50%)';
-            properties.push({ css: 'opacity', from: 1, to: 0, delay: delay, duration },
-                { css: prefix('transform'), from: '', to: transform, delay, duration });
+            let t = contains(options,'right') ? '50%' : '-50%';
+            properties[prefix('transform')] = ['none', `translateX(${t})`];
+            properties.opacity = [1, 0];
         }
 
-        if (contains(options, 'up')) {
-            properties.push({ css: 'height', from: $el.height + 'px', to: 0, delay, duration });
-        }
+        if (contains(options, 'up')) properties.height = 0;
 
-        animation = transition($el, properties);
+        animation = transition($el, properties, duration, delay);
 
     } else if (effect === 'draw') {
-        var l = element.getStrokeLength();
+        var l = $el.strokeLength;
         $el.css('stroke-dasharray', l + ' ' + l);
-        animation = transition($el, { css: 'stroke-dashoffset', from: 0, to: l, delay, duration });
+        animation = transition($el, { 'strokeDashoffset': [0, l] }, duration, delay, 'linear');
     }
 
     animation.then(function() { $el.hide(); });
