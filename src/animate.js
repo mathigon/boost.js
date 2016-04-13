@@ -9,6 +9,10 @@ import { defer, delay } from 'utilities';
 import { total, contains } from 'arrays';
 import { prefix } from 'browser';
 
+// prevent animations on page load
+let isReady = false;
+setTimeout(function() { isReady = true; });
+
 
 // -----------------------------------------------------------------------------
 // Simple Animations
@@ -96,6 +100,11 @@ export function ease(type, t = 0, s = 0) {
 // Element Animations
 
 export function transition($el, properties, duration = 400, delay = 0, easing = 'ease-in-out') {
+    if (!isReady) {
+        Object.keys(properties).forEach(k => { let p = properties[k]; $el.css(k, Array.isArray(p) ? p[1] : p); });
+        return;
+    }
+
     // Cancel any previous animations
     if ($el._data._animation) $el._data._animation.cancel();
 
@@ -113,11 +122,12 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
     let oldHeight = to.height;
     if (to.height == 'auto') to.height = total($el.children().map($c => $c.outerHeight)) + 'px';
 
-    let player = $el._el.animate([from, to], { duration, delay, easing });
+    let player = $el._el.animate([from, to], { duration, delay, easing, fill: 'forwards' });
 
     player.onfinish = function(e) {
         if ($el._el) Object.keys(properties).forEach(k => { $el.css(k, k == 'height' ? oldHeight : to[k]); });
         deferred.resolve(e);
+        player.cancel();  // bit ugly, but needed for Safari...
     };
 
     let animation = {
@@ -135,6 +145,8 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 // Element CSS Animations Effects
 
 export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
+    if (!isReady) { $el.show(); return; }
+
     delay(function() { $el.show(); }, _delay);
     let animation;
 
@@ -174,6 +186,8 @@ export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
 }
 
 export function exit($el, effect = 'fade', duration = 400, delay = 0) {
+    if (!isReady) { $el.hide(); return; }
+
     if ($el.css('display') == 'none') return;
     let animation;
 

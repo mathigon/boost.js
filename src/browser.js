@@ -8,7 +8,7 @@
 import Evented from 'evented';
 import { words, toCamelCase } from 'strings';
 import { cache, throttle } from 'utilities';
-import { $body } from 'elements';
+import { $, $body } from 'elements';
 
 
 // ---------------------------------------------------------------------------------------------
@@ -216,14 +216,15 @@ const keyCodes = {
 
 export function activeInput() {
     let active = document.activeElement;
-    return active === document.body ? undefined : active;
+    return active === document.body ? undefined : $(active);
 }
 
 // Executes fn if any one of [keys] is pressed
 export function onKey(keys, fn) {
     keys = words(keys).map(k => keyCodes[k] || k);
-    document.addEventListener('keydown', function(e){
-        if (activeInput()) return;
+    document.addEventListener('keydown', function(e) {
+        let $active = activeInput();
+        if ($active && $active.is('input, textarea, [contenteditable]')) return;
         if (keys.indexOf(e.keyCode) >= 0) fn(e);
     });
 }
@@ -236,9 +237,10 @@ export function onMultiKey(key1, key2, fn1, fn2) {
     key2 = keyCodes[key2] || key2;
 
     document.addEventListener('keydown', function(e) {
-        if (activeInput()) return;
-        let k = e.keyCode;
+        let $active = activeInput();
+        if ($active && $active.is('input, textarea, [contenteditable]')) return;
 
+        let k = e.keyCode;
         if (k === key2) {
             key2down = true;
         } else if (key2down && k === key1) {
@@ -284,6 +286,14 @@ export default {
 
     get width()  { return width; },
     get height() { return height; },
+
+    get hash() { return window.location.hash.slice(1); },
+    set hash(h) {
+        // prevent scroll to top when resetting hash
+        let scroll = document.body.scrollTop;
+        window.location.hash = h;
+        document.body.scrollTop = scroll;
+    },
 
     get cookies() { return getCookies(); },
     getCookie, setCookie, deleteCookie,

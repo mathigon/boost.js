@@ -31,10 +31,12 @@ export function isSupported(event) {
 }
 
 export function pointerPosition(e) {
-    return {
-        x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
-        y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY
-    };
+    if ('touches' in e) {
+        let touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
+        return {x: touches[0].clientX, y: touches[0].clientY};
+    } else {
+        return { x: e.clientX, y: e.clientY };
+    }
 }
 
 export function stopEvent(event) {
@@ -43,7 +45,7 @@ export function stopEvent(event) {
 }
 
 export function svgPointerPosn(event, $svg) {
-    // TODO cache values fr efficiency
+    // TODO cache values more efficiency
     let matrix = $svg._el.getScreenCTM().inverse();
     let posn = pointerPosition(event);
 
@@ -68,31 +70,20 @@ function makeClickEvent($el) {
         return;
     }
 
-    let waitForEvent = false;
-    let startX, startY;
+    let start;
 
-    $el._el.addEventListener('touchstart', function(e){
-        if (e.touches.length == 1) {
-            waitForEvent = true;
-            startX = e.changedTouches[0].clientX;
-            startY = e.changedTouches[0].clientY;
-        }
+    $el._el.addEventListener('touchstart', function(e) {
+        if (e.touches.length == 1) start = pointerPosition(e);
     });
 
     $el._el.addEventListener('touchend', function(e){
-        if (waitForEvent && e.changedTouches.length == 1) {
-            let endX = e.changedTouches[0].clientX;
-            let endY = e.changedTouches[0].clientY;
-            if (Math.abs(endX - startX) < 5 && Math.abs(endY - startY) < 5) {
-                $el.trigger('click', e);
-            }
-        }
-        waitForEvent = false;
+        if (!start) return;
+        let end = pointerPosition(e);
+        if (Math.abs(end.x - start.x) < 5 && Math.abs(end.y - start.y) < 5) $el.trigger('click', e);
+        start = null;
     });
 
-    $el._el.addEventListener('touchcancel', function(){
-        waitForEvent = false;
-    });
+    $el._el.addEventListener('touchcancel', function() { start = null; });
 }
 
 function makeClickOutsideEvent($el) {

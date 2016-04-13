@@ -129,7 +129,7 @@ class Router extends Evented {
     }
 
     get hash() {
-        return window.location.hash.replace(/^#/, '');
+        return window.location.hash.slice(1);
     }
 
     set hash(hash) {
