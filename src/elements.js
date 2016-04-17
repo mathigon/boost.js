@@ -359,14 +359,17 @@ export default class Element {
     }
 
     hide() {
-        this.css('display', 'none');
+        if (!this._data.noDisplayChange) this.css('display', 'none');
         this.css('visibility', 'hidden');
     }
 
     show() {
-        this.css('display', 'block');
+        if (!this._data.noDisplayChange) this.css('display', 'block');
         this.css('visibility', 'visible');
     }
+
+    get noDisplayChange() { return this._data.noDisplayChange; }
+    set noDisplayChange(value) { this._data.noDisplayChange = value; }
 
     transitionEnd(fn) {
         this.one('webkitTransitionEnd transitionend', fn);
@@ -690,6 +693,8 @@ export default class Element {
             return 2 * dim.height + 2 * dim.width;
         }
     }
+
+    getLengthAt(i) { return this._el.getPointAtLength(i); }
 
     get points() {
         let points = this._el.attr('d').replace('M','').split('L');
