@@ -501,7 +501,7 @@ export default class Element {
     }
 
     get parent() {
-        let parent = this._el.parentNode;
+        let parent = this._el.parentElement;  // note: parentNode breaks on document.matches
         return parent ? $(parent) : null;
     }
 
@@ -527,10 +527,11 @@ export default class Element {
         return result;
     }
 
-    hasParent($p) {
+    hasParent(...$p) {
+        let $tests = $p.map(p => p._el);
         let parent = this._el.parentNode;
         while (parent) {
-            if (parent === $p._el) return true;
+            if (isOneOf(parent, ...$tests)) return true;
             parent = parent.parentNode;
         }
         return false;
