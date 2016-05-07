@@ -8,11 +8,9 @@
 // TODO Improve performance after removing click, pointer and scroll events
 
 import * as Elements from 'elements';
-import Browser from 'browser';
-import { uid } from 'utilities';
+import { isOneOf } from 'utilities';
 import { isString } from 'types';
 import { without } from 'arrays';
-import { animate } from 'animate';
 
 
 // -----------------------------------------------------------------------------
@@ -101,9 +99,10 @@ function makeClickOutsideEvent($el) {
 // Pointer Events
 // TODO Make pointer more efficient more efficient using *enter and *leave
 
-function checkInside(element, event) {
-    var c = pointerPosition(event);
-    return (element._el === document.elementFromPoint(c.x, c.y));
+function checkInside(event, element) {
+    let c = pointerPosition(event);
+    let current = document.elementFromPoint(c.x, c.y);
+    return isOneOf(element._el, current, current.parentNode, current.parentNode.parentNode);
 }
 
 function makePointerPositionEvents(element) {
@@ -116,7 +115,7 @@ function makePointerPositionEvents(element) {
 
     parent.on('pointerMove', function(e) {
         let wasInside = isInside;
-        isInside = checkInside(element, e);
+        isInside = checkInside(e, element);
         if (wasInside != null && isInside && !wasInside) element.trigger('pointerEnter', e);
         if (!isInside && wasInside) element.trigger('pointerLeave', e);
         if (isInside) element.trigger('pointerOver', e);

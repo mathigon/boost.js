@@ -698,7 +698,7 @@ export default class Element {
     getLengthAt(i) { return this._el.getPointAtLength(i); }
 
     get points() {
-        let points = this._el.attr('d').replace('M','').split('L');
+        let points = this.attr('d').replace('M','').split('L');
         return points.map(function(x){
             let p = x.split(',');
             return { x: p[0], y: p[1] };
