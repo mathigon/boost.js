@@ -715,6 +715,18 @@ export default class Element {
         this.attr('d', d);
     }
 
+    center(c) {
+        this.attr('cx', c.x);
+        this.attr('cy', c.y);
+    }
+
+    line(p, q) {
+        this.attr('x1', p.x);
+        this.attr('y1', p.y);
+        this.attr('x2', q.x);
+        this.attr('y2', q.y);
+    }
+
 
     // -------------------------------------------------------------------------
     // Cursor and Selections
