@@ -125,14 +125,16 @@ function makePointerPositionEvents(element) {
 export function slide($el, fns) {
     let isAnimating = false;
     let posn = $el.is('svg') ? function(e) { return svgPointerPosn(e, $el); } : pointerPosition;
+    let startPosn, lastPosn;
 
     function start(e) {
         e.preventDefault();
-        if(e.touches && e.touches.length > 1) return;
+        if(e.handled || (e.touches && e.touches.length > 1)) return;
 
         if ('move' in fns) Elements.$body.on('pointerMove', move);
         Elements.$body.on('pointerEnd', end);
-        if ('start' in fns) fns.start(posn(e));
+        startPosn = lastPosn = posn(e);
+        if ('start' in fns) fns.start(startPosn);
     }
 
     function move(e) {
@@ -142,7 +144,8 @@ export function slide($el, fns) {
 
         window.requestAnimationFrame(function() {
             if(!isAnimating) return;
-            fns.move(posn(e));
+            lastPosn = posn(e);
+            fns.move(lastPosn, startPosn);
             isAnimating = false;
         });
     }
@@ -155,7 +158,7 @@ export function slide($el, fns) {
         if ('move' in fns) Elements.$body.off('pointerMove', move);
         Elements.$body.off('pointerEnd', end);
 
-        if ('end' in fns) fns.end();
+        if ('end' in fns) fns.end(lastPosn, startPosn);
     }
 
     $el.on('pointerStart', start);
