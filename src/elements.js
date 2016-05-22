@@ -11,7 +11,7 @@ import { words, toCamelCase } from 'strings';
 import { square } from 'arithmetic';
 import { createEvent, removeEvent } from 'events';
 import { ease, animate, transition, enter, exit, effect } from 'animate';
-import { bind } from 'template';
+import { bind, model } from 'template';
 
 
 function cssN(element, property) {
@@ -629,7 +629,7 @@ export default class Element {
     // Templates
 
     model(state, noIterate = false) {
-        bind(this._el, state, noIterate);
+        bind(this._el, state.change ? state : model(state), noIterate);
     }
 
 

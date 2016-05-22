@@ -132,7 +132,10 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 
     let animation = {
         then: deferred.promise.then.bind(deferred.promise),
-        cancel: player.cancel.bind(player)
+        cancel: function() {
+            if ($el._el) Object.keys(properties).forEach(k => { $el.css(k, $el.css(k)); });
+            return player.cancel();
+        }
     };
 
     // Only allow cancelling of animation in next thread.
