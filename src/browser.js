@@ -38,13 +38,19 @@ window.onresize = throttle(function() {
     $body.trigger('scroll', { top: $body.scrollTop });
 }, 100);
 
+const doResize = throttle(function() {
+    console.log('resize');
+    width = window.innerWidth;
+    height = window.innerHeight;
+    browserEvents.trigger('resize', { width, height });
+});
+
+
 export function resize(fn = null) {
     if (fn) {
         browserEvents.on('resize', fn);
     } else {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        browserEvents.trigger('resize', { width, height });
+        doResize();
     }
 }
 

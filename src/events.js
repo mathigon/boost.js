@@ -124,7 +124,7 @@ function makePointerPositionEvents(element) {
 
 export function slide($el, fns) {
     let isAnimating = false;
-    let posn = $el.is('svg') ? function(e) { return svgPointerPosn(e, $el); } : pointerPosition;
+    let posn = $el.is('svg') ? (e => svgPointerPosn(e, $el)) : pointerPosition;
     let startPosn, lastPosn;
 
     function start(e) {
