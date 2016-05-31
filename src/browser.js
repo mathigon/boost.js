@@ -6,7 +6,7 @@
 
 
 import Evented from 'evented';
-import { words, toCamelCase } from 'strings';
+import { words, toCamelCase, toTitleCase } from 'strings';
 import { cache, throttle } from 'utilities';
 import { $, $body } from 'elements';
 
@@ -39,7 +39,6 @@ window.onresize = throttle(function() {
 }, 100);
 
 const doResize = throttle(function() {
-    console.log('resize');
     width = window.innerWidth;
     height = window.innerHeight;
     browserEvents.trigger('resize', { width, height });
@@ -114,7 +113,7 @@ export const prefix = cache(function(name, dashes) {
     let rule = toCamelCase(name);
     if (style[rule] != null) return dashes ? name : rule;
 
-    rule = rule.toTitleCase();
+    rule = toTitleCase(rule);
     for (let i = 0; i < prefixes.length; ++i) {
         if (style[prefixes[i] + rule] != null)
             return dashes ? '-' + prefixes[i].toLowerCase() + '-' + name : prefixes[i] + rule;

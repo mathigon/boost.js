@@ -121,7 +121,6 @@ export class SpeechRecognition extends Evented {
         this.rec.onresult = (event) => {
             for (var i = event.resultIndex; i < event.results.length; ++i) {
                 let msg = event.results[i][0].transcript;
-                console.debug('Voice Input: ', msg);
                 this.trigger(msg);
             }
         };
