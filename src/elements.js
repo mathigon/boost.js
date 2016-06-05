@@ -919,6 +919,15 @@ export function customElement(tag, options) {
 
 
 // -----------------------------------------------------------------------------
+// Helper Functions
+
+export function table(data) {
+    let rows = data.map(tr => '<tr>' + tr.map(td => `<td>${td}</td>`).join('') + '</tr>').join('');
+    return `<table>${rows}</table>`;
+}
+
+
+// -----------------------------------------------------------------------------
 // Special Elements
 
 export const $window = new Element(window);

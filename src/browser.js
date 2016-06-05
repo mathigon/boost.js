@@ -44,9 +44,9 @@ const doResize = throttle(function() {
     browserEvents.trigger('resize', { width, height });
 });
 
-
 export function resize(fn = null) {
     if (fn) {
+        fn({ width, height });
         browserEvents.on('resize', fn);
     } else {
         doResize();
