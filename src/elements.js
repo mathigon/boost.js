@@ -120,8 +120,11 @@ export default class Element {
     focus() { this._el.focus(); }
 
     change(callback) {
+        let value = '';
         this.on('change', () => {
-            callback(this.value);
+            if (this.value == value) return;
+            value = this.value;
+            callback(value);
         });
     }
 
@@ -206,6 +209,12 @@ export default class Element {
         while (element = element.offsetParent);
 
         return offset;
+    }
+
+    get clientCenter() {
+        let bounds = this.bounds;
+        return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+
     }
 
     offset(parent) {

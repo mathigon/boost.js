@@ -25,41 +25,78 @@ window.addEventListener('online', doDeferredPost);
 window.onbeforeunload = function() { sendLogs(); };
 
 
+function toQueryString(data) {
+    let pairs = [];
 
-export default class Ajax extends Evented {
+    for (let key in data) {
+        let value = data[key];
+        key = encodeURIComponent(key);
+        if (value == null) { pairs.push(key); return; }
+        value = Array.isArray(value) ? value.join(',') : '' + value;
+        value = value.replace(/(\r)?\n/g, '\r\n');
+        value = encodeURIComponent(value);
+        value = value.replace(/%20/g, '+');
+        pairs.push(key + '=' + value);
+    }
 
-    // -------------------------------------------------------------------------
-    // Static Methods
+    return pairs.join('&');
+}
 
-    static toQueryString(data) {
-        let pairs = [];
+function fromQueryString(str) {
+    str = str.replace(/^[?,&]/,'');
+    let pairs = decodeURIComponent(str).split('&');
+    let result = {};
+    pairs.forEach(function(pair) {
+        let x = pair.split('=');
+        result[x[0]] = x[1];
+    });
+    return result;
+}
 
-        for (let key in data) {
-            let value = data[key];
-            key = encodeURIComponent(key);
-            if (value == null) { pairs.push(key); return; }
-            value = Array.isArray(value) ? value.join(',') : '' + value;
-            value = value.replace(/(\r)?\n/g, '\r\n');
-            value = encodeURIComponent(value);
-            value = value.replace(/%20/g, '+');
-            pairs.push(key + '=' + value);
+function _fetch(type, url, data = null, options = { async: true, cache: true }) {
+    // TODO use window.fetch() instead
+
+    let xhr = new XMLHttpRequest();
+    let deferred = defer();
+    let params = '';
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState <= 3) return;
+        var status = xhr.status;
+        if ((status >= 200 && status < 300) || status === 304) {
+            deferred.resolve(xhr.responseText);
+        } else {
+            deferred.reject(xhr);
         }
+    };
 
-        return pairs.join('&');
+    if (type === 'GET') {
+        url += (url.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1');
+        if (!options.cache) url += '_cachebust=' + Date.now();
+        if (data) url += toQueryString(data) + '&';
+        xhr.open(type, url, options.async, options.user, options.password);
+
+    } else if (type === 'POST') {
+        xhr.open(type, url, options.async, options.user, options.password);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-CSRF-Token', window.csrfToken || '');
+        params = isString(data) ? '?' + data : Object.keys(data).map(
+            k => encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
+        ).join('&');
     }
 
-    static fromQueryString(str) {
-        str = str.replace(/^[?,&]/,'');
-        let pairs = decodeURIComponent(str).split('&');
-        let result = {};
-        pairs.forEach(function(pair) {
-            let x = pair.split('=');
-            result[x[0]] = x[1];
-        });
-        return result;
-    }
+    xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
+    xhr.send(params);
+    return deferred.promise;
+}
 
-    static formatResponse(response, type = 'json') {
+
+const Ajax = {
+
+    toQueryString,
+    fromQueryString,
+
+    formatResponse: function(response, type = 'json') {
         switch(type) {
 
             case 'html':
@@ -73,66 +110,25 @@ export default class Ajax extends Evented {
             default:
             return response;
         }
-    }
+    },
 
+    get: function(url, data = null) {
+        return _fetch('GET', url, data);
+    },
 
-    // -------------------------------------------------------------------------
-    // Constructor Functions
+    post: function(url, data = null) {
+        return _fetch('POST', url, data);
+    },
 
-    constructor(type, url, data = null, options = { async: true, cache: true }) {
-        super();
-
-        // TODO use window.fetch() instead
-
-        if (!(this instanceof Ajax)) return new Ajax(arguments);
-
-        let _this = this;
-        let xhr = new XMLHttpRequest();
-        let params = '';
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState <= 3) return;
-            var status = xhr.status;
-            var success = (status >= 200 && status < 300) || status === 304;
-            _this.trigger(success ? 'success' : 'error', success ? xhr.responseText : xhr);
-        };
-
-        if (type === 'GET') {
-            url += (url.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1');
-            if (!options.cache) url += '_cachebust=' + Date.now();
-            if (data) url += Ajax.toQueryString(data) + '&';
-            xhr.open(type, url, options.async, options.user, options.password);
-
-        } else if (type === 'POST') {
-            xhr.open(type, url, options.async, options.user, options.password);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.setRequestHeader('X-CSRF-Token', window.csrfToken || '');
-            params = isString(data) ? '?' + data : Object.keys(data).map(
-                k => encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
-            ).join('&');
-        }
-
-        xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
-        xhr.send(params);
-    }
-
-    static get(url, data = null) {
-        return new Ajax('GET', url, data);
-    }
-
-    static post(url, data = null) {
-        return new Ajax('POST', url, data);
-    }
-
-    static beacon(url, data = null) {
+    beacon: function(url, data = null) {
         // TODO if (navigator.sendBeacon) {
         //     navigator.sendBeacon(url, JSON.stringify(data));
         // } else {
-            Ajax.post(url, data);
+            _fetch('POST', url, data);
         // }
-    }
+    },
 
-    static script(src) {
+    script: function(src) {
         let deferred = defer();
 
         let el = document.createElement('script');
@@ -144,30 +140,13 @@ export default class Ajax extends Evented {
 
         document.head.appendChild(el);  // FIXME Needs Document
         return deferred.promise;
-    }
+    },
 
-
-    // -------------------------------------------------------------------------
-    // Deferred Post
-
-    static deferredPost(url, data) {
+    deferredPost: function(url, data) {
         deepExtend(postData, { [url]: data });
         doDeferredPost();
     }
 
+};
 
-    // -------------------------------------------------------------------------
-    // Callbacks
-
-    then(success, error = null) {
-        if (success) this.on('success', success);
-        if (error) this.on('error', error);
-        return this;
-    }
-
-    ['catch'](error) {
-        this.on('error', error);
-        return this;
-    }
-
-}
+export default Ajax;
