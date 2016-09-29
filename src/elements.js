@@ -164,11 +164,11 @@ export default class Element {
     }
 
     get svgWidth() {
-        return this._el.viewBox.baseVal.width || this.width;
+        return (this._el.viewBox.baseVal || {}).width || this.width;
     }
 
     get svgHeight() {
-        return this._el.viewBox.baseVal.height || this.height;
+        return (this._el.viewBox.baseVal || {}).height || this.height;
     }
 
     // Doesn't include border and padding
