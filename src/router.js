@@ -146,7 +146,7 @@ class Router extends Evented {
         // TODO case insensitive, trailing slashes, more options
         // TODO error on multiple matching views
         let params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
-        let regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/');
+        let regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') + '\\/?';
         let regex = new RegExp('^' + regexStr + '$');
 
         let thisView = { regex, params, enter, exit, template };
