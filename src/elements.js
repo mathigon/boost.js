@@ -36,6 +36,7 @@ export default class Element {
     // Basic Functionality
 
     get id() { return this._el.id; }
+    get data() { return this._el.dataset; }
 
     addClass(className) {
         let classes = words(className);
