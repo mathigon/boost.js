@@ -8,6 +8,7 @@
 import Browser from 'browser';
 import { uid, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
+import { isString } from 'types';
 import { square } from 'arithmetic';
 import { createEvent, removeEvent } from 'events';
 import { ease, animate, transition, enter, exit, effect } from 'animate';
@@ -29,6 +30,11 @@ export default class Element {
     this._isWindow = isOneOf(el, window, document.body, document.documentElement);
     this._data   = el ? (el._m_data   || (el._m_data   = {})) : {};
     this._events = el ? (el._m_events || (el._m_events = {})) : {};
+  }
+
+  get tagName() {
+    if (this._el instanceof Text) return 'TEXT';
+    return this._el.tagName;
   }
 
 
@@ -502,12 +508,22 @@ export default class Element {
     return prev ? $(prev) : null;
   }
 
-  find(selector) {
+  $(selector) {
     return $(selector, this);
   }
 
-  findAll(selector) {
+  $$(selector) {
     return $$(selector, this);
+  }
+
+  // DEPRECATED!
+  find(selector) {
+    return this.$(selector);
+  }
+
+  // DEPRECATED!
+  findAll(selector) {
+    return this.$$(selector);
   }
 
   get parent() {
@@ -742,20 +758,20 @@ export default class Element {
   // Cursor and Selections
 
   get cursor() {
-    if (!window.getSelection) return 0;
-
     let sel = window.getSelection();
+    if (!sel.rangeCount) return [0, 0];
 
-    if (sel.rangeCount > 0) {
-      let range = sel.getRangeAt(0);
-      let preCaretRange = range.cloneRange();
-      preCaretRange.selectNodeContents(this._el);
-      preCaretRange.setEnd(range.endContainer, range.endOffset);
-      return preCaretRange.toString().length;
-    }
+    let range = window.getSelection().getRangeAt(0);
+    let preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(this._el);
+    preCaretRange.setEnd(range.startContainer, range.startOffset);
+    let start = preCaretRange.toString().length;
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    let end = preCaretRange.toString().length;
+    return [start, end];
   }
 
-  set cursor(offset) {
+  /* set cursor(offset) {
     let parents = [this._el];
     let node = this._el.childNodes[0];
 
@@ -781,7 +797,8 @@ export default class Element {
         return;
       }
     }
-  }
+  } */
+
 }
 
 
