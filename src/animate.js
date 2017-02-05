@@ -120,7 +120,7 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 
   // Special rules for animations to height: auto
   let oldHeight = to.height;
-  if (to.height == 'auto') to.height = total($el.children().map($c => $c.outerHeight)) + 'px';
+  if (to.height == 'auto') to.height = total($el.children.map($c => $c.outerHeight)) + 'px';
 
   let player = $el._el.animate([from, to], { duration, delay, easing, fill: 'forwards' });
 

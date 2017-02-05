@@ -32,26 +32,31 @@ function makeTemplate(model, property, fromObj, toObj = fromObj) {
   toObj[property] = fn(model);
 }
 
-export function bind(_el, model, noIterate = false) {
-  let attrs =  _el.attributes;
-  if (attrs) { for (let i=0; i<attrs.length; ++i) {
-    // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
-    let to = attrs[i].name.match(/^x-/) ? document.createAttribute(attrs[i].name.replace(/^x-/, '')) : attrs[i];
-    makeTemplate(model, 'value', attrs[i], to);
-    if (to != attrs[i]) _el.setAttributeNode(to);
-  } }
+export function bind($el, model, noIterate = false) {
+  for (let a of $el.attributes) {
+    if (a.name == 'x-props') {
+      // x-props is a static object that is assigned to $el.props.
+      model.change(function() { $el.props = model[a.value]; });
+    } else {
+      // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
+      let to = a.name.match(/^x-/) ? document.createAttribute(a.name.replace(/^x-/, '')) : a;
+      makeTemplate(model, 'value', a, to);
+      if (to != a) $el._el.setAttributeNode(to);
+    }
+  }
 
-  if (_el.children && _el.children.length) {
-    for (let c of _el.childNodes) {
-      if (c instanceof Text) {
-        makeTemplate(model, 'textContent', c);
-      } else if (!noIterate && !c.isCustomElement) {
-        bind(c, model);
+  if ($el.children.length) {
+    for (let $c of $el.childNodes) {
+      if ($c.tagName == 'TEXT') {
+        makeTemplate(model, 'text', $c);
+      } else if (!noIterate && !$c.isCustomElement) {
+        bind($c, model);
       }
     }
-  } else if (_el.innerHTML && _el.innerHTML.trim()) {
-    makeTemplate(model, 'innerHTML', _el);
+  } else if ($el.html.trim()) {
+    makeTemplate(model, 'html', $el);
   }
+
 }
 
 export function model(state) {

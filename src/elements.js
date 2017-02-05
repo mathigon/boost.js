@@ -8,7 +8,6 @@
 import Browser from 'browser';
 import { uid, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
-import { isString } from 'types';
 import { square } from 'arithmetic';
 import { createEvent, removeEvent } from 'events';
 import { ease, animate, transition, enter, exit, effect } from 'animate';
@@ -30,6 +29,7 @@ export default class Element {
     this._isWindow = isOneOf(el, window, document.body, document.documentElement);
     this._data   = el ? (el._m_data   || (el._m_data   = {})) : {};
     this._events = el ? (el._m_events || (el._m_events = {})) : {};
+    this.isCustomElement = false;
   }
 
   get tagName() {
@@ -100,13 +100,15 @@ export default class Element {
     return this._el.hasAttribute(attr);
   }
 
+  get attributes() { return this._el.attributes || []; }
+
   get value() { return this._el.value; }
   set value(v) { this._el.value = v; }
 
-  get html() { return this._el.innerHTML; }
+  get html() { return this._el.innerHTML || ''; }
   set html(h) { this._el.innerHTML = h; }
 
-  get text() { return this._el.textContent; }
+  get text() { return this._el.textContent || ''; }
   set text(t) { this._el.textContent = t; }
 
 
@@ -563,26 +565,13 @@ export default class Element {
     return false;
   }
 
-  children(selector) {
-    let childNodes = this._el.children;
-
-    if (!childNodes) {
-      let nodes = this._el.childNodes;
-      return Array.from(nodes).filter(n => !n.data || n.data.trim()).map(n => $(n));
-
-    } else if (typeof selector === 'number') {
-      return $(childNodes[selector]);
-
-    } else if (selector == null) {
-      return Array.from(childNodes, n => $(n));
-
-    } else {
-      return Array.from(childNodes, n => $(n)).filter($n => $n.is(selector));
-    }
+  get children() {
+    let children = this._el.children || [];
+    return Array.from(children, n => $(n));
   }
 
   get childNodes() {
-    let childNodes = this._el.childNodes;
+    let childNodes = this._el.childNodes || [];
     return Array.from(childNodes, n => $(n));
   }
 
@@ -655,8 +644,12 @@ export default class Element {
   // Templates
 
   model(state, noIterate = false) {
-    bind(this._el, state.change ? state : model(state), noIterate);
+    bind(this, state.change ? state : model(state), noIterate);
   }
+
+  // These can be set using the x-props attribute in a template.
+  set props(p) { this._data.props = p; }
+  get props() { return this._data.props; }
 
 
   // -------------------------------------------------------------------------
@@ -875,7 +868,7 @@ export function $N(tag, attributes = {}, parent = null) {
 
 export function $$N(html) {
   let tempDiv = $N('div', { html: html });
-  return tempDiv.children();
+  return tempDiv.children;
 }
 
 
@@ -899,7 +892,7 @@ export function customElement(tag, options) {
     createdCallback() {
       let $el = this.$el = $(this);
       let children = $el.childNodes;
-      this.isCustomElement = true;
+      this.$el.isCustomElement = true;
 
       if ('template' in options) $el.html = options.template;
       if ('templateId' in options) $el.applyTemplate($(options.templateId));
