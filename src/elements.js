@@ -100,7 +100,9 @@ export default class Element {
     return this._el.hasAttribute(attr);
   }
 
-  get attributes() { return this._el.attributes || []; }
+  // We need the Array.from() wrapper because Safari doesn't support
+  // for (let a for $el.attributes).
+  get attributes() { return Array.from(this._el.attributes || []); }
 
   get value() { return this._el.value; }
   set value(v) { this._el.value = v; }
