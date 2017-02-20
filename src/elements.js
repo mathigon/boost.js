@@ -590,8 +590,8 @@ export default class Element {
     while (this._el.firstChild) this._el.removeChild(this._el.firstChild);
   }
 
-  replace(newEl) {
-    this.insertAfter(newEl);
+  replace(...$els) {
+    for (let $el of $els) this.insertBefore($el);
     this.remove();
   }
 
@@ -649,9 +649,10 @@ export default class Element {
     bind(this, state.change ? state : model(state), noIterate);
   }
 
-  // These can be set using the x-props attribute in a template.
-  set props(p) { this._data.props = p; }
-  get props() { return this._data.props; }
+  get props() {
+    if (!('_props' in this._data)) this._data._props = {};
+    return this._data._props;
+  }
 
 
   // -------------------------------------------------------------------------

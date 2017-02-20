@@ -34,15 +34,11 @@ function makeTemplate(model, property, fromObj, toObj = fromObj) {
 
 export function bind($el, model, noIterate = false) {
   for (let a of $el.attributes) {
-    if (a.name == 'x-props') {
-      // x-props is a static object that is assigned to $el.props.
-      model.change(function() { $el.props = model[a.value]; });
-    } else {
-      // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
-      let to = a.name.match(/^x-/) ? document.createAttribute(a.name.replace(/^x-/, '')) : a;
-      makeTemplate(model, 'value', a, to);
-      if (to != a) $el._el.setAttributeNode(to);
-    }
+    // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
+    let to = a.name.match(/^x-/) ? document.createAttribute(a.name.replace(/^x-/, '')) : a;
+    makeTemplate(model, 'value', a, to);
+    if (to != a) $el._el.setAttributeNode(to);
+    // TODO Update `props` property of custom elements.
   }
 
   if ($el.children.length) {
