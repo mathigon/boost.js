@@ -5,10 +5,9 @@
 
 
 
-// TODO Improve performance after removing click, pointer and scroll events
+// TODO Try simplifying code using el.setPointerCapture(e.pointerId);
 
 import * as Elements from 'elements';
-import { isOneOf } from 'utilities';
 import { isString } from 'types';
 import { without } from 'arrays';
 
@@ -77,7 +76,9 @@ function makeClickEvent($el) {
   $el._el.addEventListener('touchend', function(e){
     if (!start) return;
     let end = pointerPosition(e);
-    if (Math.abs(end.x - start.x) < 5 && Math.abs(end.y - start.y) < 5) $el.trigger('click', e);
+    if (Math.abs(end.x - start.x) < 5 && Math.abs(end.y - start.y) < 5) {
+      $el.trigger('click', e);
+    }
     start = null;
   });
 
@@ -94,45 +95,32 @@ function makeClickOutsideEvent($el) {
   });
 }
 
+function makeMouseEvent($el, event, pointerEvent) {
+  if ($el._events['_' + event]) return;
+  $el._events['_' + event] = true;
 
-// -----------------------------------------------------------------------------
-// Pointer Events
-// TODO Make pointer more efficient more efficient using *enter and *leave
-
-function checkInside(event, element) {
-  let c = pointerPosition(event);
-  let current = document.elementFromPoint(c.x, c.y);
-  return isOneOf(element._el, current, current.parentNode, current.parentNode.parentNode);
-}
-
-function makePointerPositionEvents(element) {
-  if (element._data._pointerEvents) return;
-  element._data._pointerEvents = true;
-
-  let parent = element.parent;
-  let isInside = null;
-  parent.on('pointerEnd', function() { isInside = null; });
-
-  parent.on('pointerMove', function(e) {
-    let wasInside = isInside;
-    isInside = checkInside(e, element);
-    if (wasInside != null && isInside && !wasInside) element.trigger('pointerEnter', e);
-    if (!isInside && wasInside) element.trigger('pointerLeave', e);
-    if (isInside) element.trigger('pointerOver', e);
+  $el._el.addEventListener(pointerEvent, function(e) {
+    if (e.pointerType == 'mouse') $el.trigger(event, e);
   });
 }
+
+
+// -----------------------------------------------------------------------------
+// Slide Events
 
 export function slide($el, fns) {
   let isAnimating = false;
   let posn = $el.is('svg') ? (e => svgPointerPosn(e, $el)) : pointerPosition;
   let startPosn, lastPosn;
 
+  $el.css('touch-action', 'none');
+
   function start(e) {
     e.preventDefault();
     if(e.handled || (e.touches && e.touches.length > 1)) return;
 
-    if ('move' in fns) Elements.$body.on('pointerMove', move);
-    Elements.$body.on('pointerEnd', end);
+    if ('move' in fns) Elements.$body.on('pointermove', move);
+    Elements.$body.on('pointerstop', end);
     startPosn = lastPosn = posn(e);
     if ('start' in fns) fns.start(startPosn);
   }
@@ -155,13 +143,13 @@ export function slide($el, fns) {
     if(e.touches && e.touches.length > 0) return;
     isAnimating = false;
 
-    if ('move' in fns) Elements.$body.off('pointerMove', move);
-    Elements.$body.off('pointerEnd', end);
+    if ('move' in fns) Elements.$body.off('pointermove', move);
+    Elements.$body.off('pointerstop', end);
 
     if ('end' in fns) fns.end(lastPosn, startPosn);
   }
 
-  $el.on('pointerStart', start);
+  $el.on('pointerdown', start);
 }
 
 
@@ -207,34 +195,31 @@ function makeScrollEvents(element) {
 // Event Bindings
 
 const customEvents = {
-  pointerStart: 'mousedown touchstart',
-  pointerMove:  'mousemove touchmove',
-  pointerEnd:   'mouseup touchend touchcancel',
-
   change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
+  pointerstop: 'pointerup pointercancel',
+
+  mousedown($el) { makeMouseEvent($el, 'mousedown', 'pointerdown'); },
+  mousemove($el) { makeMouseEvent($el, 'mousemove', 'pointermove'); },
+  mouseup($el) { makeMouseEvent($el, 'mouseup', 'pointerup'); },
 
   click: makeClickEvent,  // no capture!
   clickOutside: makeClickOutsideEvent,  // no capture!
-
-  pointerEnter: makePointerPositionEvents,  // no capture!
-  pointerLeave: makePointerPositionEvents,  // no capture!
-  pointerOver: makePointerPositionEvents,  // no capture!
 
   scrollStart: makeScrollEvents,  // no capture!
   scroll: makeScrollEvents,  // no capture!
   scrollEnd: makeScrollEvents  // no capture!
 };
 
-export function createEvent($el, event, fn, useCapture) {
+export function createEvent($el, event, fn, options) {
   let custom = customEvents[event];
 
   if (isString(custom)) {
-    $el.on(custom, fn, useCapture);
+    $el.on(custom, fn, options);
   } else if (custom) {
     custom($el);
   } else {
-    $el._el.addEventListener(event, fn, !!useCapture);
+    $el._el.addEventListener(event, fn, options);
   }
 
   if (event in $el._events) {
@@ -244,14 +229,16 @@ export function createEvent($el, event, fn, useCapture) {
   }
 }
 
-export function removeEvent($el, event, fn, useCapture) {
+export function removeEvent($el, event, fn, options) {
   let custom = customEvents[event];
 
   if (isString(custom)) {
-    $el.off(custom, fn, useCapture);
+    $el.off(custom, fn, options);
     return;
-  } else if (!custom) {
-    $el._el.removeEventListener(event, fn, !!useCapture);
+  } else if (custom) {
+    // TODO remove scroll, click and mouse events when possible.
+  } else {
+    $el._el.removeEventListener(event, fn, options);
   }
 
   if (event in $el._events) $el._events[event] = without($el._events[event], fn);
