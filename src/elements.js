@@ -8,7 +8,7 @@
 import Browser from 'browser';
 import { uid, isOneOf } from 'utilities';
 import { words, toCamelCase } from 'strings';
-import { square } from 'arithmetic';
+import { square, roundTo } from 'arithmetic';
 import { createEvent, removeEvent } from 'events';
 import { ease, animate, transition, enter, exit, effect } from 'animate';
 import { bind, model } from 'template';
@@ -121,7 +121,7 @@ export default class Element {
   get formData() {
     let data = {};
     let els = this._el.elements; // TODO array from
-    for (var i=0; i<els.length; ++i) {
+    for (let i=0; i<els.length; ++i) {
       data[els[i].name || els[i].id] = els[i].value;
     }
     return data;
@@ -363,18 +363,18 @@ export default class Element {
   }
 
   translate(x, y) {
-    x = Math.round(+x || 0);
-    y = Math.round(+y || 0);
-    this._el.style[Browser.prefix('transform')] = 'translate(' + x + 'px,' + y + 'px)';
+    x = roundTo(+x || 0, 0.1);
+    y = roundTo(+y || 0, 0.1);
+    this._el.style[Browser.prefix('transform')] = `translate(${x}px,${y}px)`;
   }
 
   translateX(x) {
-    x = Math.round(+x || 0);
+    x = roundTo(+x || 0, 0.1);
     this._el.style[Browser.prefix('transform')] = 'translate(' + x + 'px,0)';
   }
 
   translateY(y) {
-    y = Math.round(+y || 0);
+    y = roundTo(+y || 0, 0.1);
     this._el.style[Browser.prefix('transform')] = 'translate(0px,' + y + 'px)';
   }
 
