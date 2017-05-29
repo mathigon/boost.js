@@ -5,6 +5,7 @@
 
 
 
+import Ajax from 'ajax';
 import Evented from 'evented';
 import { words, toCamelCase, toTitleCase } from 'strings';
 import { cache, throttle } from 'utilities';
@@ -168,7 +169,7 @@ export function setStorage(key, value) {
   }
 
   path[keys[keys.length - 1]] = value;
-  window.localStorage.setItem('M', JSON.stringify(storage));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
 }
 
 export function getStorage(key) {
@@ -263,6 +264,49 @@ export function onMultiKey(key1, key2, fn1, fn2) {
 
 
 // -----------------------------------------------------------------------------
+// Polyfill for external SVG imports
+
+const IEUA = /\bTrident\/[567]\b|\bMSIE (?:9|10)\.0\b/;
+const webkitUA = /\bAppleWebKit\/(\d+)\b/;
+const EdgeUA = /\bEdge\/12\.(\d+)\b/;
+
+const polyfill = IEUA.test(navigator.userAgent) ||
+  (navigator.userAgent.match(EdgeUA) || [])[1] < 10547 ||
+  (navigator.userAgent.match(webkitUA) || [])[1] < 537;
+
+const requests = {};
+
+function replaceSvgImports() {
+  if (!polyfill) return;
+
+  let uses = Array.from(document.querySelectorAll('svg > use'));
+  uses.forEach(function(use) {
+    let src = use.getAttribute('xlink:href');
+    let [url, id] = src.split('#');
+    if (!url.length) return;
+
+    let svg = use.parentNode;
+    svg.removeChild(use);
+
+    if (!(url in requests)) requests[url] = Ajax.get(url);
+    let request = requests[url];
+
+    request.then(function(response) {
+      let doc = document.implementation.createHTMLDocument('');
+      doc.documentElement.innerHTML = response;
+
+      let icon = doc.getElementById(id);
+      let clone = icon.cloneNode(true);
+
+      let fragment = document.createDocumentFragment();
+      while (clone.childNodes.length) fragment.appendChild(clone.firstChild);
+      svg.appendChild(fragment);
+    });
+  });
+}
+
+
+// -----------------------------------------------------------------------------
 // Visibility API
 
 let isOldWebkit = !('hidden' in document) && ('webkitHidden' in document);
@@ -284,6 +328,7 @@ export default {
   isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
 
   redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, prefix,
+  replaceSvgImports,
 
   on: browserEvents.on.bind(browserEvents),
   off: browserEvents.off.bind(browserEvents),
