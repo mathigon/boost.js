@@ -1,13 +1,12 @@
 // =============================================================================
 // Boost.js | Animations
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
 
-import { defer, delay } from 'utilities';
-import { total, contains } from 'arrays';
-import { prefix } from 'browser';
+import { defer, delay, total, contains } from '@mathigon/core';
+import { prefix } from './browser';
 
 // prevent animations on page load
 let isReady = false;
@@ -70,7 +69,7 @@ function easeIn(type, t = 0, s = 0) {
       return 0.5 - Math.cos(t * Math.PI) / 2;
 
     case 'spring':
-      return 1 - (Math.cos(t * 4.5 * Math.PI) * Math.exp(-p * 6));
+      return 1 - (Math.cos(t * 4.5 * Math.PI) * Math.exp(-t * 6));
 
     case 'bounce':
       if (t < 1/11) return 1/64 - 7.5625 * (0.5/11 - t) * (0.5/11 - t);  // 121/16 = 7.5625

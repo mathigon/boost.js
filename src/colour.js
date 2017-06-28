@@ -1,12 +1,11 @@
 // =============================================================================
 // Boost.js | Colours
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
 
-import { clamp } from 'utilities';
-import { tabulate } from 'arrays';
+import { clamp, tabulate } from '@mathigon/core';
 
 const shortHexRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
 const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
@@ -55,7 +54,7 @@ function getColourAt(gradient, p) {
 }
 
 
-export default class Colour {
+export class Colour {
 
   // -------------------------------------------------------------------------
   // Static Colours
@@ -180,23 +179,23 @@ export default class Colour {
   // -------------------------------------------------------------------------
   // Prototype Functions
 
-  lighten(p) {
+  lighten(_p) {
     // TODO
   }
 
-  darken(p) {
+  darken(_p) {
     // TODO
   }
 
-  saturate(p) {
+  saturate(_p) {
     // TODO
   }
 
-  desaturate(p) {
+  desaturate(_p) {
     // TODO
   }
 
-  grayscale(p = 1) {
+  grayscale(_p = 1) {
     // TODO
   }
 

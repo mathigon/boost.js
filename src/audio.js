@@ -1,13 +1,12 @@
 // =============================================================================
 // Boost.js | Audio
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
 
-import Evented from 'evented';
-import { isString } from 'types';
-import { $ } from 'elements';
+import { Evented, isString } from '@mathigon/core';
+import { $ } from './elements';
 
 
 // -----------------------------------------------------------------------------

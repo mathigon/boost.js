@@ -1,6 +1,6 @@
 // =============================================================================
 // Boost.js | DOM Events
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
@@ -8,10 +8,8 @@
 // TODO Try simplifying code using el.setPointerCapture(e.pointerId);
 // TODO Scroll should trigger mousemove events
 
-import * as Elements from 'elements';
-import { isString } from 'types';
-import { without } from 'arrays';
-import { isOneOf } from 'utilities';
+import { isString, without, isOneOf } from '@mathigon/core';
+import * as Elements from './elements';
 
 
 // -----------------------------------------------------------------------------
@@ -19,7 +17,7 @@ import { isOneOf } from 'utilities';
 
 export function isSupported(event) {
   event = 'on' + event;
-  let $el = $N('div');
+  let $el = Elements.$N('div');
   let result = (event in $el._el);
   if (!result) {
     $el.attr(event, 'return;');

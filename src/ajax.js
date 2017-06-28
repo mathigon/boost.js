@@ -1,13 +1,12 @@
 // =============================================================================
 // Boost.js | AJAX Functions
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
 
-import { defer, deepExtend, throttle } from 'utilities';
-import { isString } from 'types';
-import { $ } from 'elements';
+import { defer, deepExtend, throttle, isString } from '@mathigon/core';
+import { $ } from './elements';
 
 
 // -----------------------------------------------------------------------------
@@ -43,11 +42,11 @@ export function fromQueryString(str) {
 
 export function formatResponse(response, type = 'json') {
   switch(type) {
-    case 'html':
+    case 'html': {
       let doc = document.implementation.createHTMLDocument('');
       doc.documentElement.innerHTML = response;
       return $(doc);
-
+    }
     case 'json':
       return JSON.parse(response);
   }
@@ -141,9 +140,3 @@ export function beacon(url, data = null) {
   // TODO Use navigator.sendBeacon instead.
   fetch('POST', url, data);
 }
-
-
-// -----------------------------------------------------------------------------
-
-export default { toQueryString, fromQueryString, formatResponse, fetch, get,
-  post, script, deferredPost, beacon }

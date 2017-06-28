@@ -5,13 +5,12 @@
 
 
 
-import Browser from 'browser';
-import { uid, isOneOf } from 'utilities';
-import { words, toCamelCase } from 'strings';
-import { square, roundTo } from 'arithmetic';
-import { createEvent, removeEvent } from 'events';
-import { ease, animate, transition, enter, exit, effect } from 'animate';
-import { bind, model } from 'template';
+import { uid, isOneOf, words, toCamelCase, square } from '@mathigon/core';
+import { roundTo } from '@mathigon/fermat';
+import { ease, animate, transition, enter, exit, effect } from './animate';
+import { Browser } from './browser';
+import { createEvent, removeEvent } from './events';
+import { bind, model } from './template';
 
 
 function cssN(element, property) {
@@ -22,7 +21,7 @@ const p = window.Element.prototype;
 const elementMatches = p.matches || p.webkitMatchesSelector || p.mozMatchesSelector || p.msMatchesSelector;
 
 
-export default class Element {
+export class Element {
 
   constructor(el) {
     this._el = el;
@@ -303,9 +302,10 @@ export default class Element {
       _this.trigger('scroll', { top: y, id });
     }
 
-    let animation = animate(callback, time);
+    animate(callback, time);
 
     // TODO Cancel animation if something else triggers scroll event
+    // let _animation = animate(callback, time);
     // this.one('scroll', function(x) {  if (x.id !== id) animation.cancel(); });
     // this.one('touchStart', function() { animation.cancel(); });
   }
@@ -646,7 +646,7 @@ export default class Element {
   // Templates
 
   model(state, noIterate = false) {
-    bind(this, state.change ? state : model(state), noIterate);
+    bind(this, state.change ? state : model(state), noIterate);
   }
 
   get props() {

@@ -1,12 +1,11 @@
 // =============================================================================
 // Boost.js | Thread Class Functions
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
 
-import { defer } from 'utilities';
-import { isString } from 'types';
+import { defer, isString } from '@mathigon/core';
 
 
 // fn has to be a single function with no external references or bindings
@@ -16,7 +15,7 @@ export default function thread(fn, args, timeout = 1000) {
   let start = Date.now();
 
   if (!window.Worker || !window.Blob) {
-    deferred.resolve(fn.apply(none, args));
+    deferred.resolve(fn.apply(null, args));
     return deferred.promise;
   }
 

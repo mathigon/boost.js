@@ -1,6 +1,6 @@
 // =============================================================================
 // Boost.js | Template Functions
-// (c) 2017 Mathigon
+// (c) Mathigon
 // =============================================================================
 
 
@@ -32,7 +32,7 @@ function makeTemplate(model, property, fromObj, toObj = fromObj) {
   toObj[property] = fn(model);
 }
 
-export function bind($el, model, noIterate = false) {
+export function bind($el, model, noIterate = false) {
   for (let a of $el.attributes) {
     // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
     let to = a.name.match(/^x-/) ? document.createAttribute(a.name.replace(/^x-/, '')) : a;

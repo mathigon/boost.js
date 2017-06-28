@@ -1,18 +1,16 @@
-// =================================================================================================
+// =============================================================================
 // Boost.js | Browser Utilities
-// (c) 2017 Mathigon
-// =================================================================================================
+// (c) Mathigon
+// =============================================================================
 
 
 
-import Ajax from 'ajax';
-import Evented from 'evented';
-import { words, toCamelCase, toTitleCase } from 'strings';
-import { cache, throttle } from 'utilities';
-import { $, $body } from 'elements';
+import { cache, throttle, Evented, words, toCamelCase, toTitleCase } from '@mathigon/core';
+import { get } from './ajax';
+import { $, $body } from './elements';
 
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Utilities
 
 const browserEvents = new Evented();
@@ -24,7 +22,7 @@ export function redraw() {
 }
 
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Resize Events
 
 let width = window.innerWidth;
@@ -55,7 +53,7 @@ export function resize(fn = null) {
 }
 
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Load Events
 
 let loadQueue = [];
@@ -80,7 +78,7 @@ export function ready(fn) {
 }
 
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // CSS
 
 export function cssTimeToNumber(cssTime) {
@@ -125,7 +123,7 @@ export const prefix = cache(function(name, dashes) {
 ready(function() { addCSS(':unresolved { visibility: visible; }'); });
 
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Cookies TODO
 
 export function getCookies() {  // FIXME
@@ -153,7 +151,7 @@ export function deleteCookie(name) {
 }
 
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Storage
 
 const STORAGE_KEY = '_M';
@@ -288,7 +286,7 @@ function replaceSvgImports() {
     let svg = use.parentNode;
     svg.removeChild(use);
 
-    if (!(url in requests)) requests[url] = Ajax.get(url);
+    if (!(url in requests)) requests[url] = get(url);
     let request = requests[url];
 
     request.then(function(response) {
@@ -317,9 +315,9 @@ document.addEventListener(visibilityEvent, function() {
   browserEvents.trigger(document[visibilityProperty] ? 'focus' : 'blur');
 });
 
-// ---------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
-export default {
+export const Browser = {
   isMobile: mobileRegex.test(navigator.userAgent.toLowerCase()),
   isRetina: ((window.devicePixelRatio || 1) > 1),
   isTouch:  ('ontouchstart' in window) ||
