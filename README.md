@@ -1,4 +1,4 @@
-# Fermat.js
+# Boost.js
 
 Boost.js is a library that makes working with browsers easier: everything from
 DOM manipulation to cross-device event handling, advanced animations, multi-
