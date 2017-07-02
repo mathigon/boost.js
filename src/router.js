@@ -109,7 +109,7 @@ function loadView(router, view, params = {}, url = '') {
 // -----------------------------------------------------------------------------
 // Router Class
 
-class Router extends Evented {
+class _Router extends Evented {
 
   setup(options) {
     this.$viewport = options.$viewport || $body;
@@ -227,4 +227,4 @@ class Router extends Evented {
 
 }
 
-export default new Router();
+export const Router = new _Router();

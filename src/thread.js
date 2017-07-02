@@ -10,7 +10,7 @@ import { defer, isString } from '@mathigon/core';
 
 // fn has to be a single function with no external references or bindings
 // args has to be a single number or string, or an array or numbers and strings
-export default function thread(fn, args, timeout = 1000) {
+export function thread(fn, args, timeout = 1000) {
   let deferred = defer();
   let start = Date.now();
 
