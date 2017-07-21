@@ -8,8 +8,9 @@
 // TODO Try simplifying code using el.setPointerCapture(e.pointerId);
 // TODO Scroll should trigger mousemove events
 
-import { isString, without, isOneOf } from '@mathigon/core';
+import { isString, without, isOneOf, cache } from '@mathigon/core';
 import * as Elements from './elements';
+import { Browser } from './browser';
 
 
 // -----------------------------------------------------------------------------
@@ -42,14 +43,21 @@ export function stopEvent(event) {
 }
 
 export function svgPointerPosn(event, $svg) {
-  // TODO cache values more efficiency
-  let matrix = $svg._el.getScreenCTM().inverse();
+  // TODO Better cache results!
+  const matrix = $svg._el.getScreenCTM().inverse();
   let posn = pointerPosition(event);
-
   let point = $svg._el.createSVGPoint();
+
+  // Firefox doesn't account for the CSS transform of parent elements when
+  // computing getScreenCTM().
+  // TODO Handle scale and rotation, not just transform.
+  if (Browser.isFirefox) {
+    let transform = $svg.computedTransformMatrix;
+    posn = {x: posn.x - transform[2][0], y: posn.y - transform[2][1]}
+  }
+
   point.x = posn.x;
   point.y = posn.y;
-
   point = point.matrixTransform(matrix);
   return { x: point.x, y: point.y };
 }

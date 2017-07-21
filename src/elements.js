@@ -350,11 +350,22 @@ export class Element {
     let transform = window.getComputedStyle(this._el).getPropertyValue(Browser.prefix('transform'));
     if (!transform || transform === 'none') return null;
 
-    let coords = transform.match(/matrix\(([0-9\,\.\s]*)\)/);
+    let coords = transform.match(/matrix\(([0-9\,\.\s\-]*)\)/);
     if (!coords[1]) return null;
 
     let matrix = coords[1].split(',');
-    return [[+matrix[0], +matrix[1]], [+matrix[2], +matrix[3]]];
+    return [[+matrix[0], +matrix[1]], [+matrix[2], +matrix[3]],
+      [+matrix[4], +matrix[5]]];
+  }
+
+  get computedTransformMatrix() {
+    let own = this.transformMatrix;
+
+    // TODO Do matrix multiplication!
+    if (own) return own;
+
+    if (this._isWindow || !this.parent) return own;
+    return this.parent.computedTransformMatrix;
   }
 
   get scale() {

@@ -322,8 +322,10 @@ export const Browser = {
   isRetina: ((window.devicePixelRatio || 1) > 1),
   isTouch:  ('ontouchstart' in window) ||
   (window.DocumentTouch && document instanceof window.DocumentTouch),
+
   isChrome: window.chrome,
   isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
+  isFirefox: navigator.userAgent.search('Firefox') >= 0,
 
   redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, prefix,
   replaceSvgImports,
