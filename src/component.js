@@ -212,10 +212,6 @@ export class Component extends HTMLElement {
   static get templateId() {}
 }
 
-export function registerElement(name, element) {
-  window.customElements.define(name, element);
-}
-
 
 /* Example
 
@@ -243,3 +239,103 @@ class Chapter extends Component {
 
   }
 } */
+
+
+
+
+
+
+
+
+
+const TAG_NAMES = new Map([['PATH', SVGElement]]);
+
+class Element {
+  constructor(el) {
+    this._el = el;
+  }
+}
+
+class SVGElement extends Element {
+  // ...
+}
+
+class WindowElement extends Element {
+  // ...
+}
+
+export function $(el) {
+  if (typeof el === 'string') el = document.querySelector(el);
+  if (!el) return null;
+  if ('$el' in el) return el.$el;
+
+  if (isOneOf(el, window, document.body, document.documentElement)) return new WindowElement(el);
+
+  const Constructor = TAG_NAMES.get(el.tagName) || Element;
+  return new Constructor(el)
+}
+
+export function $$(selector) {
+  return Array.from(document.querySelectorAll(selector), el => $(el));
+}
+
+export function $N(tag, options, parent) {
+  const $el = $(document.createElement(tag));
+  // TODO options and parent
+  return $el;
+}
+
+
+// -----------------------------------------------------------------------------
+
+
+export class CustomElement extends Element {
+
+  constructor(el) {
+    super(el);
+  }
+
+  created() {}
+  ready() {}
+  static get template() {}
+  static get templateId() {}
+}
+
+class CustomHTMLElement extends HTMLElement {
+
+  constructor() {
+    super();
+    this.$el = $(this);
+    this._wasConnected = false;
+  }
+
+  connectedCallback() {
+    if (this._wasConnected) {
+      // TODO Bind the model of the new parent.
+      this.$el.trigger('connected');
+      return;
+    }
+    this._wasConnected = true;
+
+    // TODO update slots and template
+
+    // TODO observables and models
+
+    // TODO ready events
+  }
+
+  disconnectedCallback() {
+    this.dispatchEvent(new CustomEvent('disconnected'));
+  }
+
+  attributeChangedCallback(attrName, oldVal, newVal) {
+    this.dispatchEvent(new CustomEvent('attr_' + attrName, {
+      detail: { newVal, oldVal }
+    }));
+  }
+}
+
+export function registerElement(tagName, elementClass) {
+  TAG_NAMES.set(tagName.toUpperCase(), elementClass);
+  window.customElements.define(tagName, CustomHTMLElement);
+}
