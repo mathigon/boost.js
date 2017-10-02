@@ -96,10 +96,10 @@ function renderView(router, view, template, params) {
 
 function loadView(router, view, params = {}, url = '') {
   router.$viewport.css({ opacity: 0.4, 'pointer-events': 'none' });
-  let template = run(view.template, ...params) || Ajax.get(url);
+  let template = run(view.template, params) || Ajax.get(url);
 
   if (template.then) {
-    template.then(function(response) { renderView(router, view, response, params); });
+    template.then(response => renderView(router, view, response, params));
   } else {
     renderView(router, view, template, params);
   }

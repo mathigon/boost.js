@@ -365,7 +365,7 @@ export class Element {
     if (own) return own;
 
     if (this._isWindow || !this.parent) return own;
-    return this.parent.computedTransformMatrix;
+    return this.parent.computedTransformMatrix || [[1, 0], [0, 1], [0, 0]];
   }
 
   get scale() {
