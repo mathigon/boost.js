@@ -178,7 +178,7 @@ export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
     animation = transition($el, properties, duration, _delay);
 
   } else if (effect === 'draw') {
-    let l = $el.strokeLength;
+    let l = $el.strokeLength + 'px';
     $el.css({ opacity: 1, 'stroke-dasharray': l + ' ' + l });
     animation = transition($el, { 'strokeDashoffset': [l, 0] }, duration, _delay, 'linear');
     animation.then(function() { $el.css('stroke-dasharray', ''); });
@@ -220,7 +220,7 @@ export function exit($el, effect = 'fade', duration = 400, delay = 0) {
     animation = transition($el, properties, duration, delay);
 
   } else if (effect === 'draw') {
-    let l = $el.strokeLength;
+    let l = $el.strokeLength + 'px';
     $el.css('stroke-dasharray', l + ' ' + l);
     animation = transition($el, { 'strokeDashoffset': [0, l] }, duration, delay, 'linear');
   }
