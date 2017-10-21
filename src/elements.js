@@ -677,40 +677,6 @@ export class Element {
   fadeIn(time = 400) { return enter(this, 'fade', time); }
   fadeOut(time = 400) { return exit(this, 'fade', time); }
 
-  sticky(bounds) {
-    // TODO sticky bottom
-    // TODO remove body scroll events on destroy
-
-    let _this = this;
-    let isSticky;
-    let offset = this.positionTop;
-
-    let $placeholder = $N('div', { style: `height: ${this.height}px; display: none;` });
-    this.insertAfter($placeholder);
-
-    function position({ top }) {
-      let shouldStick = offset - top < bounds.top;
-
-      if (shouldStick && !isSticky) {
-        isSticky = true;
-        _this.addClass('sticky-top');
-        $placeholder.show();
-      } else if (!shouldStick && isSticky) {
-        isSticky = false;
-        _this.removeClass('sticky-top');
-        $placeholder.hide();
-      }
-    }
-
-    $body.on('scroll', position);
-
-    Browser.resize(() => {
-      // TODO what if already sticky?
-      // offset = this.positionTop;
-      position({ top: $body.scrollTop });
-    });
-  }
-
 
   // -------------------------------------------------------------------------
   // SVG Methods
