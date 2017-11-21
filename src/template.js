@@ -5,16 +5,21 @@
 
 
 
-export function parse(string) {
+export function parse(string, expr=false) {
   // TODO use expressions
   // jshint evil: true
 
-  let fn = string.replace(/"/g,'\"');
-  fn = fn.replace(/\$\{([^\}]+)\}/g, (x, y) => `" + (${y}) + "`);
+  let fn = string;
+
+  if (!expr) {
+    fn = fn.replace(/"/g,'\"')
+           .replace(/\$\{([^\}]+)\}/g, (x, y) => `" + (${y}) + "`);
+    fn = '"' + fn + '"';
+  }
 
   try {
     return new Function('_vars', `try {
-      with(_vars) { return "${fn}" }
+      with(_vars) { return ${fn} }
     } catch(e) {
       if (!(e instanceof ReferenceError)) console.warn(e);
       return "";
