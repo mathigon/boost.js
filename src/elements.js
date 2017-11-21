@@ -63,7 +63,9 @@ export class Element {
   }
 
   hasClass(className) {
-    return (' ' + this._el.className + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
+    let name = this._el.className;
+    if (this._el instanceof SVGElement) name  = name.baseVal;
+    return (' ' + name + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
   }
 
   toggleClass(className) {
@@ -679,6 +681,14 @@ export class Element {
 
 
   // -------------------------------------------------------------------------
+  // Canvas Methods
+
+  getContext(c, options) {
+    return this._el.getContext(c, options);
+  }
+
+
+  // -------------------------------------------------------------------------
   // SVG Methods
   // TODO caching for this._data._points
 
@@ -695,12 +705,15 @@ export class Element {
   }
 
   getLengthAt(i) { return this._el.getPointAtLength(i); }
+  getPointAt(p) { return this._el.getPointAtLength(p * this.strokeLength); }
 
   get points() {
-    let points = this.attr('d').replace('M','').split('L');
-    return points.map(function(x){
+    let points = this.attr('d');
+    if (!points) return [];
+
+    return points.replace(/[MZ]/g,'').split(/[LA]/).map((x) => {
       let p = x.split(',');
-      return { x: p[0], y: p[1] };
+      return { x: +p[p.length - 2], y: +p[p.length - 1] };
     });
   }
 
