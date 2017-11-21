@@ -8,7 +8,7 @@
 // TODO Try simplifying code using el.setPointerCapture(e.pointerId);
 // TODO Scroll should trigger mousemove events
 
-import { isString, without, isOneOf, cache } from '@mathigon/core';
+import { isString, without, isOneOf } from '@mathigon/core';
 import * as Elements from './elements';
 import { Browser } from './browser';
 
@@ -141,8 +141,9 @@ export function slide($el, fns) {
 
     window.requestAnimationFrame(function() {
       if(!isAnimating) return;
-      lastPosn = posn(e);
-      fns.move(lastPosn, startPosn);
+      const p = posn(e);
+      fns.move(p, startPosn, lastPosn);
+      lastPosn = p;
       isAnimating = false;
     });
   }
