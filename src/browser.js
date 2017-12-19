@@ -5,7 +5,7 @@
 
 
 
-import { cache, throttle, Evented, words, toCamelCase, toTitleCase } from '@mathigon/core';
+import { throttle, Evented, words } from '@mathigon/core';
 import { get } from './ajax';
 import { $, $body } from './elements';
 
@@ -105,23 +105,6 @@ export function addCSSRule(selector, rules) {
   }
 }
 
-const prefixes = ['webkit', 'Moz', 'ms', 'O'];
-const style = document.createElement('div').style;
-
-export const prefix = cache(function(name, dashes) {
-  let rule = toCamelCase(name);
-  if (style[rule] != null) return dashes ? name : rule;
-
-  rule = toTitleCase(rule);
-  for (let i = 0; i < prefixes.length; ++i) {
-    if (style[prefixes[i] + rule] != null)
-      return dashes ? '-' + prefixes[i].toLowerCase() + '-' + name : prefixes[i] + rule;
-  }
-});
-
-// This fixes stupid Firefox which doesn't do web components.
-ready(function() { addCSS(':unresolved { visibility: visible; }'); });
-
 
 // -----------------------------------------------------------------------------
 // Cookies TODO
@@ -171,16 +154,17 @@ export function setStorage(key, value) {
 }
 
 export function getStorage(key) {
-  let keys = (key||'').split('.');
-  let storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
-  let path = storage;
+  let path = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
+  if (!key) return path;
 
-  for (let i=0; i<keys.length-1; ++i) {
-    if (path[keys[i]] == null) return null;
-    path = path[keys[i]];
+  const keys = (key||'').split('.');
+  const lastKey = keys.pop();
+
+  for (let k of keys) {
+    if (!(k in path)) return null;
+    path = path[k];
   }
-
-  return key ? path[keys[keys.length - 1]] : path;
+  return path[lastKey]
 }
 
 export function deleteStorage(key) {
@@ -327,8 +311,7 @@ export const Browser = {
   isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
   isFirefox: navigator.userAgent.search('Firefox') >= 0,
 
-  redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, prefix,
-  replaceSvgImports,
+  redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, replaceSvgImports,
 
   on: browserEvents.on.bind(browserEvents),
   off: browserEvents.off.bind(browserEvents),

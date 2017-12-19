@@ -81,13 +81,13 @@ function renderView(router, view, template, params) {
   router.$viewport.css('opacity', 0);
 
   setTimeout(() => {
-    router.$viewport.clear();
+    router.$viewport.removeChildren();
     $body.scrollTop = 0;
     router.$viewport.html = template;
     Browser.resize();
     Browser.replaceSvgImports();
     router.$viewport.css({ opacity: 1, 'pointer-events': 'all' });
-    document.title = router.$viewport.find('title').text;
+    document.title = router.$viewport.$('title').text;
     router.initialise(router.$viewport, params);
     if (view.enter) view.enter(router.$viewport, params);
     router.trigger('afterChange');

@@ -1,47 +1,46 @@
 // =============================================================================
-// Boost.js | Elements
-// (c) 2017 Mathigon
+// Boost.js | Element Classes
+// (c) Mathigon
 // =============================================================================
 
 
 
-import { uid, isOneOf, words, toCamelCase, square } from '@mathigon/core';
-import { roundTo } from '@mathigon/fermat';
+import { isOneOf, words, toCamelCase, square, delay } from '@mathigon/core';
+import { roundTo, Point } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
 import { createEvent, removeEvent } from './events';
-import { bind, model } from './template';
+import { bindObservable } from './templates';
 
 
-function cssN(element, property) {
-  return parseFloat(element.css(property));
-}
-
-const p = window.Element.prototype;
-const elementMatches = p.matches || p.webkitMatchesSelector || p.mozMatchesSelector || p.msMatchesSelector;
-
+// -----------------------------------------------------------------------------
+// Base Element Class
 
 export class Element {
 
   constructor(el) {
     this._el = el;
-    this._isWindow = isOneOf(el, window, document.body, document.documentElement);
     this._data   = el ? (el._m_data   || (el._m_data   = {})) : {};
     this._events = el ? (el._m_events || (el._m_events = {})) : {};
-    this.isCustomElement = false;
   }
-
-  get tagName() {
-    if (this._el instanceof Text) return 'TEXT';
-    return this._el.tagName;
-  }
-
-
-  // -------------------------------------------------------------------------
-  // Basic Functionality
 
   get id() { return this._el.id; }
   get data() { return this._el.dataset; }
+
+  get tagName() {
+    if (this._el instanceof Text) return 'TEXT';
+    return this._el.tagName.toUpperCase();
+  }
+
+  getModel() {
+    if (!this.parent) return null;
+    return this.parent.model || this.parent.getModel();
+  }
+
+  bindObservable(model, recursive=true) {
+    bindObservable(this, model, recursive);
+    return model;
+  }
 
   addClass(className) {
     let classes = words(className);
@@ -64,22 +63,18 @@ export class Element {
 
   hasClass(className) {
     let name = this._el.className;
-    if (this._el instanceof SVGElement) name  = name.baseVal;
     return (' ' + name + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
   }
 
   toggleClass(className) {
-    let classes = words(className);
-    for (let c of classes) {
-      if (this._el.classList) {
-        this._el.classList.toggle(c);
-      } else {
-        this[this.hasClass(c) ? 'removeClass' : 'addClass'](c);
-      }
+    if (this.hasClass(className)) {
+      this.removeClass(className);
+    } else {
+      this.addClass(className);
     }
   }
 
-  setClass(className, condition = true) {
+  setClass(className, condition) {
     if (condition) {
       this.addClass(className);
     } else {
@@ -87,19 +82,10 @@ export class Element {
     }
   }
 
-  attr(attr, value) {
-    if (value === undefined) {
-      return this._el.getAttribute(attr);
-    } else if (value === null) {
-      this._el.removeAttribute(attr);
-    } else {
-      this._el.setAttribute(attr, value);
-    }
-  }
-
-  hasAttribute(attr) {
-    return this._el.hasAttribute(attr);
-  }
+  attr(attr) { return this._el.getAttribute(attr); }
+  hasAttr(attr) { return this._el.hasAttribute(attr); }
+  setAttr(attr, value) { this._el.setAttribute(attr, value); }
+  removeAttr(attr) { this._el.removeAttribute(attr); }
 
   // We need the Array.from() wrapper because Safari doesn't support
   // for (let a for $el.attributes).
@@ -114,43 +100,8 @@ export class Element {
   get text() { return this._el.textContent || ''; }
   set text(t) { this._el.textContent = t; }
 
-
-  // -------------------------------------------------------------------------
-  // Form Actions
-
-  get action() { return this._el.action; }
-  get formData() {
-    let data = {};
-    let els = this._el.elements; // TODO array from
-    for (let i=0; i<els.length; ++i) {
-      data[els[i].name || els[i].id] = els[i].value;
-    }
-    return data;
-  }
-
   blur() { this._el.blur(); }
   focus() { this._el.focus(); }
-
-  change(callback) {
-    let value = '';
-    this.on('change', () => {
-      if (this.value == value) return;
-      value = this.value;
-      callback(value);
-    });
-  }
-
-  validate(callback) {
-    this.change(value => { this.setValidity(callback(value)); });
-  }
-
-  setValidity(str) {
-    this._el.setCustomValidity(str || '');
-  }
-
-  get isValid() {
-    return this._el.checkValidity();
-  }
 
 
   // -------------------------------------------------------------------------
@@ -160,47 +111,39 @@ export class Element {
   get offsetTop()  { return this._el.offsetTop; }
   get offsetLeft() { return this._el.offsetLeft; }
 
+  get offsetParent() {
+    let parent = this._el.offsetParent;
+    return parent ? $(parent) : null;
+  }
+
   // Includes border and padding
-  get width()  {
-    if (this._isWindow) return window.innerWidth;
-    // TODO see https://www.chromestatus.com/features/5724912467574784
-    if (this._el instanceof SVGElement) return this.bounds.width;
-    return this._el.offsetWidth;
-  }
-
-  get height() {
-    if (this._isWindow) return window.innerHeight;
-    // TODO see https://www.chromestatus.com/features/5724912467574784
-    if (this._el instanceof SVGElement) return this.bounds.height;
-    return this._el.offsetHeight;
-  }
-
-  get svgWidth() {
-    return (this._el.viewBox.baseVal || {}).width || this.width;
-  }
-
-  get svgHeight() {
-    return (this._el.viewBox.baseVal || {}).height || this.height;
-  }
+  get width()  { return this._el.offsetWidth; }
+  get height() { return this._el.offsetHeight; }
 
   // Doesn't include border and padding
   get innerWidth() {
-    if (this._isWindow) return window.innerWidth;
-    return this._el.clientWidth - cssN(this, 'padding-left') - cssN(this, 'padding-right');
+    const left = parseFloat(this.css('padding-left'));
+    const right = parseFloat(this.css('padding-right'));
+    return this._el.clientWidth - left - right;
   }
+
   get innerHeight() {
-    if (this._isWindow) return window.innerHeight;
-    return this._el.clientHeight - cssN(this, 'padding-bottom') - cssN(this, 'padding-top');
+    const bottom = parseFloat(this.css('padding-bottom'));
+    const top = parseFloat(this.css('padding-top'));
+    return this._el.clientHeight - bottom - top;
   }
 
   // Includes Margins
   get outerWidth() {
-    if (this._isWindow) return window.outerWidth;
-    return this._el.offsetWidth + cssN(this, 'margin-right') + cssN(this, 'margin-left');
+    const left = parseFloat(this.css('margin-left'));
+    const right = parseFloat(this.css('margin-right'));
+    return this.width + left + right;
   }
+
   get outerHeight() {
-    if (this._isWindow) return window.outerHeight;
-    return this._el.offsetHeight + cssN(this, 'margin-top') + cssN(this, 'margin-bottom');
+    const bottom = parseFloat(this.css('margin-bottom'));
+    const top = parseFloat(this.css('margin-top'));
+    return this.height + bottom + top;
   }
 
   get positionTop() {
@@ -223,23 +166,25 @@ export class Element {
     return offset;
   }
 
-  get clientCenter() {
+  get center() {
     let bounds = this.bounds;
-    return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
-
+    return {
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2
+    };
   }
 
   offset(parent) {
-    // Get offset from immediate parent
     if (parent._el === this._el.offsetParent) {
+      // Get offset from immediate parent
       let top = this.offsetTop + parent._el.clientTop;
       let left = this.offsetLeft + parent._el.clientLeft;
       let bottom = top +  this.height;
       let right = left + this.width;
       return { top, left, bottom, right };
 
-      // Get offset based on any other element
     } else {
+      // Get offset based on any other element
       let parentBox = parent._el.getBoundingClientRect();
       let box = this._el.getBoundingClientRect();
       return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
@@ -251,65 +196,48 @@ export class Element {
   // -------------------------------------------------------------------------
   // Scrolling
 
-  get scrollWidth()  { return this._isWindow ? $body._el.scrollWidth  : this._el.scrollWidth; }
-  get scrollHeight() { return this._isWindow ? $body._el.scrollHeight : this._el.scrollHeight; }
+  get scrollWidth()  { return this._el.scrollWidth; }
+  get scrollHeight() { return this._el.scrollHeight; }
 
-  get scrollTop() { return this._isWindow ? window.pageYOffset : this._el.scrollTop; }
+  get scrollTop() { return this._el.scrollTop; }
+  get scrollLeft() { return this._el.scrollLeft; }
+
   set scrollTop(y) {
-    if (this._isWindow) {
-      document.body.scrollTop = document.documentElement.scrollTop = y;
-    } else {
-      this._el.scrollTop = y;
-    }
+    this._el.scrollTop = y;
     this.trigger('scroll', { top: y, left: this.scrollLeft });
   }
 
-  get scrollLeft() { return this._isWindow ? window.pageXOffset : this._el.scrollLeft; }
   set scrollLeft(x) {
-    if (this._isWindow) {
-      document.body.scrollLeft = document.documentElement.scrollLeft = x;
-    } else {
-      this._el.scrollLeft = x;
-    }
+    this._el.scrollLeft = x;
     this.trigger('scroll', { top: this.scrollTop, left: x });
   }
 
   fixOverflowScroll() {
-    let _this = this;
-
-    if (this._isWindow || this._data._fixOverflowScroll) return;
+    if (this._data._fixOverflowScroll) return;
     this._data._fixOverflowScroll = true;
 
-    this._el.addEventListener('touchstart', function(){
-      // This ensures that overflow bounces happen within container
-      let top = _this.scrollTop;
-      let bottom = _this.scrollHeight - _this.height;
+    this._el.addEventListener('touchstart', () => {
+      // This ensures that overflow bounces happen within the container.
+      const top = this.scrollTop;
+      const bottom = this.scrollHeight - this.height;
 
-      if(top <= 0) _this.scrollTop = 1;
-      if(top >= bottom) _this.scrollTop = bottom - 1;
+      if (top <= 0) this.scrollTop = 1;
+      if (top >= bottom) this.scrollTop = bottom - 1;
     });
   }
 
   scrollTo(pos, time = 1000, easing = 'cubic') {
-    let _this = this;
-    let id = uid();
     if (pos < 0) pos = 0;
+    const startPosition = this.scrollTop;
+    const distance = pos - startPosition;
 
-    let startPosition = this.scrollTop;
-    let distance = pos - startPosition;
+    animate(t => {
+      const y = startPosition + distance * ease(easing, t);
+      this.scrollTop = y;
+      this.trigger('scroll', { top: y });
+    }, time);
 
-    function callback(t) {
-      let y = startPosition + distance * ease(easing, t);
-      _this.scrollTop = y;
-      _this.trigger('scroll', { top: y, id });
-    }
-
-    animate(callback, time);
-
-    // TODO Cancel animation if something else triggers scroll event
-    // let _animation = animate(callback, time);
-    // this.one('scroll', function(x) {  if (x.id !== id) animation.cancel(); });
-    // this.one('touchStart', function() { animation.cancel(); });
+    // TODO Cancel animation if something else triggers a scroll event.
   }
 
   scrollBy(distance, time = 1000, easing = 'cubic') {
@@ -321,35 +249,27 @@ export class Element {
   // -------------------------------------------------------------------------
   // Styles
 
-  css(props, value = null) {
-    if (value == null) {
+  css(props, value) {
+    if (value === undefined) {
       if (typeof props === 'string') {
-        return window.getComputedStyle(this._el, null).getPropertyValue(props);
+        return window.getComputedStyle(this._el).getPropertyValue(props);
       } else {
-        for (let p in props) this._el.style[toCamelCase(p)] = props[p];
+        const keys = Object.keys(props);
+        for (let p of keys) this._el.style[toCamelCase(p)] = props[p];
       }
     } else {
       this._el.style[toCamelCase(props)] = value;
     }
   }
 
-  transition(property, duration = '1s', curve = 'ease-in-out') {
-    if (arguments.length === 0) return this._el.style[Browser.prefix('transition')];
-    if (typeof duration !== 'string') duration = duration + 'ms';
-    this._el.style[Browser.prefix('transition')] = property + ' ' + duration + ' ' + curve;
-  }
+  get transition() { return this.css('transform'); }
+  set transition(t) { this._el.style.transition = t; }
 
-  get transform() {
-    // window.getComputedStyle(this._el).getPropertyValue(Browser.prefix('transform'));
-    return this._el.style[Browser.prefix('transform')].replace('none', '');
-  }
-
-  set transform(transform) {
-    this._el.style[Browser.prefix('transform')] = transform;
-  }
+  get transform() { return this.css('transform').replace('none', ''); }
+  set transform(transform) { this._el.style.transform = transform; }
 
   get transformMatrix() {
-    let transform = window.getComputedStyle(this._el).getPropertyValue(Browser.prefix('transform'));
+    let transform = this.css('transform');
     if (!transform || transform === 'none') return null;
 
     let coords = transform.match(/matrix\(([0-9\,\.\s\-]*)\)/);
@@ -362,11 +282,7 @@ export class Element {
 
   get computedTransformMatrix() {
     let own = this.transformMatrix;
-
-    // TODO Do matrix multiplication!
-    if (own) return own;
-
-    if (this._isWindow || !this.parent) return own;
+    if (own || !this.parent) return own;  // TODO Do matrix multiplication!
     return this.parent.computedTransformMatrix || [[1, 0], [0, 1], [0, 0]];
   }
 
@@ -378,61 +294,27 @@ export class Element {
   translate(x, y) {
     x = roundTo(+x || 0, 0.1);
     y = roundTo(+y || 0, 0.1);
-    this._el.style[Browser.prefix('transform')] = `translate(${x}px,${y}px)`;
+    this.transform = `translate(${x}px,${y}px)`;
   }
 
-  translateX(x) {
-    x = roundTo(+x || 0, 0.1);
-    this._el.style[Browser.prefix('transform')] = 'translate(' + x + 'px,0)';
-  }
+  translateX(x) { this.transform = `translate(${roundTo(+x || 0, 0.1)}px,0)`; }
+  translateY(x) { this.transform = `translate(0,${roundTo(+x || 0, 0.1)}px)`; }
 
-  translateY(y) {
-    y = roundTo(+y || 0, 0.1);
-    this._el.style[Browser.prefix('transform')] = 'translate(0px,' + y + 'px)';
-  }
+  hide() { this._el.style.display = 'none'; }
+  show() { this._el.style.display = 'block'; }
 
-  hide() {
-    if (!this._data.noDisplayChange) this.css('display', 'none');
-    this.css('visibility', 'hidden');
-  }
+  invisible() { this._el.style.visibility = 'hidden'; }
+  visible() { this._el.style.visibility = 'visible'; }
 
-  show() {
-    if (!this._data.noDisplayChange) this.css('display', 'block');
-    this.css('visibility', 'visible');
-  }
-
-  get noDisplayChange() { return this._data.noDisplayChange; }
-  set noDisplayChange(value) { this._data.noDisplayChange = value; }
-
-  transitionEnd(fn) {
-    this.one('webkitTransitionEnd transitionend', fn);
-  }
-
-  animationEnd(fn) {
-    this.one('webkitAnimationEnd animationend', fn);
-  }
+  transitionEnd(fn) { this.one('transitionend', fn); }
+  animationEnd(fn) { this.one('animationend', fn); }
 
 
   // -------------------------------------------------------------------------
   // DOM Manipulation
 
-  // Removes an element from the DOM for more performant node manipulation.
-  // The element is placed back into the DOM at the place it was taken from.
-  manipulate(fn) {
-    let next = this._el.nextSibling;
-    let parent = this._el.parentNode;
-    let frag = document.createDocumentFragment();
-    frag.appendChild(this._el);
-    let returned = fn.call(this) || this._el;
-    if (next) {
-      parent.insertBefore(returned, next);
-    } else {
-      parent.appendChild(returned);
-    }
-  }
-
   is(selector) {
-    if (elementMatches) return elementMatches.call(this._el, selector);
+    if (this._el.matches) return this._el.matches(selector);
     return [].indexOf.call(document.querySelectorAll(selector), this._el) > -1;
   }
 
@@ -507,7 +389,6 @@ export class Element {
   }
 
   moveTo(newParent, before = false) {
-    this.detach();
     if (before) {
       newParent.prepend(this);
     } else {
@@ -525,31 +406,13 @@ export class Element {
     return prev ? $(prev) : null;
   }
 
-  $(selector) {
-    return $(selector, this);
-  }
+  $(selector) { return $(selector, this); }
 
-  $$(selector) {
-    return $$(selector, this);
-  }
-
-  // DEPRECATED!
-  find(selector) {
-    return this.$(selector);
-  }
-
-  // DEPRECATED!
-  findAll(selector) {
-    return this.$$(selector);
-  }
+  $$(selector) { return $$(selector, this); }
 
   get parent() {
-    let parent = this._el.parentElement;  // note: parentNode breaks on document.matches
-    return parent ? $(parent) : null;
-  }
-
-  get offsetParent() {
-    let parent = this._el.offsetParent;
+    // Note: parentNode breaks on document.matches.
+    let parent = this._el.parentElement;
     return parent ? $(parent) : null;
   }
 
@@ -591,7 +454,8 @@ export class Element {
   }
 
   detach() {
-    if (this._el && this._el.parentNode) this._el.parentNode.removeChild(this._el);
+    if (this._el && this._el.parentNode)
+      this._el.parentNode.removeChild(this._el);
   }
 
   remove() {
@@ -599,20 +463,13 @@ export class Element {
     this._el = null;
   }
 
-  clear() {
+  removeChildren() {
     while (this._el.firstChild) this._el.removeChild(this._el.firstChild);
   }
 
-  replace(...$els) {
+  replaceWith(...$els) {
     for (let $el of $els) this.insertBefore($el);
     this.remove();
-  }
-
-  applyTemplate($template) {
-    if (!$template) throw new Error('Template not found');
-    this.clear();
-    let clone = document.importNode($template._el.content, true);
-    this._el.appendChild(clone);
   }
 
 
@@ -620,19 +477,18 @@ export class Element {
   // Events
 
   on(type, fn = null, useCapture = false) {
-    if (fn != null) {
+    if (fn) {
       for (let e of words(type)) createEvent(this, e, fn, useCapture);
     } else {
-      for (let e in type) createEvent(this, e, type[e]);
+      for (let e of Object.keys(type)) createEvent(this, e, type[e]);
     }
   }
 
   one(events, fn, useCapture = false) {
-    let _this = this;
-    function callback() {
-      _this.off(events, callback, useCapture);
+    const callback = () => {
+      this.off(events, callback, useCapture);
       fn(events, fn, useCapture);
-    }
+    };
     this.on(events, callback, useCapture);
   }
 
@@ -656,88 +512,18 @@ export class Element {
 
 
   // -------------------------------------------------------------------------
-  // Templates
-
-  model(state, noIterate = false) {
-    bind(this, state.change ? state : model(state), noIterate);
-  }
-
-  get props() {
-    if (!('_props' in this._data)) this._data._props = {};
-    return this._data._props;
-  }
-
-
-  // -------------------------------------------------------------------------
   // Animations
 
-  animate(rules, duration, delay, ease) { return transition(this, rules, duration, delay, ease); }
+  animate(rules, duration, delay, ease) {
+    return transition(this, rules, duration, delay, ease);
+  }
+
   enter(type, duration, delay) { return enter(this, type, duration, delay); }
   exit(type, duration, delay) { return exit(this, type, duration, delay); }
   effect(type) { effect(this, type); }
 
   fadeIn(time = 400) { return enter(this, 'fade', time); }
   fadeOut(time = 400) { return exit(this, 'fade', time); }
-
-
-  // -------------------------------------------------------------------------
-  // Canvas Methods
-
-  getContext(c, options) {
-    return this._el.getContext(c, options);
-  }
-
-
-  // -------------------------------------------------------------------------
-  // SVG Methods
-  // TODO caching for this._data._points
-
-  get strokeLength() {
-    if ('getTotalLength' in this._el) {
-      return this._el.getTotalLength();
-    } else if (this._el instanceof SVGLineElement) {
-      return Math.sqrt(square(this._el.x2.baseVal.value - this._el.x1.baseVal.value) +
-        square(this._el.y2.baseVal.value - this._el.y1.baseVal.value));
-    } else {
-      let dim = this.bounds;
-      return 2 * dim.height + 2 * dim.width;
-    }
-  }
-
-  getLengthAt(i) { return this._el.getPointAtLength(i); }
-  getPointAt(p) { return this._el.getPointAtLength(p * this.strokeLength); }
-
-  get points() {
-    let points = this.attr('d');
-    if (!points) return [];
-
-    return points.replace(/[MZ]/g,'').split(/[LA]/).map((x) => {
-      let p = x.split(',');
-      return { x: +p[p.length - 2], y: +p[p.length - 1] };
-    });
-  }
-
-  set points(p) {
-    let d = p.length ? 'M' + p.map(x => x.x + ',' + x.y).join('L') : '';
-    this.attr('d', d);
-  }
-
-  addPoint(p) {
-    let d = this.attr('d') + ' L ' + p.x + ',' + p.y;
-    this.attr('d', d);
-  }
-
-  center(c) {
-    this.attr('cx', c.x);
-    this.attr('cy', c.y);
-  }
-
-  line(p, q) {
-    this.attr('x1', p.x);
-    this.attr('y1', p.y);
-    this.attr('x2', q.x);
-    this.attr('y2', q.y);
-  }
 
 
   // -------------------------------------------------------------------------
@@ -756,89 +542,189 @@ export class Element {
     let end = preCaretRange.toString().length;
     return [start, end];
   }
-
-  /* set cursor(offset) {
-    let parents = [this._el];
-    let node = this._el.childNodes[0];
-
-    while (node) {
-      // Elements like <span> have further children
-      if (node.childNodes.length) {
-        parents.push(node);
-        node = node.childNodes[0];
-
-        // Text Node
-      } else if (offset > node.length) {
-        offset -= node.length;
-        node = node.nextSibling || parents.pop().nextSibling;
-
-        // Final Text Node
-      } else {
-        let range = document.createRange();
-        range.setStart(node, offset);
-        range.collapse(true);
-        let sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-    }
-  } */
-
 }
 
 
 // -----------------------------------------------------------------------------
-// Element Selectors
+// Special Elements
+
+export class WindowElement extends Element {
+
+  get width()  { return window.innerWidth; }
+  get height() { return window.innerHeight; }
+
+  get innerWidth() { return window.innerWidth; }
+  get innerHeight() { return window.innerHeight; }
+
+  get outerWidth() { return window.outerWidth; }
+  get outerHeight() { return window.outerHeight; }
+
+  get scrollWidth()  { return document.body.scrollWidth; }
+  get scrollHeight() { return document.body.scrollHeight; }
+
+  get scrollTop() { return window.pageYOffset; }
+  get scrollLeft() { return window.pageXOffset; }
+
+  set scrollTop(y) {
+    document.body.scrollTop = document.documentElement.scrollTop = y;
+    this.trigger('scroll', { top: y, left: this.scrollLeft });
+  }
+
+  set scrollLeft(x) {
+    document.body.scrollLeft = document.documentElement.scrollLeft = x;
+    this.trigger('scroll', { top: this.scrollTop, left: x });
+  }
+
+  get computedTransformMatrix() { return this.transformMatrix; }
+}
+
+export class FormElement extends Element {
+
+  get action() { return this._el.action; }
+
+  get formData() {
+    let data = {};
+    let els = this._el.elements;  // TODO array from
+    for (let i=0; i<els.length; ++i) {
+      data[els[i].name || els[i].id] = els[i].value;
+    }
+    return data;
+  }
+
+  change(callback) {
+    let value = '';
+    this.on('change', () => {
+      if (this.value === value) return;
+      value = this.value;
+      callback(value);
+    });
+  }
+
+  validate(callback) {
+    this.change(value => { this.setValidity(callback(value)); });
+  }
+
+  setValidity(str) {
+    this._el.setCustomValidity(str || '');
+  }
+
+  get isValid() {
+    return this._el.checkValidity();
+  }
+}
+
+export class SVGElement extends Element {
+
+  hasClass(className) {
+    let name = this._el.className.baseVal;
+    return (' ' + name + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
+  }
+
+  // See https://www.chromestatus.com/features/5724912467574784
+  get width() { return this.bounds.width; }
+  get height() { return this.bounds.height; }
+
+  get bounds() { return this._el.getBBox(); }
+  get viewBox() { return this._el.viewBox.baseVal || {}; }
+  get svgWidth() { return this.viewBox.width || this.width; }
+  get svgHeight() { return this.viewBox.height || this.height; }
+
+  translateX(x) { /* TODO */ }
+  translateY(y) { /* TODO */ }
+  translate(x, y) { /* TODO */ }
+
+  get strokeLength() {
+    if ('getTotalLength' in this._el) {
+      return this._el.getTotalLength();
+    } else if (this._el instanceof SVGLineElement) {
+      return Math.sqrt(square(this._el.x2.baseVal.value - this._el.x1.baseVal.value) +
+        square(this._el.y2.baseVal.value - this._el.y1.baseVal.value));
+    } else {
+      let dim = this.bounds;
+      return 2 * dim.height + 2 * dim.width;
+    }
+  }
+
+  getPointAt(p) { return this._el.getPointAtLength(p * this.strokeLength); }
+  getPointAtLength(i) { return this._el.getPointAtLength(i); }
+
+  get points() {
+    let points = this.attr('d');
+    if (!points) return [];
+
+    return points.replace(/[MZ]/g,'').split(/[LA]/).map((x) => {
+      let p = x.split(',');
+      return { x: +p[p.length - 2], y: +p[p.length - 1] };
+    });
+  }
+
+  set points(p) {
+    let d = p.length ? 'M' + p.map(x => x.x + ',' + x.y).join('L') : '';
+    this.setAttr('d', d);
+  }
+
+  addPoint(p) {
+    let d = this.attr('d') + ' L ' + p.x + ',' + p.y;
+    this.setAttr('d', d);
+  }
+
+  get center() { return new Point(+this.attr('cx'), +this.attr('cy')); }
+  setCenter(c) {
+    this.setAttr('cx', c.x);
+    this.setAttr('cy', c.y);
+  }
+
+  setLine(p, q) {
+    this.setAttr('x1', p.x);
+    this.setAttr('y1', p.y);
+    this.setAttr('x2', q.x);
+    this.setAttr('y2', q.y);
+  }
+}
+
+export class CanvasElement extends Element {
+
+  getContext(c='2d', options) {
+    return this._el.getContext(c, options);
+  }
+
+  get pngImage() {
+    return this._el.toDataURL('image/png');
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// Element Selectors and Constructors
 
 const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
   'g', 'defs', 'marker', 'line', 'text', 'pattern', 'mask', 'svg'];
 
-const _doc = { _el: document };
+const formTags = ['form', 'input', 'select'];
 
-export function $(selector, context = _doc) {
-  if (typeof selector === 'string')
-    selector = context._el.querySelector(selector);
+export function $(query, context=null) {
+  const c = context ? context._el : document.documentElement;
+  const el = (typeof query === 'string') ? c.querySelector(query) : query;
 
-  if (selector instanceof Node || selector === window)
-    return selector._el || new Element(selector);
+  if (!el) return null;
+  if (el.$el) return el.$el;
 
-  return null;
+  if (isOneOf(el, window, document.body, document.documentElement))
+    return new WindowElement(el);
+
+  const tagName = (el.tagName || '').toLowerCase();
+  if (svgTags.indexOf(tagName) >= 0) return new SVGElement(el);
+  if (formTags.indexOf(tagName) >= 0) return new FormElement(el);
+  if (tagName === 'canvas') return new CanvasElement(el);
+
+  return new Element(el);
 }
 
-export function $I(selector) {
-  let el = document.getElementById(selector);
-  return el ? new Element(el) : null;
+export function $$(selector, context=null) {
+  const c = context ? context._el : document.documentElement;
+  let els = c.querySelectorAll(selector);
+  return Array.from(els, el => $(el));
 }
-
-export function $C(selector, context = _doc) {
-  let els = context._el.getElementsByClassName(selector);
-  return els.length ? new Element(els[0]) : null;
-}
-
-export function $T(selector, context = _doc) {
-  let els = context._el.getElementsByTagName(selector);
-  return els.length ? new Element(els[0]) : null;
-}
-
-export function $$(selector, context = _doc) {
-  let els = context._el.querySelectorAll(selector);
-  return Array.from(els, el => new Element(el));
-}
-
-export function $$C(selector, context = _doc) {
-  let els = context._el.getElementsByClassName(selector);
-  return Array.from(els, el => new Element(el));
-}
-
-export function $$T(selector, context = _doc) {
-  let els = context._el.getElementsByTagName(selector);
-  return Array.from(els, el => new Element(el));
-}
-
-
-// -----------------------------------------------------------------------------
-// Element Constructors
 
 export function $N(tag, attributes = {}, parent = null) {
   let t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
@@ -854,85 +740,18 @@ export function $N(tag, attributes = {}, parent = null) {
     }
   }
 
-  let $el = new Element(t);
+  let $el = $(t);
   if (parent) parent.append($el);
   return $el;
 }
 
 export function $$N(html) {
-  let tempDiv = $N('div', { html: html });
-  return tempDiv.children;
+  return $N('div', { html: html }).children;
 }
 
 
 // -----------------------------------------------------------------------------
-// Custom Elements
-
-// Polyfill for Safari, where HTMLElement instanceof 'object' and can't be extended
-let _HTMLElement = HTMLElement;
-if (typeof HTMLElement !== 'function'){
-  _HTMLElement = function(){};
-  _HTMLElement.prototype = HTMLElement.prototype;
-}
-
-export function customElement(tag, options) {
-
-  let attrs = options.attributes || {};
-  if ('styles' in options) Browser.addCSS(options.styles);
-
-  class CustomElement extends _HTMLElement {
-
-    createdCallback() {
-      let $el = this.$el = $(this);
-      let children = $el.childNodes;
-      this.$el.isCustomElement = true;
-
-      if ('template' in options) $el.html = options.template;
-      if ('templateId' in options) $el.applyTemplate($(options.templateId));
-
-      $$T('content', $el).forEach(function($content) {
-        let select = $content.attr('select');
-        children.forEach(function($c, i) {
-          if ($c && (!select || $c.is(select))) {
-            $content.insertBefore($c);
-            children[i] = null;
-          }
-        });
-        $content.remove();
-      });
-
-      if ('created' in options) options.created.call(this, $el);
-    }
-
-    attachedCallback() {
-      if ('attached' in options) options.attached.call(this, this.$el);
-    }
-
-    detachedCallback() {
-      if ('detached' in options) options.detached.call(this, this.$el);
-    }
-
-    attributeChangedCallback(attrName, oldVal, newVal) {
-      if (attrName in attrs) {
-        attrs[attrName].call(this, newVal, oldVal);
-      }
-    }
-
-  }
-
-  // TODO fix custom methods
-  for (let k of Object.keys(options)) {
-    if (!isOneOf(k, 'created', 'attached', 'detached', 'template', 'styles', 'attributes')) {
-      CustomElement.prototype[k] = options[k];
-    }
-  }
-
-  return document.registerElement(tag, CustomElement);
-}
-
-
-// -----------------------------------------------------------------------------
-// Helper Functions
+// Utilities
 
 export function table(data) {
   let rows = data.map(tr => '<tr>' + tr.map(td => `<td>${td}</td>`).join('') + '</tr>').join('');
@@ -943,6 +762,6 @@ export function table(data) {
 // -----------------------------------------------------------------------------
 // Special Elements
 
-export const $window = new Element(window);
-export const $html = new Element(window.document.documentElement);
-export const $body = new Element(document.body);
+export const $window = new WindowElement(window);
+export const $html = new WindowElement(window.document.documentElement);
+export const $body = new WindowElement(document.body);

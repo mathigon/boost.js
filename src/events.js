@@ -8,7 +8,8 @@
 // TODO Try simplifying code using el.setPointerCapture(e.pointerId);
 // TODO Scroll should trigger mousemove events
 
-import { isString, without, isOneOf } from '@mathigon/core';
+import { isString, without, isOneOf, delay } from '@mathigon/core';
+import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
 import { Browser } from './browser';
 
@@ -21,7 +22,7 @@ export function isSupported(event) {
   let $el = Elements.$N('div');
   let result = (event in $el._el);
   if (!result) {
-    $el.attr(event, 'return;');
+    $el.setAttr(event, 'return;');
     result = (typeof $el._el[event] === 'function');
   }
   $el.delete();
@@ -31,9 +32,9 @@ export function isSupported(event) {
 export function pointerPosition(e) {
   if ('touches' in e) {
     let touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
-    return {x: touches[0].clientX, y: touches[0].clientY};
+    return new Point(touches[0].clientX, touches[0].clientY);
   } else {
-    return { x: e.clientX, y: e.clientY };
+    return new Point(e.clientX, e.clientY);
   }
 }
 
@@ -56,10 +57,26 @@ export function svgPointerPosn(event, $svg) {
     posn = {x: posn.x - transform[2][0], y: posn.y - transform[2][1]}
   }
 
+  // TODO implement matrixTransform for custom Point class
+
   point.x = posn.x;
   point.y = posn.y;
   point = point.matrixTransform(matrix);
-  return { x: point.x, y: point.y };
+  return new Point(point.x, point.y);
+}
+
+export function canvasPointerPosition(e, $el) {
+  let posn;
+
+  if ('touches' in e) {
+    let touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
+    posn = new Point(touches[0].offsetX, touches[0].offsetY);
+  } else {
+    posn = new Point(e.offsetX, e.offsetY);
+  }
+
+  // TODO Better cache results!
+  return posn.scale($el._el.width/$el.width, $el._el.height/$el.height);
 }
 
 
@@ -118,7 +135,11 @@ function makeMouseEvent($el, event, pointerEvent) {
 
 export function slide($el, fns) {
   let isAnimating = false;
-  let posn = $el.is('svg') ? (e => svgPointerPosn(e, $el)) : pointerPosition;
+
+  let posn = pointerPosition;
+  if ($el.tagName === 'SVG') posn = (e) => svgPointerPosn(e, $el);
+  if ($el.tagName === 'CANVAS') posn = (e) => canvasPointerPosition(e, $el);
+
   let startPosn, lastPosn;
 
   if ($el.css('touch-action') == 'auto') $el.css('touch-action', 'none');
@@ -188,7 +209,7 @@ function makeScrollEvents(element) {
   }
 
   // Mouse Events
-  let target = element._isWindow ? window : element._el;
+  let target = element instanceof Elements.WindowElement ? window : element._el;
   target.addEventListener('scroll', scroll);
 
   // Touch Events
@@ -206,6 +227,18 @@ function makeScrollEvents(element) {
   });
 }
 
+function makeHoverEvent($el, options) {
+  let timeout = null;
+  $el.on('touchstart mouseover', () => {
+    timeout = delay(options.enter, options.delay);
+  });
+
+  $el.on('touchend mouseout', () => {
+    clearTimeout(timeout);
+    options.exit();
+  });
+}
+
 
 // -----------------------------------------------------------------------------
 // Event Bindings
@@ -220,6 +253,7 @@ const customEvents = {
   mousemove($el) { makeMouseEvent($el, 'mousemove', 'pointermove'); },
   mouseup($el) { makeMouseEvent($el, 'mouseup', 'pointerup'); },
 
+  hover: makeHoverEvent,
   click: makeClickEvent,
   clickOutside: makeClickOutsideEvent,
   scroll: makeScrollEvents,
@@ -289,7 +323,7 @@ export function createEvent($el, event, fn, options) {
   if (isString(custom)) {
     $el.on(custom, fn, options);
   } else if (custom) {
-    custom($el);
+    custom($el, fn);
   } else {
     $el._el.addEventListener(event, fn, options);
   }

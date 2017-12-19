@@ -6,7 +6,6 @@
 
 
 import { defer, delay, total, contains } from '@mathigon/core';
-import { prefix } from './browser';
 
 // prevent animations on page load
 let isReady = false;
@@ -46,7 +45,7 @@ export function animate(callback, duration) {
 // -----------------------------------------------------------------------------
 // Easing
 
-function easeIn(type, t = 0, s = 0) {
+function easeIn(type, t, s) {
   switch (type) {
 
     case 'quad':   return t * t;
@@ -190,7 +189,7 @@ export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
 export function exit($el, effect = 'fade', duration = 400, delay = 0) {
   if (!isReady) { $el.hide(); return; }
 
-  if ($el.css('display') == 'none') return;
+  if ($el.css('display') === 'none') return;
   let animation;
 
   if (effect === 'fade') {
@@ -203,7 +202,7 @@ export function exit($el, effect = 'fade', duration = 400, delay = 0) {
     let easing = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 
     transition($el, { opacity: [1, 0] }, duration, delay);
-    animation = transition($el, { [prefix('transform')]: [from, to] }, duration, delay, easing);
+    animation = transition($el, { transform: [from, to] }, duration, delay, easing);
 
   } else if (effect.startsWith('slide')) {
     let options = effect.split('-');
@@ -211,7 +210,7 @@ export function exit($el, effect = 'fade', duration = 400, delay = 0) {
 
     if (contains(options, 'left') || contains(options, 'right')) {
       let t = contains(options,'right') ? '50%' : '-50%';
-      properties[prefix('transform')] = ['none', `translateX(${t})`];
+      properties.transform = ['none', `translateX(${t})`];
       properties.opacity = [1, 0];
     }
 
