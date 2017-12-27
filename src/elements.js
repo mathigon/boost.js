@@ -166,7 +166,7 @@ export class Element {
     return offset;
   }
 
-  get center() {
+  get boxCenter() {
     let bounds = this.bounds;
     return {
       x: bounds.left + bounds.width / 2,
@@ -624,14 +624,9 @@ export class SVGElement extends Element {
   get width() { return this.bounds.width; }
   get height() { return this.bounds.height; }
 
-  get bounds() { return this._el.getBBox(); }
   get viewBox() { return this._el.viewBox.baseVal || {}; }
   get svgWidth() { return this.viewBox.width || this.width; }
   get svgHeight() { return this.viewBox.height || this.height; }
-
-  translateX(x) { /* TODO */ }
-  translateY(y) { /* TODO */ }
-  translate(x, y) { /* TODO */ }
 
   get strokeLength() {
     if ('getTotalLength' in this._el) {

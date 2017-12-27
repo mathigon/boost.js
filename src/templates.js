@@ -12,6 +12,7 @@ export function observable(state={}) {
   let values = {};
 
   function setProperty(key, value) {
+    if (values[key] === value) return;
     values[key] = value;
     if (key in state) return;
     Object.defineProperty(state, key, {
