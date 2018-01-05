@@ -595,7 +595,7 @@ export class FormElement extends Element {
     let value = '';
     this.on('change', () => {
       if (this.value === value) return;
-      value = this.value;
+      value = this.value.trim();
       callback(value);
     });
   }

@@ -137,8 +137,14 @@ export function slide($el, fns) {
   let isAnimating = false;
 
   let posn = pointerPosition;
-  if ($el.tagName === 'SVG') posn = (e) => svgPointerPosn(e, $el);
-  if ($el.tagName === 'CANVAS') posn = (e) => canvasPointerPosition(e, $el);
+  if ($el.tagName === 'SVG') {
+    posn = (e) => svgPointerPosn(e, $el);
+  } else if ($el.tagName === 'CANVAS') {
+    posn = (e) => canvasPointerPosition(e, $el);
+  } else if ($el instanceof Elements.SVGElement) {
+    const $svg = $el.parents('svg')[0];
+    posn = (e) => svgPointerPosn(e, $svg);
+  }
 
   let startPosn, lastPosn;
 
@@ -187,19 +193,19 @@ export function slide($el, fns) {
 // -----------------------------------------------------------------------------
 // Scroll Events
 
-function makeScrollEvents(element) {
-  if (element._data._scrollEvents) return;
-  element._data._scrollEvents = true;
+function makeScrollEvents($el) {
+  if ($el._data._scrollEvents) return;
+  $el._data._scrollEvents = true;
 
   let ticking = false;
   let top = null;
 
   function tick() {
-    let newTop = element.scrollTop;
+    let newTop = $el.scrollTop;
     if (newTop == top) { ticking = false; return; }
 
     top = newTop;
-    element.trigger('scroll', { top });
+    $el.trigger('scroll', { top });
     window.requestAnimationFrame(tick);
   }
 
@@ -209,7 +215,7 @@ function makeScrollEvents(element) {
   }
 
   // Mouse Events
-  let target = element instanceof Elements.WindowElement ? window : element._el;
+  let target = $el instanceof Elements.WindowElement ? window : $el._el;
   target.addEventListener('scroll', scroll);
 
   // Touch Events
@@ -222,21 +228,70 @@ function makeScrollEvents(element) {
     window.removeEventListener('touchend', touchEnd);
   }
 
-  element._el.addEventListener('touchstart', function(e) {
+  $el._el.addEventListener('touchstart', function(e) {
     if (!e.handled) touchStart();
   });
 }
 
 function makeHoverEvent($el, options) {
   let timeout = null;
-  $el.on('touchstart mouseover', () => {
-    timeout = delay(options.enter, options.delay);
+  let active = false;
+
+  $el.on('mouseover', () => {
+    clearTimeout(timeout);
+    timeout = delay(() => {
+      if (active) return;
+      options.enter();
+      active = true;
+    }, options.delay);
   });
 
-  $el.on('touchend mouseout', () => {
+  $el.on('mouseout', () => {
     clearTimeout(timeout);
-    options.exit();
+    timeout = delay(() => {
+      if (!active) return;
+      options.exit();
+      active = false;
+    }, options.delay);
   });
+
+  const $clickTarget = options.$clickTarget || $el;
+  $clickTarget.on('click', () => {
+    if (active) return;
+    options.enter();
+    active = true;
+  });
+
+  $el.on('clickOutside', () => {
+    if (!active) return;
+    options.exit();
+    active = false;
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+// IntersectionEvents
+
+let observer;
+
+function intersectionCallback(entries) {
+  for (let e of entries) {
+    const event = e.isIntersecting ? 'enterViewport' : 'exitViewport';
+    setTimeout(() => Elements.$(e.target).trigger(event));
+  }
+}
+
+function makeIntersectionEvents($el) {
+  if ($el._data.intersectionEvents) return;
+  $el._data.intersectionEvents = true;
+
+  if (!window.IntersectionObserver) {
+    return $el.trigger('enterViewport');
+  }
+
+  if (!observer) observer = new IntersectionObserver(intersectionCallback);
+  observer.observe($el._el);
 }
 
 
@@ -257,6 +312,9 @@ const customEvents = {
   click: makeClickEvent,
   clickOutside: makeClickOutsideEvent,
   scroll: makeScrollEvents,
+
+  enterViewport: makeIntersectionEvents,
+  exitViewport: makeIntersectionEvents
 };
 
 

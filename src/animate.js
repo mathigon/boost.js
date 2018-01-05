@@ -100,7 +100,7 @@ export function ease(type, t = 0, s = 0) {
 export function transition($el, properties, duration = 400, delay = 0, easing = 'ease-in-out') {
   if (!isReady) {
     Object.keys(properties).forEach(k => { let p = properties[k]; $el.css(k, Array.isArray(p) ? p[1] : p); });
-    return;
+    return Promise.resolve();
   }
 
   // Cancel any previous animations

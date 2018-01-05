@@ -99,7 +99,7 @@ class CustomHTMLElement extends HTMLElement {
   }
 
   attributeChangedCallback(attrName, oldVal, newVal) {
-    this.$el.trigger('attr_' + attrName, { newVal, oldVal });
+    this.$el.trigger('attr:' + attrName, { newVal, oldVal });
   }
 }
 
@@ -121,6 +121,8 @@ export function registerElement(tagName, ElementClass, options={}) {
       this.$el = new ElementClass(this);
       this._wasConnected = false;
     }
+
+    static get observedAttributes() { return options.attributes || []; }
   }
 
   customElements.set(tagName.toUpperCase(), options);

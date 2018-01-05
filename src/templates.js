@@ -58,7 +58,7 @@ export function parse(string, expr=false) {
   // TODO use expressions
   // jshint evil: true
 
-  let fn = string;
+  let fn = string.replace(/×/g, '*');
 
   if (!expr) {
     fn = fn.replace(/"/g,'\"')
