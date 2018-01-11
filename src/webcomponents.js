@@ -61,6 +61,7 @@ function applyTemplate(el, options) {
 // Custom Element Classes
 
 const customElements = new Map();
+let customElementSelector = '';
 
 class CustomHTMLElement extends HTMLElement {
 
@@ -73,6 +74,7 @@ class CustomHTMLElement extends HTMLElement {
       return;
     }
     this._wasConnected = true;
+    this._isReady = false;
 
     if (this.$el.created) this.$el.created();
 
@@ -81,16 +83,15 @@ class CustomHTMLElement extends HTMLElement {
     // Bind Component Template
     if (options.template || options.templateId) applyTemplate(this, options);
 
-    // TODO Don't select nested undefined children.
-    let undefinedChildren = this.querySelectorAll(':not(:defined)');
+    let customChildren = this.querySelectorAll(customElementSelector);
 
-    let promises = Array.from(undefinedChildren, child => {
-      return new Promise(ready => { child.addEventListener('_ready', ready); });
-    });
+    let promises = Array.from(customChildren).filter(c => !c._isReady)
+      .map(c => new Promise(resolve => c.addEventListener('_ready', resolve)));
 
     Promise.all(promises).then(() => {
       if (this.$el.ready) this.$el.ready();
       this.dispatchEvent(new CustomEvent('_ready'));
+      this._isReady = true;
     });
   }
 
@@ -126,5 +127,6 @@ export function registerElement(tagName, ElementClass, options={}) {
   }
 
   customElements.set(tagName.toUpperCase(), options);
+  customElementSelector += customElementSelector ? ', ' + tagName : tagName;
   window.customElements.define(tagName, Constructor);
 }
