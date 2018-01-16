@@ -300,11 +300,21 @@ export class Element {
   translateX(x) { this.transform = `translate(${roundTo(+x || 0, 0.1)}px,0)`; }
   translateY(x) { this.transform = `translate(0,${roundTo(+x || 0, 0.1)}px)`; }
 
-  hide() { this._el.style.display = 'none'; }
-  show() { this._el.style.display = 'block'; }
+  show() {
+    if (this.data.display === 'visibility') {
+      this._el.style.visibility = 'visible';
+    } else {
+      this._el.style.display = this.data.display || 'block';
+    }
+  }
 
-  invisible() { this._el.style.visibility = 'hidden'; }
-  visible() { this._el.style.visibility = 'visible'; }
+  hide() {
+    if (this.data.display === 'visibility') {
+      this._el.style.visibility = 'hidden';
+    } else {
+      this._el.style.display = 'none';
+    }
+  }
 
   transitionEnd(fn) { this.one('transitionend', fn); }
   animationEnd(fn) { this.one('animationend', fn); }

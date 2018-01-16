@@ -56,12 +56,23 @@ function applyTemplate(el, options) {
   }
 }
 
+function customElementChildren(el) {
+  const result = [];
+  for (let c of el.children) {
+    if (c.tagName.startsWith('X-')) {
+      result.push(c);
+    } else {
+      result.push(...customElementChildren(c));
+    }
+  }
+  return result;
+}
+
 
 // -----------------------------------------------------------------------------
 // Custom Element Classes
 
 const customElements = new Map();
-let customElementSelector = '';
 
 class CustomHTMLElement extends HTMLElement {
 
@@ -83,9 +94,9 @@ class CustomHTMLElement extends HTMLElement {
     // Bind Component Template
     if (options.template || options.templateId) applyTemplate(this, options);
 
-    let customChildren = this.querySelectorAll(customElementSelector);
-
-    let promises = Array.from(customChildren).filter(c => !c._isReady)
+    // Select all unresolved custom element children
+    // TODO improve performance
+    let promises = customElementChildren(this).filter(c => !c._isReady)
       .map(c => new Promise(resolve => c.addEventListener('_ready', resolve)));
 
     Promise.all(promises).then(() => {
@@ -127,6 +138,5 @@ export function registerElement(tagName, ElementClass, options={}) {
   }
 
   customElements.set(tagName.toUpperCase(), options);
-  customElementSelector += customElementSelector ? ', ' + tagName : tagName;
   window.customElements.define(tagName, Constructor);
 }

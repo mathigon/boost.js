@@ -57,11 +57,11 @@ function easeIn(type, t, s) {
     case 'exp':    return (t <= 0) ? 0 : Math.pow(2, 10 * (t - 1));
 
     case 'back':
-      if (s == null) s = 1.70158;
+      if (!s) s = 1.70158;
       return t * t * ((s + 1) * t - s);
 
     case 'elastic':
-      if (s == null) s = 0.3;
+      if (!s) s = 0.3;
       return - Math.pow(2, 10 * (t - 1)) * Math.sin(((t - 1) * 2 / s - 0.5) * Math.PI );
 
     case 'swing':
@@ -155,7 +155,8 @@ export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
     animation = transition($el, { opacity: [0, 1] }, duration, _delay);
 
   } else if (effect === 'pop') {
-    let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '');
+    let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '')
+                                 .replace(/matrix\([0-9\.]*\)/, '');
     let from = transform + ' scale(0.5)';
     let to   = transform + ' scale(1)';
     let easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
