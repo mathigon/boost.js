@@ -99,6 +99,7 @@ class CustomHTMLElement extends HTMLElement {
     let promises = customElementChildren(this).filter(c => !c._isReady)
       .map(c => new Promise(resolve => c.addEventListener('_ready', resolve)));
 
+    // TODO run ready() synchronously, if promises.length == 0
     Promise.all(promises).then(() => {
       if (this.$el.ready) this.$el.ready();
       this.dispatchEvent(new CustomEvent('_ready'));

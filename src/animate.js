@@ -146,6 +146,7 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 // Element CSS Animations Effects
 
 export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
+  if ($el.hasAttr('hidden')) $el.removeAttr('hidden');
   if (!isReady) { $el.show(); return; }
 
   delay(function() { $el.show(); }, _delay);
@@ -155,8 +156,8 @@ export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
     animation = transition($el, { opacity: [0, 1] }, duration, _delay);
 
   } else if (effect === 'pop') {
-    let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '')
-                                 .replace(/matrix\([0-9\.]*\)/, '');
+    let transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
+                                 .replace(/matrix\([0-9.,\s]*\)/, '');
     let from = transform + ' scale(0.5)';
     let to   = transform + ' scale(1)';
     let easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';

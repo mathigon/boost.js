@@ -233,6 +233,10 @@ function makeScrollEvents($el) {
   });
 }
 
+
+// -----------------------------------------------------------------------------
+// Hover Events
+
 function makeHoverEvent($el, options) {
   let timeout = null;
   let active = false;
@@ -257,9 +261,13 @@ function makeHoverEvent($el, options) {
 
   const $clickTarget = options.$clickTarget || $el;
   $clickTarget.on('click', () => {
-    if (active) return;
-    options.enter();
-    active = true;
+    if (active) {
+      options.exit();
+      active = false;
+    } else {
+      options.enter();
+      active = true;
+    }
   });
 
   $el.on('clickOutside', () => {

@@ -5,7 +5,7 @@
 
 
 
-import { isOneOf, words, toCamelCase, square, delay } from '@mathigon/core';
+import { isOneOf, words, toCamelCase, square } from '@mathigon/core';
 import { roundTo, Point } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
@@ -147,21 +147,21 @@ export class Element {
   }
 
   get positionTop() {
-    let element = this;
+    let el = this._el;
     let offset = 0;
 
-    do { offset += element.offsetTop; }
-    while (element = element.offsetParent);
+    do { offset += el.offsetTop; }
+    while (el = el.offsetParent);
 
     return offset;
   }
 
   get positionLeft() {
-    let element = this;
+    let el = this._el;
     let offset = 0;
 
-    do { offset += element.offsetLeft; }
-    while (element = element.offsetParent);
+    do { offset += el.offsetLeft; }
+    while (el = el.offsetParent);
 
     return offset;
   }
@@ -637,6 +637,22 @@ export class SVGElement extends Element {
   get viewBox() { return this._el.viewBox.baseVal || {}; }
   get svgWidth() { return this.viewBox.width || this.width; }
   get svgHeight() { return this.viewBox.height || this.height; }
+
+  get offsetTop()  { return this._el.offsetTop; }
+  get offsetLeft() { return this._el.offsetLeft; }
+
+  get positionTop() {
+    let $parent = this.parent;
+    while ($parent instanceof SVGElement) $parent = $parent.parent;
+    return $parent.positionTop + this._el.getBBox().y;
+  }
+
+  get positionLeft() {
+    let $parent = this.parent;
+    while ($parent instanceof SVGElement) $parent = $parent.parent;
+    return $parent.positionLeft + this._el.getBBox().x;
+  }
+
 
   get strokeLength() {
     if ('getTotalLength' in this._el) {
