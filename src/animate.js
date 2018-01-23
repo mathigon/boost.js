@@ -145,6 +145,8 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 // -----------------------------------------------------------------------------
 // Element CSS Animations Effects
 
+const cssMatrix = /matrix\([0-9.\s]+,[0-9.\s]+,[0-9.\s]+,[0-9.\s]+,([0-9.\s]+),([0-9.\s]+)\)/;
+
 export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
   if ($el.hasAttr('hidden')) $el.removeAttr('hidden');
   if (!isReady) { $el.show(); return; }
@@ -157,7 +159,8 @@ export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
 
   } else if (effect === 'pop') {
     let transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
-                                 .replace(/matrix\([0-9.,\s]*\)/, '');
+      .replace(cssMatrix, 'translate($1px,$2px)');
+
     let from = transform + ' scale(0.5)';
     let to   = transform + ' scale(1)';
     let easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
