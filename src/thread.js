@@ -36,6 +36,7 @@ export function thread(fn, args, timeout = 1000) {
 
   w.onerror = function(e) {
     clearTimeout(t);
+    console.error('WebWorker error', e);
     w.terminate();
     deferred.reject(e);
   };
