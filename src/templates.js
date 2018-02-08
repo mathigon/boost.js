@@ -32,9 +32,9 @@ export function observable(state={}) {
     for (let fn of changes) fn(values);
   };
 
-  state.watch = function(fn) {
+  state.watch = function(fn, silent=false) {
     changes.push(fn);
-    fn(values);
+    if (!silent) fn(values);
   };
 
   state.set = function(key, value) {
