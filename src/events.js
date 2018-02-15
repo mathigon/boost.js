@@ -146,6 +146,8 @@ export function slide($el, fns) {
     posn = (e) => svgPointerPosn(e, $svg);
   }
 
+  let $parent = fns.justInside ? $el : Elements.$body;
+
   let startPosn, lastPosn;
 
   if ($el.css('touch-action') == 'auto') $el.css('touch-action', 'none');
@@ -155,8 +157,8 @@ export function slide($el, fns) {
     if(e.handled || (e.touches && e.touches.length > 1)) return;
     e.handled = true;
 
-    if ('move' in fns) Elements.$body.on('pointermove', move);
-    Elements.$body.on('pointerstop', end);
+    if ('move' in fns) $parent.on('pointermove', move);
+    $parent.on('pointerstop', end);
     startPosn = lastPosn = posn(e);
     if ('start' in fns) fns.start(startPosn);
   }
@@ -180,13 +182,14 @@ export function slide($el, fns) {
     if(e.touches && e.touches.length > 0) return;
     isAnimating = false;
 
-    if ('move' in fns) Elements.$body.off('pointermove', move);
-    Elements.$body.off('pointerstop', end);
+    if ('move' in fns) $parent.off('pointermove', move);
+    $parent.off('pointerstop', end);
 
     if ('end' in fns) fns.end(lastPosn, startPosn);
   }
 
   $el.on('pointerdown', start);
+  if (fns.justInside) $el.on('mouseleave', end)
 }
 
 

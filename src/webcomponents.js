@@ -5,24 +5,7 @@
 
 
 
-import { Browser } from './browser';
 import { Element } from './elements';
-
-
-// -----------------------------------------------------------------------------
-// Polyfills
-
-// Firefox
-Browser.ready(() => {
-  Browser.addCSS(':unresolved { visibility: visible; }');
-});
-
-// Safari: `HTMLElement` is an `Object` and can't be extended
-let _HTMLElement = HTMLElement;
-if (typeof HTMLElement !== 'function'){
-  _HTMLElement = function() {};
-  _HTMLElement.prototype = HTMLElement.prototype;
-}
 
 
 // -----------------------------------------------------------------------------
@@ -72,7 +55,7 @@ function customElementChildren(el) {
 // -----------------------------------------------------------------------------
 // Custom Element Classes
 
-const customElements = new Map();
+const customElementOptions = new Map();
 
 class CustomHTMLElement extends HTMLElement {
 
@@ -89,7 +72,7 @@ class CustomHTMLElement extends HTMLElement {
 
     if (this.$el.created) this.$el.created();
 
-    const options = customElements.get(this.$el.tagName);
+    const options = customElementOptions.get(this.$el.tagName);
 
     // Bind Component Template
     if (options.template || options.templateId) applyTemplate(this, options);
@@ -138,6 +121,6 @@ export function registerElement(tagName, ElementClass, options={}) {
     static get observedAttributes() { return options.attributes || []; }
   }
 
-  customElements.set(tagName.toUpperCase(), options);
+  customElementOptions.set(tagName.toUpperCase(), options);
   window.customElements.define(tagName, Constructor);
 }
