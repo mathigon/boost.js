@@ -12,7 +12,7 @@ import { slide } from './events';
 
 export class Draggable extends Evented {
 
-  constructor($el, $parent, direction = '', margin = 0, useTransform = false, snap = null) {
+  constructor($el, $parent, direction = '', margin = 0, useTransform = false, snap = 1) {
     super();
     let _this = this;
     let lastPosn, noMove;
@@ -62,7 +62,10 @@ export class Draggable extends Evented {
   }
 
   get position() {
-    return this._posn;
+    return {
+      x: roundTo(this._posn.x, this.snap),
+      y: roundTo(this._posn.y, this.snap)
+    };
   }
 
   set position(posn) {
