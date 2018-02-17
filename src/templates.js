@@ -4,12 +4,19 @@
 // =============================================================================
 
 
+import { repeat } from '@mathigon/core';
+
 // -----------------------------------------------------------------------------
 // Object Observables
+
+const ALPHABETH = 'zyxwvutsrqponmlkjihgfedcba';
 
 export function observable(state={}) {
   let changes = [];
   let values = {};
+
+  let n = 1;
+  let names = ALPHABETH.split('').map(x => '_' + x);
 
   function setProperty(key, value) {
     if (values[key] === value) return;
@@ -45,6 +52,14 @@ export function observable(state={}) {
   state.assign = function(obj) {
     for (let key of Object.keys(obj)) setProperty(key, obj[key]);
     state.update();
+  };
+
+  state.name = function() {
+    if (!names.length) {
+      n += 1;
+      names = ALPHABETH.split('').map(x => repeat('_', n) + x);
+    }
+    return names.pop();
   };
 
   return state;
