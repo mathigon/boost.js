@@ -270,25 +270,19 @@ export class Element {
 
   get transformMatrix() {
     let transform = this.css('transform');
-    if (!transform || transform === 'none') return null;
+    if (!transform || transform === 'none') return [[1, 0, 0], [0, 1, 0]];
 
     let coords = transform.match(/matrix\(([0-9\,\.\s\-]*)\)/);
-    if (!coords[1]) return null;
+    if (!coords[1]) return [[1, 0, 0], [0, 1, 0]];
 
     let matrix = coords[1].split(',');
-    return [[+matrix[0], +matrix[1]], [+matrix[2], +matrix[3]],
-      [+matrix[4], +matrix[5]]];
-  }
-
-  get computedTransformMatrix() {
-    let own = this.transformMatrix;
-    if (own || !this.parent) return own;  // TODO Do matrix multiplication!
-    return this.parent.computedTransformMatrix || [[1, 0], [0, 1], [0, 0]];
+    return [[+matrix[0], +matrix[2], +matrix[4]],
+      [+matrix[1], +matrix[3], +matrix[5]]];
   }
 
   get scale() {
     let matrix = this.transformMatrix;
-    return matrix ? [matrix[0][0], matrix[1][1]] : [1, 1];
+    return [matrix[0][0], matrix[1][1]];
   }
 
   translate(x, y) {
@@ -584,8 +578,6 @@ export class WindowElement extends Element {
     document.body.scrollLeft = document.documentElement.scrollLeft = x;
     this.trigger('scroll', { top: this.scrollTop, left: x });
   }
-
-  get computedTransformMatrix() { return this.transformMatrix; }
 }
 
 export class FormElement extends Element {
@@ -653,6 +645,21 @@ export class SVGElement extends Element {
     return $parent.positionLeft + this._el.getBBox().x;
   }
 
+  get inverseTransformMatrix() {
+    const m = this._el.getScreenCTM().inverse();
+    const matrix = [[m.a, m.c, m.e], [m.b, m.d, m.f]];
+
+    // Firefox doesn't account for the CSS transform of parent elements.
+    // TODO Use matrix product of all parent's transforms, not just the
+    // translation of the immediate parent.
+    if (Browser.isFirefox) {
+      let transform = this.transformMatrix;
+      matrix[0][2] -= transform[0][2];
+      matrix[1][2] -= transform[1][2];
+    }
+
+    return matrix;
+  }
 
   get strokeLength() {
     if ('getTotalLength' in this._el) {

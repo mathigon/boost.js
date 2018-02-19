@@ -8,7 +8,7 @@
 // TODO Try simplifying code using el.setPointerCapture(e.pointerId);
 // TODO Scroll should trigger mousemove events
 
-import { isString, without, isOneOf, delay } from '@mathigon/core';
+import { isString, without, isOneOf, delay, isBetween } from '@mathigon/core';
 import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
 import { Browser } from './browser';
@@ -44,39 +44,17 @@ export function stopEvent(event) {
 }
 
 export function svgPointerPosn(event, $svg) {
-  // TODO Better cache results!
-  const matrix = $svg._el.getScreenCTM().inverse();
   let posn = pointerPosition(event);
-  let point = $svg._el.createSVGPoint();
-
-  // Firefox doesn't account for the CSS transform of parent elements when
-  // computing getScreenCTM().
-  // TODO Handle scale and rotation, not just transform.
-  if (Browser.isFirefox) {
-    let transform = $svg.computedTransformMatrix;
-    posn = {x: posn.x - transform[2][0], y: posn.y - transform[2][1]}
-  }
-
-  // TODO implement matrixTransform for custom Point class
-
-  point.x = posn.x;
-  point.y = posn.y;
-  point = point.matrixTransform(matrix);
-  return new Point(point.x, point.y);
+  return posn.transform($svg.inverseTransformMatrix);
 }
 
-export function canvasPointerPosition(e, $el) {
-  let posn;
+export function canvasPointerPosition(event, $el) {
+  const posn = pointerPosition(event);
+  const bounds = $el.bounds;
 
-  if ('touches' in e) {
-    let touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
-    posn = new Point(touches[0].offsetX, touches[0].offsetY);
-  } else {
-    posn = new Point(e.offsetX, e.offsetY);
-  }
-
-  // TODO Better cache results!
-  return posn.scale($el._el.width/$el.width, $el._el.height/$el.height);
+  const x = (posn.x - bounds.left) * $el._el.width / bounds.width;
+  const y = (posn.y - bounds.top) * $el._el.height / bounds.height;
+  return new Point(x, y);
 }
 
 
@@ -297,8 +275,21 @@ function makeIntersectionEvents($el) {
   if ($el._data.intersectionEvents) return;
   $el._data.intersectionEvents = true;
 
+  // Polyfill for window.IntersectionObserver
   if (!window.IntersectionObserver) {
-    return $el.trigger('enterViewport');
+    let wasVisible = false;
+    Elements.$body.on('scroll', () => {
+      let bounds = $el.bounds;
+      let isVisible = isBetween(bounds.top, -bounds.height, Browser.height);
+      if (wasVisible && !isVisible) {
+        $el.trigger('exitViewport');
+        wasVisible = false;
+      } else if (isVisible && !wasVisible) {
+        $el.trigger('enterViewport');
+        wasVisible = true;
+      }
+    });
+    return;
   }
 
   if (!observer) observer = new IntersectionObserver(intersectionCallback);
@@ -332,7 +323,7 @@ const customEvents = {
 // -----------------------------------------------------------------------------
 // Pointer Events Polyfill
 
-if (!window.PointerEvent) {
+// if (!window.PointerEvent) {
   function checkInside(event, element) {
     let c = pointerPosition(event);
     let current = document.elementFromPoint(c.x, c.y);
@@ -354,7 +345,6 @@ if (!window.PointerEvent) {
       isInside = checkInside(e, element);
       if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);
       if (!isInside && wasInside) element.trigger('pointerleave', e);
-      if (isInside) element.trigger('pointerover', e);
     });
   }
 
@@ -375,12 +365,11 @@ if (!window.PointerEvent) {
   customEvents.pointercancel = 'touchcancel';
   customEvents.pointerenter = makePointerPositionEvents;
   customEvents.pointerleave = makePointerPositionEvents;
-  customEvents.pointerover = makePointerPositionEvents;
 
   customEvents.mousedown = makeFallbackMouseEvent.bind(null, 'mousedown');
   customEvents.mousemove = makeFallbackMouseEvent.bind(null, 'mousemove');
   customEvents.mouseup = makeFallbackMouseEvent.bind(null, 'mouseup');
-}
+// }
 
 // End of Polyfill
 // -----------------------------------------------------------------------------
