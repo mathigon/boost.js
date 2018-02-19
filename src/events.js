@@ -5,10 +5,7 @@
 
 
 
-// TODO Try simplifying code using el.setPointerCapture(e.pointerId);
-// TODO Scroll should trigger mousemove events
-
-import { isString, without, isOneOf, delay, isBetween } from '@mathigon/core';
+import { without, isOneOf, delay, isBetween } from '@mathigon/core';
 import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
 import { Browser } from './browser';
@@ -16,18 +13,6 @@ import { Browser } from './browser';
 
 // -----------------------------------------------------------------------------
 // Utilities
-
-export function isSupported(event) {
-  event = 'on' + event;
-  let $el = Elements.$N('div');
-  let result = (event in $el._el);
-  if (!result) {
-    $el.setAttr(event, 'return;');
-    result = (typeof $el._el[event] === 'function');
-  }
-  $el.delete();
-  return result;
-}
 
 export function pointerPosition(e) {
   if ('touches' in e) {
@@ -95,15 +80,6 @@ function makeClickOutsideEvent($el) {
   Elements.$body.on('click', function(e) {
     if (Elements.$(e.target).hasParent($el)) return;
     $el.trigger('clickOutside');
-  });
-}
-
-function makeMouseEvent($el, event, pointerEvent) {
-  if ($el._events['_' + event]) return;
-  $el._events['_' + event] = true;
-
-  $el._el.addEventListener(pointerEvent, function(e) {
-    if (e.pointerType == 'mouse') $el.trigger(event, e);
   });
 }
 
@@ -187,6 +163,7 @@ function makeScrollEvents($el) {
 
     top = newTop;
     $el.trigger('scroll', { top });
+    // TODO Scroll should trigger mousemove events.
     window.requestAnimationFrame(tick);
   }
 
@@ -260,7 +237,7 @@ function makeHoverEvent($el, options) {
 
 
 // -----------------------------------------------------------------------------
-// IntersectionEvents
+// Intersection Events
 
 let observer;
 
@@ -298,112 +275,105 @@ function makeIntersectionEvents($el) {
 
 
 // -----------------------------------------------------------------------------
-// Event Bindings
+// Pointer Events
 
-const customEvents = {
+function checkInside(event, element) {
+  let c = pointerPosition(event);
+  let current = document.elementFromPoint(c.x, c.y);
+  return isOneOf(element._el, current, current.parentNode, current.parentNode.parentNode);
+}
+
+function makePointerPositionEvents(element) {
+  if (element._data._pointerEvents) return;
+  element._data._pointerEvents = true;
+
+  let parent = element.parent;
+  let isInside = null;
+  parent.on('pointerend', function () {
+    isInside = null;
+  });
+
+  parent.on('pointermove', function (e) {
+    let wasInside = isInside;
+    isInside = checkInside(e, element);
+    if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);
+    if (!isInside && wasInside) element.trigger('pointerleave', e);
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+// Mouse Events
+// On touch devices, mouse events are emulated. We don't want that!
+
+let touchEnabled = false;
+document.addEventListener('touchstart', () => touchEnabled = true);
+
+function makeMouseEvent(eventName, $el) {
+  if ($el._events['_' + eventName]) return;
+  $el._events['_' + eventName] = true;
+
+  $el._el.addEventListener(eventName, function(e) {
+    // TODO Support devices with both touch and mouse (e.pointerType == 'mouse')
+    if (!touchEnabled) $el.trigger(eventName, e);
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+// Event Creation
+
+const aliases = {
   change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
-  pointerstop: 'pointerup pointercancel',
+  pointerdown: 'mousedown touchstart',
+  pointermove: 'mousemove touchmove',
+  pointerup: 'mouseup touchend',
+  pointercancel: 'touchcancel',
+  pointerstop: 'mouseup touchend touchcancel'
+};
 
-  // On touch devices, mouse events are simulated. We don't want that!
-  mousedown($el) { makeMouseEvent($el, 'mousedown', 'pointerdown'); },
-  mousemove($el) { makeMouseEvent($el, 'mousemove', 'pointermove'); },
-  mouseup($el) { makeMouseEvent($el, 'mouseup', 'pointerup'); },
-
+const customEvents = {
+  scroll: makeScrollEvents,
   hover: makeHoverEvent,
   click: makeClickEvent,
   clickOutside: makeClickOutsideEvent,
-  scroll: makeScrollEvents,
+
+  mousedown: makeMouseEvent.bind(null, 'mousedown'),
+  mousemove: makeMouseEvent.bind(null, 'mousemove'),
+  mouseup: makeMouseEvent.bind(null, 'mouseup'),
+
+  pointerenter: makePointerPositionEvents,
+  pointerleave: makePointerPositionEvents,
 
   enterViewport: makeIntersectionEvents,
   exitViewport: makeIntersectionEvents
 };
 
-
-// -----------------------------------------------------------------------------
-// Pointer Events Polyfill
-
-// if (!window.PointerEvent) {
-  function checkInside(event, element) {
-    let c = pointerPosition(event);
-    let current = document.elementFromPoint(c.x, c.y);
-    return isOneOf(element._el, current, current.parentNode, current.parentNode.parentNode);
-  }
-
-  function makePointerPositionEvents(element) {
-    if (element._data._pointerEvents) return;
-    element._data._pointerEvents = true;
-
-    let parent = element.parent;
-    let isInside = null;
-    parent.on('pointerend', function () {
-      isInside = null;
-    });
-
-    parent.on('pointermove', function (e) {
-      let wasInside = isInside;
-      isInside = checkInside(e, element);
-      if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);
-      if (!isInside && wasInside) element.trigger('pointerleave', e);
-    });
-  }
-
-  let touchEnabled = false;
-  document.addEventListener('touchstart', function() { touchEnabled = true; });
-
-  function makeFallbackMouseEvent(event, $el) {
-    if ($el._events['_' + event]) return;
-    $el._events['_' + event] = true;
-    $el._el.addEventListener(event, function(e) {
-      if (!touchEnabled) $el.trigger(event, e);
-    });
-  }
-
-  customEvents.pointerdown = 'mousedown touchstart';
-  customEvents.pointermove = 'mousemove touchmove';
-  customEvents.pointerup = 'mouseup touchend';
-  customEvents.pointercancel = 'touchcancel';
-  customEvents.pointerenter = makePointerPositionEvents;
-  customEvents.pointerleave = makePointerPositionEvents;
-
-  customEvents.mousedown = makeFallbackMouseEvent.bind(null, 'mousedown');
-  customEvents.mousemove = makeFallbackMouseEvent.bind(null, 'mousemove');
-  customEvents.mouseup = makeFallbackMouseEvent.bind(null, 'mouseup');
-// }
-
-// End of Polyfill
-// -----------------------------------------------------------------------------
-
-
 export function createEvent($el, event, fn, options) {
-  let custom = customEvents[event];
-
-  if (isString(custom)) {
-    $el.on(custom, fn, options);
-  } else if (custom) {
-    custom($el, fn);
-  } else {
-    $el._el.addEventListener(event, fn, options);
-  }
-
   if (event in $el._events) {
     if ($el._events[event].indexOf(fn) < 0) $el._events[event].push(fn);
   } else {
     $el._events[event] = [fn];
   }
+
+  if (event in aliases) {
+    $el.on(aliases[event], fn, options);
+  } else if (event in customEvents) {
+    customEvents[event]($el, fn);
+  } else {
+    $el._el.addEventListener(event, fn, options);
+  }
 }
 
 export function removeEvent($el, event, fn, options) {
-  let custom = customEvents[event];
+  if (event in $el._events) $el._events[event] = without($el._events[event], fn);
 
-  if (isString(custom)) {
-    $el.off(custom, fn, options);
-    return;
-  } else if (custom) {
-    // TODO remove scroll, click and mouse events when possible.
+  if (event in aliases) {
+    $el.off(aliases[event], fn, options);
+  } else if (event in customEvents) {
+    // TODO Remove custom events.
   } else {
     $el._el.removeEventListener(event, fn, options);
   }
-
-  if (event in $el._events) $el._events[event] = without($el._events[event], fn);
 }
