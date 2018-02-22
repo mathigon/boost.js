@@ -148,10 +148,9 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 const cssMatrix = /matrix\([0-9.\s]+,[0-9.\s]+,[0-9.\s]+,[0-9.\s]+,([0-9.\s]+),([0-9.\s]+)\)/;
 
 export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
-  if ($el.hasAttr('hidden')) $el.removeAttr('hidden');
   if (!isReady) { $el.show(); return; }
-
   delay(function() { $el.show(); }, _delay);
+
   let animation;
 
   if (effect === 'fade') {

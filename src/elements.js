@@ -295,6 +295,8 @@ export class Element {
   translateY(x) { this.transform = `translate(0,${roundTo(+x || 0, 0.1)}px)`; }
 
   show() {
+    if (this.hasAttr('hidden')) this.removeAttr('hidden');
+
     if (this.data.display === 'visibility') {
       this._el.style.visibility = 'visible';
     } else {
