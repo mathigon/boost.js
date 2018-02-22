@@ -217,33 +217,6 @@ export function onKey(keys, fn) {
   });
 }
 
-// Executes fn1 if key1 is pressed, and fn2 if key2 is aready pressed
-export function onMultiKey(key1, key2, fn1, fn2) {
-  let key2down = false;
-
-  key1 = keyCodes[key1] || key1;
-  key2 = keyCodes[key2] || key2;
-
-  document.addEventListener('keydown', function(e) {
-    let $active = activeInput();
-    if ($active && $active.is('input, textarea, [contenteditable]')) return;
-
-    let k = e.keyCode;
-    if (k === key2) {
-      key2down = true;
-    } else if (key2down && k === key1) {
-      fn2(e);
-    } else if (k === key1) {
-      fn1(e);
-    }
-  });
-
-  document.addEventListener('keyup', function(e){
-    let k = e.keyCode;
-    if (k === key2) key2down = false;
-  });
-}
-
 
 // -----------------------------------------------------------------------------
 // Polyfill for external SVG imports
@@ -299,7 +272,9 @@ document.addEventListener(visibilityEvent, function() {
   browserEvents.trigger(document[visibilityProperty] ? 'focus' : 'blur');
 });
 
+
 // -----------------------------------------------------------------------------
+// Exports
 
 export const Browser = {
   isMobile: mobileRegex.test(navigator.userAgent.toLowerCase()),
@@ -333,5 +308,5 @@ export const Browser = {
   setStorage, getStorage, deleteStorage,
 
   get activeInput() { return activeInput(); },
-  keyCodes, onKey, onMultiKey
+  keyCodes, onKey
 };

@@ -84,8 +84,8 @@ export function parse(string, expr=false) {
   try {
     return new Function('_vars', `try {
       with(_vars) { return ${fn} }
-    } catch(e) {
-      if (!(e instanceof ReferenceError)) console.warn(e);
+    } catch(_error) {
+      if (!(_error instanceof ReferenceError)) console.warn(_error);
       return "";
     }`);
   } catch (e) {

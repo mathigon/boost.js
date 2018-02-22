@@ -5,8 +5,8 @@
 
 
 
-import { without, isOneOf, delay, isBetween } from '@mathigon/core';
-import { Point } from '@mathigon/fermat';
+import { without, isOneOf, delay } from '@mathigon/core';
+import { Point, isBetween } from '@mathigon/fermat';
 import * as Elements from './elements';
 import { Browser } from './browser';
 
