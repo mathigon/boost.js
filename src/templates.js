@@ -19,7 +19,6 @@ export function observable(state={}) {
   let names = ALPHABETH.split('').map(x => '_' + x);
 
   function setProperty(key, value) {
-    if (values[key] === value) return;
     values[key] = value;
     if (key in state) return;
     Object.defineProperty(state, key, {
@@ -45,6 +44,7 @@ export function observable(state={}) {
   };
 
   state.set = function(key, value) {
+    if (values[key] === value) return;
     setProperty(key, value);
     state.update();
   };

@@ -212,7 +212,7 @@ function makeHoverEvent($el, options) {
     clearTimeout(timeout);
     timeout = delay(() => {
       if (!active) return;
-      options.exit();
+      if (options.exit) options.exit();
       active = false;
     }, options.delay);
   });
@@ -220,7 +220,7 @@ function makeHoverEvent($el, options) {
   const $clickTarget = options.$clickTarget || $el;
   $clickTarget.on('click', () => {
     if (active) {
-      options.exit();
+      if (options.exit) options.exit();
       active = false;
     } else {
       options.enter();
@@ -230,7 +230,7 @@ function makeHoverEvent($el, options) {
 
   $el.on('clickOutside', () => {
     if (!active) return;
-    options.exit();
+    if (options.exit) options.exit();
     active = false;
   });
 }
