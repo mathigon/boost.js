@@ -256,8 +256,7 @@ function makeIntersectionEvents($el) {
   if (!window.IntersectionObserver) {
     let wasVisible = false;
     Elements.$body.on('scroll', () => {
-      let bounds = $el.bounds;
-      let isVisible = isBetween(bounds.top, -bounds.height, Browser.height);
+      let isVisible = $el.isInViewport;
       if (wasVisible && !isVisible) {
         $el.trigger('exitViewport');
         wasVisible = false;

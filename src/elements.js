@@ -6,7 +6,7 @@
 
 
 import { isOneOf, words, toCamelCase, square } from '@mathigon/core';
-import { roundTo, Point } from '@mathigon/fermat';
+import { roundTo, Point, isBetween } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
 import { createEvent, removeEvent } from './events';
@@ -190,6 +190,11 @@ export class Element {
       return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
         bottom: box.bottom - parentBox.top, right: box.right - parentBox.left };
     }
+  }
+
+  get isInViewport() {
+    const bounds = this.bounds;
+    return isBetween(bounds.top, -bounds.height, Browser.height);
   }
 
 
