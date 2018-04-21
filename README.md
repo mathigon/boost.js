@@ -1,43 +1,62 @@
 # Boost.js
 
-Boost.js is a library that makes working with browsers easier: everything from
-DOM manipulation to cross-device event handling, advanced animations, multi-
-threading, AJAX requests or routing. It was developed for the mathematics
-education project [Mathigon.org](https://mathigon.org).
+Bost.js is a library that makes working with browsers easier: everything from
+DOM manipulation to web components, event handling, animations, routing,
+multi-threading and AJAX requests. It was developed for
+[Mathigon.org](https://mathigon.org), an award-winning mathematics education
+project.
+
+[![npm](https://img.shields.io/npm/v/@mathigon/boost.svg)](https://www.npmjs.com/package/@mathigon/boost)
+[![npm](https://img.shields.io/github/license/mathigon/boost.js.svg)](https://github.com/mathigon/boost.js/blob/master/LICENSE)
 
 
-## Quick start
+## Features
 
-Boost.js is not intended to be used on its own, but as a dependency of another
-module or application. You can install it easily using
-`npm install @mathigon/boost`.
+* AJAX utilities
+* Advanced animations and transitions
+* Audio and Speech Recognition utilities
+* Browser load and resize events, Cookies and Local Storage, Keyboard events
+* Colour utilities, gradients and interpolation
+* Draggable elements
+* DOM Element Utilities: classes, dimensions, scrolling, styling,
+  DOM manipulation, events, animations, cursors, SVG and Canvas tools
+* Events: click, slide, scroll, hover, intersection, pointer and mouse events
+* Router for single-page sites
+* Template and expression parsing
+* Multi-threading using WebWorkers
+* Custom webcomponents wrapper
 
-Now use [ES6 imports](http://2ality.com/2014/09/es6-modules-final.html) to
-require specific classes or functions:
+
+## Usage
+
+First, install boost.js from [NPM](https://www.npmjs.com/package/@mathigon/boost)
+using
+
+```npm install @mathigon/boost --save```
+
+Boost.js uses [ES6 imports](http://2ality.com/2014/09/es6-modules-final.html).
+While some browsers and platforms now support this feature, we recommend using
+a transpiler such as [Babel](http://babeljs.io/) or [Rollup](https://rollupjs.org/). 
+Make sure that you configure your compiler to correctly resolve these imports.
+For Rollup, we recommend using the
+[rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve)
+plugin.
+
+Now, simply import all functions and classes you need, using
 
 ```js
-import { Complex, gcd } from '@mathigon/boost'
+import { $,  } from '@mathigon/boost'
 ```
-
-Finally, compile your JavaScript using [rollup](https://rollupjs.org/). Remember
-to include a plugin like [rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve)
-to correctly resolve the imports.
-
-
-## Documentation
-
-Coming soon!
 
 
 ## Contributing
 
-While boost.js was developed specifically for use by Mathigon, many of the
-functions are generic and reusable. We welcome community contributions: please
-file bugs or send us pull requests. You can find out more on
-[Mathigon's contributions page](https://mathigon.org/contribute).
+We welcome community contributions: please file any bugs you find or send us
+pull requests with improvements. You can find out more on
+[Mathigon’s contributions page](https://mathigon.org/contribute).
 
 
 ## Copyright and License
 
-Code and documentation are copyright (c) Mathigon.
-Released under the [MIT license](LICENSE).
+Copyright © Mathigon ([dev@mathigon.org](mailto:dev@mathigon.org))  
+Released under the [MIT license](LICENSE)

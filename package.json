@@ -1,10 +1,11 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.1.4",
-  "description": "DOM, Animations, Events and AJAX Library.",
+  "version": "0.2.0",
+  "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
   "keywords": [
     "browser",
     "DOM",
+    "webcomponents",
     "events",
     "animations",
     "AJAX"
@@ -26,13 +27,13 @@
     "prepublish": "npm run test"
   },
   "dependencies": {
-    "@mathigon/core": "^0.1.5",
-    "@mathigon/fermat": "^0.1.4"
+    "@mathigon/core": "^0.2.1",
+    "@mathigon/fermat": "^0.2.0"
   },
   "devDependencies": {
-    "eslint": "^4.1.1",
-    "rollup": "^0.43.0",
-    "rollup-plugin-node-resolve": "^3.0.0",
-    "tape": "^4.7.0"
+    "eslint": "^4.19.1",
+    "rollup": "^0.58.1",
+    "rollup-plugin-node-resolve": "^3.3.0",
+    "tape": "^4.9.0"
   }
 }
