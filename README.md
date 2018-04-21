@@ -45,7 +45,7 @@ plugin.
 Now, simply import all functions and classes you need, using
 
 ```js
-import { $,  } from '@mathigon/boost'
+import { $, CustomElement, Browser } from '@mathigon/boost'
 ```
 
 
