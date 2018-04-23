@@ -277,13 +277,23 @@ document.addEventListener(visibilityEvent, function() {
 // Exports
 
 export const Browser = {
+  /** @type {boolean} */
   isMobile: mobileRegex.test(navigator.userAgent.toLowerCase()),
-  isRetina: ((window.devicePixelRatio || 1) > 1),
-  isTouch:  ('ontouchstart' in window) ||
-  (window.DocumentTouch && document instanceof window.DocumentTouch),
 
+  /** @type {boolean} */
+  isRetina: ((window.devicePixelRatio || 1) > 1),
+
+  /** @type {boolean} */
+  isTouch:  ('ontouchstart' in window) ||
+      (window.DocumentTouch && document instanceof window.DocumentTouch),
+
+  /** @type {boolean} */
   isChrome: window.chrome,
+
+  /** @type {boolean} */
   isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
+
+  /** @type {boolean} */
   isFirefox: navigator.userAgent.search('Firefox') >= 0,
 
   redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, replaceSvgImports,

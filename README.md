@@ -53,7 +53,7 @@ import { $, CustomElement, Browser } from '@mathigon/boost'
 
 We welcome community contributions: please file any bugs you find or send us
 pull requests with improvements. You can find out more on
-[Mathigon’s contributions page](https://mathigon.org/contribute).
+[Mathigon.io](http://mathigon.io).
 
 
 ## Copyright and License

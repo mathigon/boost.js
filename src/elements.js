@@ -16,6 +16,9 @@ import { bindObservable } from './templates';
 // -----------------------------------------------------------------------------
 // Base Element Class
 
+/**
+ * Wrapper class for DOM elements.
+ */
 export class Element {
 
   constructor(el) {
@@ -24,9 +27,13 @@ export class Element {
     this._events = el ? (el._m_events || (el._m_events = {})) : {};
   }
 
+  /** @returns {string} */
   get id() { return this._el.id; }
+
+  /** @returns {DOMStringMap} */
   get data() { return this._el.dataset; }
 
+  /** @returns {string} */
   get tagName() {
     if (this._el instanceof Text) return 'TEXT';
     return this._el.tagName.toUpperCase();
@@ -42,6 +49,7 @@ export class Element {
     return model;
   }
 
+  /** @param {string} className Multiple space-separated classes to add. */
   addClass(className) {
     let classes = words(className);
     if (this._el.classList) {
@@ -51,6 +59,7 @@ export class Element {
     }
   }
 
+  /** @param {string} className Multiple space-separated classes to add. */
   removeClass(className) {
     let classes = words(className);
     if (this._el.classList) {
@@ -61,11 +70,13 @@ export class Element {
     }
   }
 
+  /** @param {string} className */
   hasClass(className) {
     let name = this._el.className;
     return (' ' + name + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
   }
 
+  /** @param {string} className */
   toggleClass(className) {
     if (this.hasClass(className)) {
       this.removeClass(className);
@@ -82,22 +93,49 @@ export class Element {
     }
   }
 
+  /**
+   * @param {string} attr
+   * @returns {string}
+   */
   attr(attr) { return this._el.getAttribute(attr); }
+
+  /**
+   * @param {string} attr
+   * @returns {boolean}
+   */
   hasAttr(attr) { return this._el.hasAttribute(attr); }
+
+  /**
+   * @param {string} attr
+   * @param {string} value
+   */
   setAttr(attr, value) { this._el.setAttribute(attr, value); }
+
+  /** @param {string} attr */
   removeAttr(attr) { this._el.removeAttribute(attr); }
 
-  // We need the Array.from() wrapper because Safari doesn't support
-  // for (let a for $el.attributes).
-  get attributes() { return Array.from(this._el.attributes || []); }
+  /** @returns {Attr[]} */
+  get attributes() {
+    // Array.from() converts the NamedNodeMap into an array (for Safari).
+    return Array.from(this._el.attributes || []);
+  }
 
+  /** @returns {string} */
   get value() { return this._el.value; }
+
+  /** @param {string} v */
   set value(v) { this._el.value = v; }
 
+  /** @returns {string} */
   get html() { return this._el.innerHTML || ''; }
+
+  /** @param {string} h */
   set html(h) { this._el.innerHTML = h; }
 
+  /** @returns {string} */
   get text() { return this._el.textContent || ''; }
+
+  /** @param {string} t */
   set text(t) { this._el.textContent = t; }
 
   blur() { this._el.blur(); }
@@ -107,45 +145,56 @@ export class Element {
   // -------------------------------------------------------------------------
   // Dimensions
 
+  /** @returns {DOMRect} */
   get bounds() { return this._el.getBoundingClientRect(); }
+
+  /** @returns {number} */
   get offsetTop()  { return this._el.offsetTop; }
+
+  /** @returns {number} */
   get offsetLeft() { return this._el.offsetLeft; }
 
+  /** @returns {?Element} This element's offset parent. */
   get offsetParent() {
     let parent = this._el.offsetParent;
     return parent ? $(parent) : null;
   }
 
-  // Includes border and padding
+  /** @returns {number} This element's width, including border and padding. */
   get width()  { return this._el.offsetWidth; }
+
+  /** @returns {number} This element's height, including border and padding. */
   get height() { return this._el.offsetHeight; }
 
-  // Doesn't include border and padding
+  /** @returns {number} This element's width, excluding border and padding. */
   get innerWidth() {
     const left = parseFloat(this.css('padding-left'));
     const right = parseFloat(this.css('padding-right'));
     return this._el.clientWidth - left - right;
   }
 
+  /** @returns {number} This element's height, excluding border and padding. */
   get innerHeight() {
     const bottom = parseFloat(this.css('padding-bottom'));
     const top = parseFloat(this.css('padding-top'));
     return this._el.clientHeight - bottom - top;
   }
 
-  // Includes Margins
+  /** @returns {number} This element's width, including margins. */
   get outerWidth() {
     const left = parseFloat(this.css('margin-left'));
     const right = parseFloat(this.css('margin-right'));
     return this.width + left + right;
   }
 
+  /** @returns {number} This element's height, including margins. */
   get outerHeight() {
     const bottom = parseFloat(this.css('margin-bottom'));
     const top = parseFloat(this.css('margin-top'));
     return this.height + bottom + top;
   }
 
+  /** @returns {number} */
   get positionTop() {
     let el = this._el;
     let offset = 0;
@@ -156,6 +205,7 @@ export class Element {
     return offset;
   }
 
+  /** @returns {number} */
   get positionLeft() {
     let el = this._el;
     let offset = 0;
@@ -166,12 +216,10 @@ export class Element {
     return offset;
   }
 
+  /** @returns {Point} */
   get boxCenter() {
-    let bounds = this.bounds;
-    return {
-      x: bounds.left + bounds.width / 2,
-      y: bounds.top + bounds.height / 2
-    };
+    let box = this.bounds;
+    return new Point(box.left + box.width / 2, box.top + box.height / 2);
   }
 
   offset(parent) {
@@ -192,6 +240,10 @@ export class Element {
     }
   }
 
+  /**
+   * Checks if this element is currently visible in the viewport.
+   * @returns {boolean}
+   */
   get isInViewport() {
     const bounds = this.bounds;
     return isBetween(bounds.top, -bounds.height, Browser.height);
@@ -201,17 +253,25 @@ export class Element {
   // -------------------------------------------------------------------------
   // Scrolling
 
+  /** @returns {number} */
   get scrollWidth()  { return this._el.scrollWidth; }
+
+  /** @returns {number} */
   get scrollHeight() { return this._el.scrollHeight; }
 
+  /** @returns {number} */
   get scrollTop() { return this._el.scrollTop; }
+
+  /** @returns {number} */
   get scrollLeft() { return this._el.scrollLeft; }
 
+  /** @param {number} y */
   set scrollTop(y) {
     this._el.scrollTop = y;
     this.trigger('scroll', { top: y, left: this.scrollLeft });
   }
 
+  /** @param {number} x */
   set scrollLeft(x) {
     this._el.scrollLeft = x;
     this.trigger('scroll', { top: this.scrollTop, left: x });
@@ -296,8 +356,11 @@ export class Element {
     this.transform = `translate(${x}px,${y}px)`;
   }
 
+  /** @param {number} x */
   translateX(x) { this.transform = `translate(${roundTo(+x || 0, 0.1)}px,0)`; }
-  translateY(x) { this.transform = `translate(0,${roundTo(+x || 0, 0.1)}px)`; }
+
+  /** @param {number} y */
+  translateY(y) { this.transform = `translate(0,${roundTo(+y || 0, 0.1)}px)`; }
 
   show() {
     if (this.hasAttr('hidden')) this.removeAttr('hidden');
@@ -324,6 +387,11 @@ export class Element {
   // -------------------------------------------------------------------------
   // DOM Manipulation
 
+  /**
+   * Checks if an element matches a given CSS selector.
+   * @param {string} selector
+   * @returns {boolean}
+   */
   is(selector) {
     if (this._el.matches) return this._el.matches(selector);
     return [].indexOf.call(document.querySelectorAll(selector), this._el) > -1;
@@ -407,20 +475,33 @@ export class Element {
     }
   }
 
+  /** @returns {?Element} This element's next sibling, or null. */
   get next() {
     let next = this._el.nextSibling;
     return next ? $(next) : null;
   }
 
+  /** @returns {?Element} This element's previous sibling, or null. */
   get prev() {
     let prev = this._el.previousSibling;
     return prev ? $(prev) : null;
   }
 
+  /**
+   * The first child element matching a given selector.
+   * @param {string} selector
+   * @returns {?Element}
+   */
   $(selector) { return $(selector, this); }
 
+  /**
+   * All child elements matching a given selector.
+   * @param {string} selector
+   * @returns {Element[]}
+   */
   $$(selector) { return $$(selector, this); }
 
+  /** @returns {?Element} This element's parent, or null. */
   get parent() {
     // Note: parentNode breaks on document.matches.
     let parent = this._el.parentElement;
@@ -525,6 +606,15 @@ export class Element {
   // -------------------------------------------------------------------------
   // Animations
 
+  /**
+   * Animates multiple CSS properties of this element, with a given duration,
+   * delay and ease function.
+   * @param {Object.<string,(*|Array)>} rules
+   * @param {number=} duration
+   * @param {number=} delay
+   * @param {string=} ease
+   * @returns {*}
+   */
   animate(rules, duration, delay, ease) {
     return transition(this, rules, duration, delay, ease);
   }
@@ -681,8 +771,10 @@ export class SVGElement extends Element {
   }
 
   getPointAt(p) { return this._el.getPointAtLength(p * this.strokeLength); }
+
   getPointAtLength(i) { return this._el.getPointAtLength(i); }
 
+  /** @returns {Points[]} */
   get points() {
     let points = this.attr('d');
     if (!points) return [];
@@ -693,22 +785,31 @@ export class SVGElement extends Element {
     });
   }
 
+  /** @param {Points[]?} p */
   set points(p) {
     let d = p.length ? 'M' + p.map(x => x.x + ',' + x.y).join('L') : '';
     this.setAttr('d', d);
   }
 
+  /** @param {Point} p */
   addPoint(p) {
     let d = this.attr('d') + ' L ' + p.x + ',' + p.y;
     this.setAttr('d', d);
   }
 
+  /** @returns {Point} */
   get center() { return new Point(+this.attr('cx'), +this.attr('cy')); }
+
+  /** @param {Point} c */
   setCenter(c) {
     this.setAttr('cx', c.x);
     this.setAttr('cy', c.y);
   }
 
+  /**
+   * @param {Point} p
+   * @param {Point} q
+   */
   setLine(p, q) {
     this.setAttr('x1', p.x);
     this.setAttr('y1', p.y);
@@ -719,7 +820,12 @@ export class SVGElement extends Element {
 
 export class CanvasElement extends Element {
 
-  getContext(c='2d', options) {
+  /**
+   * @param {string=} c
+   * @param {Object=} options
+   * @returns {CanvasRenderingContext2D|WebGLRenderingContext}
+   */
+  getContext(c='2d', options={}) {
     return this._el.getContext(c, options);
   }
 
@@ -737,6 +843,11 @@ const svgTags = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
 
 const formTags = ['form', 'input', 'select'];
 
+/**
+ * @param {string|Element} query
+ * @param {Element=} context
+ * @returns {?Element}
+ */
 export function $(query, context=null) {
   const c = context ? context._el : document.documentElement;
   const el = (typeof query === 'string') ? c.querySelector(query) : query;
@@ -755,12 +866,23 @@ export function $(query, context=null) {
   return new Element(el);
 }
 
+/**
+ * @param {string} selector
+ * @param {Element=} context
+ * @returns {Element[]}
+ */
 export function $$(selector, context=null) {
   const c = context ? context._el : document.documentElement;
   let els = c.querySelectorAll(selector);
   return Array.from(els, el => $(el));
 }
 
+/**
+ * @param {string} tag
+ * @param {Object.<string,string>=} attributes
+ * @param {Element=} parent
+ * @returns {Element}
+ */
 export function $N(tag, attributes = {}, parent = null) {
   let t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
     document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -780,6 +902,10 @@ export function $N(tag, attributes = {}, parent = null) {
   return $el;
 }
 
+/**
+ * @param {string} html
+ * @returns {Element[]}
+ */
 export function $$N(html) {
   return $N('div', { html: html }).children;
 }
@@ -788,6 +914,10 @@ export function $$N(html) {
 // -----------------------------------------------------------------------------
 // Utilities
 
+/**
+ * @param {Array.<Array.<string>>} data
+ * @returns {string}
+ */
 export function table(data) {
   let rows = data.map(tr => '<tr>' + tr.map(td => `<td>${td}</td>`).join('') + '</tr>').join('');
   return `<table>${rows}</table>`;
@@ -797,6 +927,11 @@ export function table(data) {
 // -----------------------------------------------------------------------------
 // Special Elements
 
+/** @type {WindowElement} */
 export const $window = new WindowElement(window);
+
+/** @type {WindowElement} */
 export const $html = new WindowElement(window.document.documentElement);
+
+/** @type {WindowElement} */
 export const $body = new WindowElement(document.body);
