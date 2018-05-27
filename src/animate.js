@@ -145,7 +145,9 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 // -----------------------------------------------------------------------------
 // Element CSS Animations Effects
 
-const cssMatrix = /matrix\([0-9.\s]+,[0-9.\s]+,[0-9.\s]+,[0-9.\s]+,([0-9.\s]+),([0-9.\s]+)\)/;
+// When applying the 'pop' effect, we want to respect all existing transform
+// except scale. To do that, we have to expand the matrix() notation.
+const cssMatrix = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
 
 export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
   if (!isReady) { $el.show(); return; }
