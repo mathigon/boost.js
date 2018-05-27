@@ -103,7 +103,7 @@ export function slide($el, fns) {
 
   let startPosn, lastPosn;
 
-  if ($el.css('touch-action') == 'auto') $el.css('touch-action', 'none');
+  if ($el.css('touch-action') === 'auto') $el.css('touch-action', 'none');
 
   function start(e) {
     e.preventDefault();

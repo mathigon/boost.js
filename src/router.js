@@ -5,6 +5,7 @@
 
 
 
+/* global ga */
 import { noop, run, zip, Evented } from '@mathigon/core';
 import * as Ajax from './ajax';
 import { Browser } from './browser';
@@ -185,15 +186,16 @@ class _Router extends Evented {
   load(path, hash = '') {
     let go = this.getView(path);
 
-    if (path == this.active.path && hash != this.active.hash) {
+    if (path === this.active.path && hash !== this.active.hash) {
       console.info('[boost] Routing to ' + path + hash);
       this.trigger('hashChange', hash.slice(1));
       this.trigger('change', path + hash);
       return true;
 
-    } else if (go && path != this.active.path) {
+    } else if (go && path !== this.active.path) {
       console.info('[boost] Routing to ' + path + hash);
       this.trigger('change', path + hash);
+      if (window.ga) ga('send', 'pageview', path + hash);
       loadView(this, go.view, go.params, path);
       return true;
 

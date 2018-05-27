@@ -245,6 +245,7 @@ export class Element {
    * @returns {boolean}
    */
   get isInViewport() {
+    if (this.height === 0) return false;
     const bounds = this.bounds;
     return isBetween(bounds.top, -bounds.height, Browser.height);
   }
@@ -680,6 +681,7 @@ export class WindowElement extends Element {
 export class FormElement extends Element {
 
   get action() { return this._el.action; }
+  get checked() { return this._el.checked; }
 
   get formData() {
     let data = {};
