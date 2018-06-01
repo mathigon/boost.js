@@ -620,8 +620,8 @@ export class Element {
     return transition(this, rules, duration, delay, ease);
   }
 
-  enter(type, duration, delay) { return enter(this, type, duration, delay); }
-  exit(type, duration, delay) { return exit(this, type, duration, delay); }
+  enter(...options) { return enter(this, ...options); }
+  exit(...options) { return exit(this, ...options); }
   effect(type) { effect(this, type); }
 
   fadeIn(time = 400) { return enter(this, 'fade', time); }

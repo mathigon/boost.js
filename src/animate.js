@@ -5,7 +5,7 @@
 
 
 
-import { defer, delay, total, contains } from '@mathigon/core';
+import { defer, delay, total } from '@mathigon/core';
 
 // prevent animations on page load
 let isReady = false;
@@ -97,7 +97,7 @@ export function ease(type, t = 0, s = 0) {
 // -----------------------------------------------------------------------------
 // Element Animations
 
-export function transition($el, properties, duration = 400, delay = 0, easing = 'ease-in-out') {
+export function transition($el, properties, duration=400, delay=0, easing='ease-in-out') {
   if (!isReady) {
     Object.keys(properties).forEach(k => { let p = properties[k]; $el.css(k, Array.isArray(p) ? p[1] : p); });
     return Promise.resolve();
@@ -118,12 +118,12 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 
   // Special rules for animations to height: auto
   let oldHeight = to.height;
-  if (to.height == 'auto') to.height = total($el.children.map($c => $c.outerHeight)) + 'px';
+  if (to.height === 'auto') to.height = total($el.children.map($c => $c.outerHeight)) + 'px';
 
   let player = $el._el.animate([from, to], { duration, delay, easing, fill: 'forwards' });
 
   player.onfinish = function(e) {
-    if ($el._el) Object.keys(properties).forEach(k => { $el.css(k, k == 'height' ? oldHeight : to[k]); });
+    if ($el._el) Object.keys(properties).forEach(k => $el.css(k, k === 'height' ? oldHeight : to[k]));
     deferred.resolve(e);
     player.cancel();  // bit ugly, but needed for Safari...
   };
@@ -149,92 +149,84 @@ export function transition($el, properties, duration = 400, delay = 0, easing = 
 // except scale. To do that, we have to expand the matrix() notation.
 const cssMatrix = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
 
-export function enter($el, effect = 'fade', duration = 500, _delay = 0) {
-  if (!isReady) { $el.show(); return; }
-  delay(function() { $el.show(); }, _delay);
-
-  let animation;
+export function enter($el, effect='fade', duration=500, _delay=0) {
+  if (!isReady) return $el.show();
+  delay(() => $el.show(), _delay);
 
   if (effect === 'fade') {
-    animation = transition($el, { opacity: [0, 1] }, duration, _delay);
+    return transition($el, {opacity: [0, 1]}, duration, _delay);
 
   } else if (effect === 'pop') {
-    let transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
+    const transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
       .replace(cssMatrix, 'translate($1px,$2px)');
 
-    let from = transform + ' scale(0.5)';
-    let to   = transform + ' scale(1)';
-    let easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    const from = transform + ' scale(0.5)';
+    const to   = transform + ' scale(1)';
+    const easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-    transition($el, { opacity: [0, 1] }, duration, _delay);
-    animation = transition($el, { 'transform': [from, to] }, duration, _delay, easing);
-
-  } else if (effect.startsWith('slide')) {
-    let options = effect.split('-');
-    let properties = {};
-
-    if (contains(options, 'left') || contains(options, 'right')) {
-      let t = contains(options,'right') ? '50%' : '-50%';
-      properties.transform = [`translateX(${t})`, 'none'];
-      properties.opacity = [0, 1];
-    }
-    if (contains(options, 'down')) properties.height = [0, 'auto'];
-
-    animation = transition($el, properties, duration, _delay);
+    transition($el, {opacity: [0, 1]}, duration, _delay);
+    return transition($el, {transform: [from, to]}, duration, _delay, easing);
 
   } else if (effect === 'draw') {
-    let l = $el.strokeLength + 'px';
-    $el.css({ opacity: 1, 'stroke-dasharray': l + ' ' + l });
-    animation = transition($el, { 'strokeDashoffset': [l, 0] }, duration, _delay, 'linear');
-    animation.then(function() { $el.css('stroke-dasharray', ''); });
-  }
+    const l = $el.strokeLength + 'px';
+    $el.css({opacity: 1, 'stroke-dasharray': l + ' ' + l});
+    return transition($el, {'strokeDashoffset': [l, 0]}, duration, _delay, 'linear')
+        .then(() => $el.css('stroke-dasharray', ''));
 
-  return animation;
+  } else if (effect.startsWith('slide')) {
+    const rules = {opacity: [0, 1], transform: ['translateY(50px)', 'none']};
+    if (effect.includes('down')) rules.transform[0] = 'translateY(-50px)';
+    return transition($el, rules, duration, _delay);
+
+  } else if (effect.startsWith('reveal')) {
+    const rules = {opacity: [0, 1], height: [0, 'auto']};
+    if (effect.includes('left')) rules.transform = ['translateX(-50%)', 'none'];
+    if (effect.includes('right')) rules.transform = ['translateX(50%)', 'none'];
+    return transition($el, rules, duration, _delay);
+  }
 }
 
-export function exit($el, effect = 'fade', duration = 400, delay = 0) {
-  if (!isReady) { $el.hide(); return; }
-
+export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
+  if (!$el._el) return;
+  if (!isReady) return $el.hide();
   if ($el.css('display') === 'none') return;
+
   let animation;
 
   if (effect === 'fade') {
-    animation = transition($el, { opacity: [1, 0] }, duration, delay);
+    animation = transition($el, {opacity: [1, 0]}, duration, delay);
 
   } else if (effect === 'pop') {
-    let transform = $el.transform.replace(/scale\([0-9\.]*\)/, '');
-    let from = transform + ' scale(1)';
-    let to   = transform + ' scale(0.5)';
-    let easing = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
+    const transform = $el.transform.replace(/scale\([0-9.]*\)/, '');
+    const from = transform + ' scale(1)';
+    const to   = transform + ' scale(0.5)';
+    const easing = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 
-    transition($el, { opacity: [1, 0] }, duration, delay);
-    animation = transition($el, { transform: [from, to] }, duration, delay, easing);
-
-  } else if (effect.startsWith('slide')) {
-    let options = effect.split('-');
-    let properties = {};
-
-    if (contains(options, 'left') || contains(options, 'right')) {
-      let t = contains(options,'right') ? '50%' : '-50%';
-      properties.transform = ['none', `translateX(${t})`];
-      properties.opacity = [1, 0];
-    }
-
-    if (contains(options, 'up')) properties.height = 0;
-
-    animation = transition($el, properties, duration, delay);
+    transition($el, {opacity: [1, 0]}, duration, delay);
+    animation = transition($el, {transform: [from, to]}, duration, delay, easing);
 
   } else if (effect === 'draw') {
-    let l = $el.strokeLength + 'px';
+    const l = $el.strokeLength + 'px';
     $el.css('stroke-dasharray', l + ' ' + l);
-    animation = transition($el, { 'strokeDashoffset': [0, l] }, duration, delay, 'linear');
+    animation = transition($el, {'strokeDashoffset': [0, l]}, duration, delay, 'linear');
+
+  } else if (effect.startsWith('slide')) {
+    const rules = {opacity: 0, transform: 'translateY(50px)'};
+    if (effect.includes('up')) rules.transform = 'translateY(-50px)';
+    animation = transition($el, rules, duration, delay);
+
+  } else if (effect.startsWith('reveal')) {
+    const rules = {opacity: 0, height: 0};
+    if (effect.includes('left')) rules.transform = 'translateX(-50%)';
+    if (effect.includes('right')) rules.transform = 'translateX(50%)';
+    animation = transition($el, rules, duration, delay);
   }
 
-  animation.then(function() { $el.hide(); });
+  animation.then(() => remove ? $el.remove() : $el.hide());
   return animation;
 }
 
-// these animations are defined in effects.css
+// These animations are defined in effects.css:
 // pulse-down, pulse-up, flash, bounce-up, bounce-right
 export function effect(element, name) {
   element.animationEnd(function(){
