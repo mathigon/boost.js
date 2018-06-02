@@ -684,10 +684,10 @@ export class FormElement extends Element {
   get checked() { return this._el.checked; }
 
   get formData() {
-    let data = {};
-    let els = this._el.elements;  // TODO array from
-    for (let i=0; i<els.length; ++i) {
-      data[els[i].name || els[i].id] = els[i].value;
+    const data = {};
+    for (let el of Array.from(this._el.elements)) {
+      const id = el.name || el.id;
+      if (id) data[id] = el.value;
     }
     return data;
   }
