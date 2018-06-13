@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
   "keywords": [
     "browser",
@@ -27,8 +27,8 @@
     "prepublish": "npm run test"
   },
   "dependencies": {
-    "@mathigon/core": "^0.2.1",
-    "@mathigon/fermat": "^0.2.0"
+    "@mathigon/core": "^0.2.2",
+    "@mathigon/fermat": "^0.2.2"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
