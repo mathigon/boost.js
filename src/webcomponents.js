@@ -41,7 +41,7 @@ function applyTemplate(el, options) {
 
 function customElementChildren(el) {
   const result = [];
-  for (let c of el.children) {
+  for (let c of Array.from(el.children)) {
     if (c.tagName.startsWith('X-')) {
       result.push(c);
     } else {
