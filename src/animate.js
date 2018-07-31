@@ -167,6 +167,10 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
     transition($el, {opacity: [0, 1]}, duration, _delay);
     return transition($el, {transform: [from, to]}, duration, _delay, easing);
 
+  } else if (effect === 'descend') {
+    const rules = {opacity: [0, 1], transform: ['translateY(-50%)', 'none']};
+    return transition($el, rules, duration, _delay);
+
   } else if (effect === 'draw') {
     const l = $el.strokeLength + 'px';
     $el.css({opacity: 1, 'stroke-dasharray': l + ' ' + l});
@@ -204,6 +208,10 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
 
     transition($el, {opacity: [1, 0]}, duration, delay);
     animation = transition($el, {transform: [from, to]}, duration, delay, easing);
+
+  } else if (effect === 'ascend') {
+    const rules = {opacity: [1, 0], transform: ['none', 'translateY(-50%)']};
+    return transition($el, rules, duration, delay);
 
   } else if (effect === 'draw') {
     const l = $el.strokeLength + 'px';
