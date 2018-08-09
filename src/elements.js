@@ -97,7 +97,7 @@ export class Element {
    * @param {string} attr
    * @returns {string}
    */
-  attr(attr) { return this._el.getAttribute(attr); }
+  attr(attr) { return this._el.getAttribute(attr) || ''; }
 
   /**
    * @param {string} attr
@@ -886,14 +886,16 @@ export function $$(selector, context=null) {
  * @returns {Element}
  */
 export function $N(tag, attributes = {}, parent = null) {
-  let t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
+  const t = svgTags.indexOf(tag) < 0 ? document.createElement(tag) :
     document.createElementNS('http://www.w3.org/2000/svg', tag);
 
-  for (let a in attributes) {
+  for (let a of Object.keys(attributes)) {
     if (a === 'id') {
       t.id = attributes.id;
     } else if (a === 'html') {
       t.innerHTML = attributes.html;
+    } else if (a === 'text') {
+      t.textContent = attributes.text;
     } else {
       t.setAttribute(a, attributes[a]);
     }
