@@ -5,7 +5,7 @@
 
 
 
-import { defer, delay, total } from '@mathigon/core';
+import {defer, delay, total, toCamelCase} from '@mathigon/core';
 
 // prevent animations on page load
 let isReady = false;
@@ -97,7 +97,7 @@ export function ease(type, t = 0, s = 0) {
 // -----------------------------------------------------------------------------
 // Element Animations
 
-export function transition($el, properties, duration=400, delay=0, easing='ease-in-out') {
+export function transition($el, properties, duration=400, _delay=0, easing='ease-in-out') {
   if (!isReady) {
     Object.keys(properties).forEach(k => { let p = properties[k]; $el.css(k, Array.isArray(p) ? p[1] : p); });
     return Promise.resolve();
@@ -106,38 +106,48 @@ export function transition($el, properties, duration=400, delay=0, easing='ease-
   // Cancel any previous animations
   if ($el._data._animation) $el._data._animation.cancel();
 
-  let to = {}, from = {};
-  let deferred = defer();
+  const to = {}, from = {};
+  const deferred = defer();
 
-  let style = window.getComputedStyle($el._el);
-  Object.keys(properties).forEach(function(k) {
-    let p = properties[k];
-    from[k] = Array.isArray(p) ? p[0] : style.getPropertyValue(k);
-    to[k] = Array.isArray(p) ? p[1] : p;
+  const style = window.getComputedStyle($el._el);
+  Object.keys(properties).forEach((k) => {
+    const p = properties[k];
+    const k1 = toCamelCase(k);
+    from[k1] = Array.isArray(p) ? p[0] : style.getPropertyValue(k);
+    to[k1] = Array.isArray(p) ? p[1] : p;
+    // Set initial style, for the duration of the delay.
+    if (_delay) $el.css(k, from[k1]);
   });
 
   // Special rules for animations to height: auto
   let oldHeight = to.height;
   if (to.height === 'auto') to.height = total($el.children.map($c => $c.outerHeight)) + 'px';
 
-  let player = $el._el.animate([from, to], { duration, delay, easing, fill: 'forwards' });
+  let player;
+  let cancelled = false;
 
-  player.onfinish = function(e) {
-    if ($el._el) Object.keys(properties).forEach(k => $el.css(k, k === 'height' ? oldHeight : to[k]));
-    deferred.resolve(e);
-    player.cancel();  // bit ugly, but needed for Safari...
-  };
+  delay(() => {
+    if (cancelled) return;
 
-  let animation = {
+    player = $el._el.animate([from, to], {duration, easing, fill: 'forwards'});
+    player.onfinish = function(e) {
+      if ($el._el) Object.keys(properties).forEach(k => $el.css(k, k === 'height' ? oldHeight : to[k]));
+      deferred.resolve(e);
+      player.cancel();  // bit ugly, but needed for Safari...
+    };
+  }, _delay);
+
+  const animation = {
     then: deferred.promise.then.bind(deferred.promise),
-    cancel: function() {
-      if ($el._el) Object.keys(properties).forEach(k => { $el.css(k, $el.css(k)); });
-      return player.cancel();
+    cancel() {
+      cancelled = true;
+      if ($el._el) Object.keys(properties).forEach(k => $el.css(k, $el.css(k)));
+      if (player) player.cancel();
     }
   };
 
   // Only allow cancelling of animation in next thread.
-  setTimeout(function() { $el._data._animation = animation; });
+  setTimeout(() => $el._data._animation = animation);
   return animation;
 }
 
@@ -150,8 +160,8 @@ export function transition($el, properties, duration=400, delay=0, easing='ease-
 const cssMatrix = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
 
 export function enter($el, effect='fade', duration=500, _delay=0) {
-  if (!isReady) return $el.show();
-  delay(() => $el.show(), _delay);
+  $el.show();
+  if (!isReady) return Promise.resolve();
 
   if (effect === 'fade') {
     return transition($el, {opacity: [0, 1]}, duration, _delay);
@@ -164,6 +174,7 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
     const to   = transform + ' scale(1)';
     const easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
+    // TODO Merge into one transition.
     transition($el, {opacity: [0, 1]}, duration, _delay);
     return transition($el, {transform: [from, to]}, duration, _delay, easing);
 
@@ -173,8 +184,8 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
 
   } else if (effect === 'draw') {
     const l = $el.strokeLength + 'px';
-    $el.css({opacity: 1, 'stroke-dasharray': l + ' ' + l});
-    return transition($el, {'strokeDashoffset': [l, 0]}, duration, _delay, 'linear')
+    $el.css({opacity: 1, 'stroke-dasharray': l});
+    return transition($el, {'stroke-dashoffset': [l, 0]}, duration, _delay, 'linear')
         .then(() => $el.css('stroke-dasharray', ''));
 
   } else if (effect.startsWith('slide')) {
@@ -215,8 +226,8 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
 
   } else if (effect === 'draw') {
     const l = $el.strokeLength + 'px';
-    $el.css('stroke-dasharray', l + ' ' + l);
-    animation = transition($el, {'strokeDashoffset': [0, l]}, duration, delay, 'linear');
+    $el.css('stroke-dasharray', l);
+    animation = transition($el, {'stroke-dashoffset': [0, l]}, duration, delay, 'linear');
 
   } else if (effect.startsWith('slide')) {
     const rules = {opacity: 0, transform: 'translateY(50px)'};
