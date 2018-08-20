@@ -124,7 +124,7 @@ export class Colour {
 
 
   // -------------------------------------------------------------------------
-  // Getter Functions
+  // Properties
 
   get hex() {
     let c = [this.r, this.g, this.b].map(x => pad2(Math.round(x).toString(16)));
@@ -163,40 +163,7 @@ export class Colour {
     return 'hsl(' + [h, s, l].join(',') + ')';
   }
 
-  get complement() {
-    // TODO
-  }
-
-  get inverse() {
-    // TODO
-  }
-
   toString() {
     return this.rgb;
   }
-
-
-  // -------------------------------------------------------------------------
-  // Prototype Functions
-
-  lighten(_p) {
-    // TODO
-  }
-
-  darken(_p) {
-    // TODO
-  }
-
-  saturate(_p) {
-    // TODO
-  }
-
-  desaturate(_p) {
-    // TODO
-  }
-
-  grayscale(_p = 1) {
-    // TODO
-  }
-
 }

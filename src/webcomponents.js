@@ -100,11 +100,8 @@ class CustomHTMLElement extends HTMLElement {
 }
 
 export class CustomElement extends Element {
-  constructor(el) { super(el); }
   created() {}
   ready() {}
-  static get template() {}
-  static get templateId() {}
 }
 
 export function registerElement(tagName, ElementClass, options={}) {

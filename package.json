@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
   "keywords": [
     "browser",
@@ -23,17 +23,17 @@
   "repository": "mathigon/boost.js",
   "scripts": {
     "pretest": "rm -rf build && mkdir build && rollup -c build.js",
-    "test": "tape 'test/**/*-test.js' && eslint boost.js src",
+    "test": "tape 'test/**/*-test.js' && eslint index.js src",
     "prepublish": "npm run test"
   },
   "dependencies": {
-    "@mathigon/core": "^0.2.2",
-    "@mathigon/fermat": "^0.2.2"
+    "@mathigon/core": "^0.2.3",
+    "@mathigon/fermat": "^0.2.3"
   },
   "devDependencies": {
-    "eslint": "^4.19.1",
-    "rollup": "^0.58.1",
+    "eslint": "^5.4.0",
+    "rollup": "^0.64.1",
     "rollup-plugin-node-resolve": "^3.3.0",
-    "tape": "^4.9.0"
+    "tape": "^4.9.1"
   }
 }
