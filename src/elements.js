@@ -851,6 +851,7 @@ const formTags = ['form', 'input', 'select'];
  * @returns {?Element}
  */
 export function $(query, context=null) {
+  if (!query) return null;
   const c = context ? context._el : document.documentElement;
   const el = (typeof query === 'string') ? c.querySelector(query) : query;
 
@@ -875,7 +876,7 @@ export function $(query, context=null) {
  */
 export function $$(selector, context=null) {
   const c = context ? context._el : document.documentElement;
-  let els = c.querySelectorAll(selector);
+  let els = c.querySelectorAll(selector || null);
   return Array.from(els, el => $(el));
 }
 
