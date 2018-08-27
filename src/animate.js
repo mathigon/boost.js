@@ -202,9 +202,9 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
 }
 
 export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
-  if (!$el._el) return;
-  if (!isReady) return $el.hide();
-  if ($el.css('display') === 'none') return;
+  if (!$el._el) return Promise.resolve();
+  if (!isReady) { $el.hide(); return Promise.resolve(); }
+  if ($el.css('display') === 'none') return Promise.resolve();
 
   let animation;
 
@@ -222,7 +222,7 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
 
   } else if (effect === 'ascend') {
     const rules = {opacity: [1, 0], transform: ['none', 'translateY(-50%)']};
-    return transition($el, rules, duration, delay);
+    animation = transition($el, rules, duration, delay);
 
   } else if (effect === 'draw') {
     const l = $el.strokeLength + 'px';
