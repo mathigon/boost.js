@@ -197,12 +197,14 @@ function makeScrollEvents($el) {
 function makeHoverEvent($el, options) {
   let timeout = null;
   let active = false;
+  let wasTriggeredByMouse = false;
 
   $el.on('mouseover', () => {
     clearTimeout(timeout);
     timeout = delay(() => {
       if (active) return;
       options.enter();
+      wasTriggeredByMouse = true;
       active = true;
     }, options.delay);
   });
@@ -218,11 +220,12 @@ function makeHoverEvent($el, options) {
 
   const $clickTarget = options.$clickTarget || $el;
   $clickTarget.on('click', () => {
-    if (active) {
+    if (active && (!wasTriggeredByMouse)) {
       if (options.exit) options.exit();
       active = false;
-    } else {
+    } else if (!active) {
       options.enter();
+      wasTriggeredByMouse = false;
       active = true;
     }
   });
