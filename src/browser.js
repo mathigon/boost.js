@@ -30,9 +30,13 @@ let height = window.innerHeight;
 
 window.onresize = throttle(function() {
   let newWidth = window.innerWidth;
-  let height = window.innerHeight;
-  if (width === newWidth && width < 800 && height < 800) return;
+  let newHeight = window.innerHeight;
+
+  if (width === newWidth && height === newHeight) return;
+
   width = newWidth;
+  height = newHeight;
+
   browserEvents.trigger('resize', { width, height });
   $body.trigger('scroll', { top: $body.scrollTop });
 }, 100);

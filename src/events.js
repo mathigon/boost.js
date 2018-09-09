@@ -200,6 +200,7 @@ function makeHoverEvent($el, options) {
   let wasTriggeredByMouse = false;
 
   $el.on('mouseover', () => {
+    if (options.preventMouseover && options.preventMouseover()) return;
     clearTimeout(timeout);
     timeout = delay(() => {
       if (active) return;
@@ -210,6 +211,7 @@ function makeHoverEvent($el, options) {
   });
 
   $el.on('mouseout', () => {
+    if (!wasTriggeredByMouse) return;
     clearTimeout(timeout);
     timeout = delay(() => {
       if (!active) return;
