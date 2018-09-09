@@ -11,6 +11,9 @@ import {defer, delay, total, toCamelCase} from '@mathigon/core';
 let isReady = false;
 setTimeout(function() { isReady = true; });
 
+const BOUNCE_IN = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
+
 
 // -----------------------------------------------------------------------------
 // Simple Animations
@@ -103,6 +106,9 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
     return Promise.resolve();
   }
 
+  if (easing === 'bounce-in') easing = BOUNCE_IN;
+  if (easing === 'bounce-out') easing = BOUNCE_OUT;
+
   // Cancel any previous animations
   if ($el._data._animation) $el._data._animation.cancel();
 
@@ -170,13 +176,10 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
     const transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
       .replace(cssMatrix, 'translate($1px,$2px)');
 
-    const from = transform + ' scale(0.5)';
-    const to   = transform + ' scale(1)';
-    const easing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-
     // TODO Merge into one transition.
     transition($el, {opacity: [0, 1]}, duration, _delay);
-    return transition($el, {transform: [from, to]}, duration, _delay, easing);
+    return transition($el, {transform: [transform + ' scale(0.5)',
+        transform + ' scale(1)']}, duration, _delay, 'bounce-in');
 
   } else if (effect === 'descend') {
     const rules = {opacity: [0, 1], transform: ['translateY(-50%)', 'none']};
@@ -213,12 +216,10 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
 
   } else if (effect === 'pop') {
     const transform = $el.transform.replace(/scale\([0-9.]*\)/, '');
-    const from = transform + ' scale(1)';
-    const to   = transform + ' scale(0.5)';
-    const easing = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 
     transition($el, {opacity: [1, 0]}, duration, delay);
-    animation = transition($el, {transform: [from, to]}, duration, delay, easing);
+    animation = transition($el, {transform: [transform + ' scale(1)',
+        transform + ' scale(0.5)']}, duration, delay, 'bounce-out');
 
   } else if (effect === 'ascend') {
     const rules = {opacity: [1, 0], transform: ['none', 'translateY(-50%)']};
