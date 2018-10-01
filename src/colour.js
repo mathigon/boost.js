@@ -14,8 +14,7 @@ const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
 // -----------------------------------------------------------------------------
 // Static Colours (gradients from http://www.sron.nl/~pault/colourschemes.pdf)
 
-const rainbow = ['#D92120', '#E6642C', '#E68E34', '#D9AD3C', '#B5BD4C',
-  '#7FB972', '#63AD99', '#55A1B1', '#488BC2', '#4065B1', '#413B93', '#781C81'];
+const rainbow = ['#31b304', '#1f7aff', '#b30469','#ff941f'];
 
 const temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE',
   '#FFFAD2', '#FFE3AA', '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
@@ -71,8 +70,7 @@ export class Colour {
   static get pink()   { return '#ED1E79'; }
 
   static rainbow(steps) {
-    let scale = clamp(0.4 + 0.15 * steps, 0, 1);
-    return tabulate(x => getColourAt(rainbow, scale * x/(steps-1)), steps);
+    return tabulate(x => getColourAt(rainbow, x/(steps-1)), steps);
   }
 
   static temperature(steps) {
