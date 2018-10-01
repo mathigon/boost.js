@@ -148,6 +148,12 @@ export class Element {
   /** @returns {DOMRect} */
   get bounds() { return this._el.getBoundingClientRect(); }
 
+  /** @returns {Point} */
+  get topLeftPosition() {
+    const bounds = this.bounds;
+    return new Point(bounds.left, bounds.top);
+  }
+
   /** @returns {number} */
   get offsetTop()  { return this._el.offsetTop; }
 
@@ -235,7 +241,7 @@ export class Element {
       // Get offset based on any other element
       let parentBox = parent._el.getBoundingClientRect();
       let box = this._el.getBoundingClientRect();
-      return { top:    box.top    - parentBox.top, left:  box.left  - parentBox.left,
+      return { top: box.top - parentBox.top, left: box.left - parentBox.left,
         bottom: box.bottom - parentBox.top, right: box.right - parentBox.left };
     }
   }

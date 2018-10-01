@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@mathigon/core": "^0.2.3",
-    "@mathigon/fermat": "^0.2.3"
+    "@mathigon/fermat": "^0.2.4"
   },
   "devDependencies": {
     "eslint": "^5.4.0",
