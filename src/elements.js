@@ -10,7 +10,7 @@ import { roundTo, Point, isBetween } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
 import { createEvent, removeEvent } from './events';
-import { bindObservable } from './templates';
+import { bindObservable, observable } from './templates';
 
 
 // -----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ export class Element {
 
   getModel() {
     if (!this.parent) return null;
-    return this.parent.model || this.parent.getModel();
+    return this.parent.model || this.parent.getModel() || observable();
   }
 
   bindObservable(model, recursive=true) {
