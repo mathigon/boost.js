@@ -4,88 +4,83 @@
 // =============================================================================
 
 
-import { Evented, clamp } from '@mathigon/core';
-import { roundTo } from '@mathigon/fermat';
+import { Evented, applyDefaults } from '@mathigon/core';
+import { Point } from '@mathigon/fermat';
 import { Browser } from './browser';
 import { slide } from './events';
 
 
+const defaultOptions = {
+  moveX: true,
+  moveY: true,
+  snap: 1,
+  useTransform: false,
+  round: (p => p)
+};
+
 export class Draggable extends Evented {
 
-  constructor($el, $parent, direction = '', margin = 0, useTransform = false, snap = 1) {
+  constructor($el, $parent, options={}) {
     super();
-    let _this = this;
-    let lastPosn, noMove;
 
     this.$el = $el;
-    this._posn = { x: null, y: null };
-    this.move = { x: direction !== 'y', y: direction !== 'x' };
-    this.useTransform = useTransform;
-    this.snap = snap;
+    this.position = new Point(0, 0);
+    this.options = applyDefaults(options, defaultOptions);
     this.disabled = false;
 
+    this.width  = $parent.width;
+    this.height = $parent.height;
+
+    let startPosn = null;
     slide($el, {
-      start: function(posn) {
-        if (_this.disabled) return;
-        lastPosn = posn;
-        noMove = true;
-        _this.trigger('start');
+      start: () => {
+        if (this.disabled) return;
+        startPosn = this.position;
+        this.trigger('start');
       },
-      move: function(posn) {
-        if (_this.disabled) return;
-        noMove = false;
-
-        let x = clamp(_this._posn.x + posn.x - lastPosn.x, 0, _this.width);
-        let y = clamp(_this._posn.y + posn.y - lastPosn.y, 0, _this.height);
-
-        lastPosn = posn;
-        _this.position = { x, y };
-        _this.trigger('drag');
+      move: (posn, start) => {
+        if (this.disabled) return;
+        this.setPosition(startPosn.x + posn.x - start.x,
+            startPosn.y + posn.y - start.y);
+        this.trigger('drag', this.position);
       },
-      end: function() {
-        if (_this.disabled) return;
-        _this.trigger(noMove ? 'click' : 'end');
+      end: (last, start) => {
+        if (this.disabled) return;
+        this.trigger(last.equals(start) ? 'click' : 'end');
       }
     });
 
-    Browser.resize(function () {
-      let oldWidth = _this.width;
-      let oldHeight = _this.height;
+    Browser.resize(() => {
+      const oldWidth = this.width;
+      const oldHeight = this.height;
 
-      _this.width  = $parent.width  - margin * 2;
-      _this.height = $parent.height - margin * 2;
+      this.width  = $parent.width;
+      this.height = $parent.height;
 
-      let x = _this.width  / oldWidth  * _this._posn.x;
-      let y = _this.height / oldHeight * _this._posn.y;
-      _this.draw({ x, y });
+      this.setPosition(this.position.x * this.width  / oldWidth || 0,
+          this.position.y * this.height / oldHeight || 0);
     });
   }
 
-  get position() {
-    return {
-      x: roundTo(this._posn.x, this.snap),
-      y: roundTo(this._posn.y, this.snap)
-    };
-  }
+  setPosition(x, y) {
+    const p = this.options.round(new Point(x, y)
+        .clamp(0, this.width, 0, this.height)
+        .round(this.options.snap));
 
-  set position(posn) {
-    this.draw(posn);
-    this._posn = posn;
-    this.trigger('move', posn);
-  }
+    if (!this.options.moveX) p.x = 0;
+    if (!this.options.moveY) p.y = 0;
 
-  draw({ x, y }) {
-    if (this.snap) {
-      x = roundTo(x, this.snap);
-      y = roundTo(y, this.snap);
-    }
+    if (p.equals(this.position)) return;
+    this.position = p;
 
-    if (this.useTransform) {
-      this.$el.translate(this.move.x ? Math.round(x) : 0, this.move.y ? Math.round(y) : 0);
+    if (this.options.useTransform) {
+      this.$el.translate(p.x, p.y);
     } else {
-      if (this.move.x) this.$el.css('left', Math.round(x) + 'px');
-      if (this.move.y) this.$el.css('top',  Math.round(y) + 'px');
+      if (this.options.moveX) this.$el.css('left', p.x + 'px');
+      if (this.options.moveY) this.$el.css('top', p.y + 'px');
     }
+
+    this.trigger('move', p);
   }
 
 }

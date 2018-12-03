@@ -27,7 +27,7 @@
     "prepublish": "npm run test"
   },
   "dependencies": {
-    "@mathigon/core": "^0.2.3",
+    "@mathigon/core": "^0.2.4",
     "@mathigon/fermat": "^0.2.4"
   },
   "devDependencies": {
