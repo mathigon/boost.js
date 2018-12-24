@@ -303,13 +303,14 @@ export class Element {
     const startPosition = this.scrollTop;
     const distance = pos - startPosition;
 
-    animate(t => {
+    if (this._data._scrollAnimation) this._data._scrollAnimation.cancel();
+    // TODO Also cancel animation after manual scroll events.
+
+    this._data._scrollAnimation = animate(t => {
       const y = startPosition + distance * ease(easing, t);
       this.scrollTop = y;
       this.trigger('scroll', { top: y });
     }, time);
-
-    // TODO Cancel animation if something else triggers a scroll event.
   }
 
   scrollBy(distance, time = 1000, easing = 'cubic') {

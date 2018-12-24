@@ -28,7 +28,7 @@ export function redraw() {
 let width = window.innerWidth;
 let height = window.innerHeight;
 
-window.onresize = throttle(function() {
+window.addEventListener('resize', () => {
   let newWidth = window.innerWidth;
   let newHeight = window.innerHeight;
 
@@ -39,7 +39,7 @@ window.onresize = throttle(function() {
 
   browserEvents.trigger('resize', { width, height });
   $body.trigger('scroll', { top: $body.scrollTop });
-}, 100);
+});
 
 const doResize = throttle(function() {
   width = window.innerWidth;
