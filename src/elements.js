@@ -728,6 +728,8 @@ export class SVGElement extends Element {
     return (' ' + name + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
   }
 
+  get $ownerSVG() { return $(this._el.ownerSVGElement) || this; }
+
   // See https://www.chromestatus.com/features/5724912467574784
   get width() { return this.bounds.width; }
   get height() { return this.bounds.height; }
@@ -736,19 +738,23 @@ export class SVGElement extends Element {
   get svgWidth() { return this.viewBox.width || this.width; }
   get svgHeight() { return this.viewBox.height || this.height; }
 
-  get offsetTop()  { return this._el.offsetTop; }
-  get offsetLeft() { return this._el.offsetLeft; }
+  // SVG Elements don't have offset properties. We instead use the position of
+  // the first non-SVG parent, plus the margin of the SVG owner, plus the SVG
+  // position of the individual element. This doesn't work for absolutely
+  // positioned SVG elements, and some other edge cases.
 
   get positionTop() {
-    let $parent = this.parent;
-    while ($parent instanceof SVGElement) $parent = $parent.parent;
-    return $parent.positionTop + this._el.getBBox().y;
+    const $svg = this.$ownerSVG;
+    const margin = parseInt($svg.css('margin-top'));
+    const left = ($svg === this) ? 0 : this._el.getBBox().y;
+    return $svg.parent.positionTop + margin + left;
   }
 
   get positionLeft() {
-    let $parent = this.parent;
-    while ($parent instanceof SVGElement) $parent = $parent.parent;
-    return $parent.positionLeft + this._el.getBBox().x;
+    const $svg = this.$ownerSVG;
+    const margin = parseInt($svg.css('margin-left'));
+    const left = ($svg === this) ? 0 : this._el.getBBox().x;
+    return $svg.parent.positionLeft + margin + left;
   }
 
   get inverseTransformMatrix() {
