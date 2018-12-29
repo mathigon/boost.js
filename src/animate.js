@@ -185,10 +185,12 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
     const rules = {opacity: [0, 1], transform: ['translateY(-50%)', 'none']};
     return transition($el, rules, duration, _delay);
 
-  } else if (effect === 'draw') {
+  } else if (effect.startsWith('draw')) {
     const l = $el.strokeLength + 'px';
     $el.css({opacity: 1, 'stroke-dasharray': l});
-    return transition($el, {'stroke-dashoffset': [l, 0]}, duration, _delay, 'linear')
+    const start = (effect === 'draw-reverse') ? '-' + l : l;
+    const rules = {'stroke-dashoffset': [start, 0]};
+    return transition($el, rules, duration, _delay, 'linear')
         .then(() => $el.css('stroke-dasharray', ''));
 
   } else if (effect.startsWith('slide')) {
@@ -225,10 +227,12 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
     const rules = {opacity: [1, 0], transform: ['none', 'translateY(-50%)']};
     animation = transition($el, rules, duration, delay);
 
-  } else if (effect === 'draw') {
+  } else if (effect.startsWith('draw')) {
     const l = $el.strokeLength + 'px';
     $el.css('stroke-dasharray', l);
-    animation = transition($el, {'stroke-dashoffset': [0, l]}, duration, delay, 'linear');
+    const end = (effect === 'draw-reverse') ? '-' + l : l;
+    const rules = {'stroke-dashoffset': [0, end]};
+    animation = transition($el, rules, duration, delay, 'linear');
 
   } else if (effect.startsWith('slide')) {
     const rules = {opacity: 0, transform: 'translateY(50px)'};
