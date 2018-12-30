@@ -728,7 +728,7 @@ export class SVGElement extends Element {
     return (' ' + name + ' ').indexOf(' ' + className.trim() + ' ') >= 0;
   }
 
-  get $ownerSVG() { return $(this._el.ownerSVGElement) || this; }
+  get $ownerSVG() { return $(this._el.ownerSVGElement) || null; }
 
   // See https://www.chromestatus.com/features/5724912467574784
   get width() { return this.bounds.width; }
@@ -743,18 +743,20 @@ export class SVGElement extends Element {
   // position of the individual element. This doesn't work for absolutely
   // positioned SVG elements, and some other edge cases.
 
-  get positionTop() {
-    const $svg = this.$ownerSVG;
-    const margin = parseInt($svg.css('margin-top'));
-    const left = ($svg === this) ? 0 : this._el.getBBox().y;
-    return $svg.parent.positionTop + margin + left;
+  get positionLeft() {
+    if (this.$ownerSVG) {
+      const svgLeft = this._el.getBBox().x + this._el.getCTM().e;
+      return this.$ownerSVG.positionLeft + svgLeft;
+    }
+    return parseInt(this.css('margin-left')) + this.parent.positionLeft;
   }
 
-  get positionLeft() {
-    const $svg = this.$ownerSVG;
-    const margin = parseInt($svg.css('margin-left'));
-    const left = ($svg === this) ? 0 : this._el.getBBox().x;
-    return $svg.parent.positionLeft + margin + left;
+  get positionTop() {
+    if (this.$ownerSVG) {
+      const svgTop = this._el.getBBox().y + this._el.getCTM().f;
+      return this.$ownerSVG.positionTop + svgTop;
+    }
+    return parseInt(this.css('margin-top')) + this.parent.positionTop;
   }
 
   get inverseTransformMatrix() {
