@@ -19,7 +19,7 @@ const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 // Simple Animations
 
 export function animate(callback, duration) {
-  if (duration === 0) {callback(); return; }
+  if (duration === 0) { callback(); return; }
 
   let startTime = Date.now();
   let lastTime = 0;
