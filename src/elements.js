@@ -5,11 +5,12 @@
 
 
 
-import { isOneOf, words, toCamelCase, square } from '@mathigon/core';
+import { isOneOf, words, toCamelCase, square, applyDefaults } from '@mathigon/core';
 import { roundTo, Point, isBetween } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
 import { createEvent, removeEvent } from './events';
+import { draw } from './svg';
 import { bindObservable, observable } from './templates';
 
 
@@ -833,6 +834,18 @@ export class SVGElement extends Element {
     this.setAttr('x2', q.x);
     this.setAttr('y2', q.y);
   }
+
+  draw(obj, options={}) {
+    const attributes = {
+      mark: this.attr('mark'),
+      arrows: this.attr('arrows'),
+      size: (+this.attr('size')) || null,
+      fill:  this.hasAttr('fill'),
+      round: this.hasAttr('round'),
+      sweep: this.hasAttr('sweep')
+    };
+    this.setAttr('d', draw(obj, applyDefaults(options, attributes)));
+  }
 }
 
 export class CanvasElement extends Element {
@@ -912,6 +925,8 @@ export function $N(tag, attributes = {}, parent = null) {
       t.innerHTML = attributes.html;
     } else if (a === 'text') {
       t.textContent = attributes.text;
+    } else if (a === 'path') {
+      t.setAttribute('d', draw(attributes.path))
     } else {
       t.setAttribute(a, attributes[a]);
     }
