@@ -5,33 +5,32 @@
 
 
 
-import { isOneOf } from '@mathigon/core';
+import { isOneOf, clamp } from '@mathigon/core';
 import { Point, Line, intersections } from '@mathigon/fermat';
 
 
 // -----------------------------------------------------------------------------
 // Utility Functions
 
-function drawArc(a, b, c, sweep=true) {
+/** Draws an arc from a to c, with center b. */
+function drawArc(a, b, c) {
   const orient = b.x * (c.y - a.y) + a.x * (b.y - c.y) + c.x * (a.y - b.y);
-  const arcSweep = (sweep && orient > 0) ? 1 : 0;
-  const largeArc = (sweep || orient < 0) ? 1 : 0;
+  const sweep = (orient > 0) ? 1 : 0;
   const size = Point.distance(b, a);
-  return [a.x, a.y + 'A' + size, size, 0, arcSweep, largeArc, c.x, c.y].join(',');
+  return [a.x, a.y + 'A' + size, size, 0, sweep, 1, c.x, c.y].join(',');
 }
 
-export function angleSize(angle) {
-  let size = 40 * (1 - angle.size / Math.PI / 3);
-  if (angle.isRight) size *= 0.6;
-  return size;
+export function angleSize(angle, options={}) {
+  if (angle.isRight && !options.round) return 20;
+  return 24 + 20 * (1 - clamp(angle.rad, 0, Math.PI) / Math.PI);
 }
 
-function drawAngle(angle, options) {
+function drawAngle(angle, options={}) {
   let a = angle.a;
   const b = angle.b;
   let c = angle.c;
 
-  const size = options.size || angleSize(angle);
+  const size = options.size || angleSize(angle, options);
 
   const ba = Point.difference(a, b).normal;
   const bc = Point.difference(c, b).normal;
@@ -45,7 +44,7 @@ function drawAngle(angle, options) {
     const d = Point.sum(a, bc.scale(size));
     p += `${a.x},${a.y}L${d.x},${d.y}L${c.x},${c.y}`;
   } else {
-    p += drawArc(a, b, c, options.sweep);
+    p += drawArc(a, b, c);
   }
 
   if (options.fill) p += 'Z';

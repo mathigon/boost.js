@@ -840,9 +840,8 @@ export class SVGElement extends Element {
       mark: this.attr('mark'),
       arrows: this.attr('arrows'),
       size: (+this.attr('size')) || null,
-      fill:  this.hasAttr('fill'),
-      round: this.hasAttr('round'),
-      sweep: this.hasAttr('sweep')
+      fill:  this.hasClass('fill'),
+      round: this.hasAttr('round')
     };
     this.setAttr('d', draw(obj, applyDefaults(options, attributes)));
   }
