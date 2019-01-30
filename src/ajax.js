@@ -119,23 +119,31 @@ export function script(src) {
 
 let POST_DATA = new Map();
 
-function sendPostData() {
-  if (navigator.onLine === false) return;
-  for (let [url, data] of POST_DATA) {
-    fetch('POST', url, {data: JSON.stringify(data)})
-        .then(() => POST_DATA.delete(url));
-  }
-}
-
-const doDeferredPost = throttle(sendPostData, 3000);
-window.addEventListener('online', doDeferredPost);
-window.onbeforeunload = sendPostData;
-
-export function deferredPost(url, data) {
+function savePostData(url, data) {
   if (POST_DATA.has(url)) {
     deepExtend(POST_DATA.get(url), data, (a, b) => unique(a.concat(b)));
   } else {
     POST_DATA.set(url, data)
   }
+}
+
+function sendPostData() {
+  if (navigator.onLine === false) return;
+  for (let [url, data] of POST_DATA) {
+    // Remove the POST data immediately, but add it back if the request fails.
+    // This means that deferredPost() can be called while an AJAX request is
+    // in progress, and the data is not lost.
+    POST_DATA.delete(url);
+    fetch('POST', url, {data: JSON.stringify(data)})
+        .catch(() => savePostData(url, data));
+  }
+}
+
+const doDeferredPost = throttle(sendPostData, 5000);
+window.addEventListener('online', doDeferredPost);
+window.onbeforeunload = sendPostData;
+
+export function deferredPost(url, data) {
+  savePostData(url, data);
   doDeferredPost();
 }
