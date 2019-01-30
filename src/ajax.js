@@ -5,7 +5,7 @@
 
 
 
-import { defer, deepExtend, throttle, isString } from '@mathigon/core';
+import { defer, deepExtend, throttle, isString, unique } from '@mathigon/core';
 import { $ } from './elements';
 
 
@@ -117,26 +117,25 @@ export function script(src) {
 // -----------------------------------------------------------------------------
 // Deferred Post
 
-let POST_DATA = {};
+let POST_DATA = new Map();
 
-function sendLogs() {
+function sendPostData() {
   if (navigator.onLine === false) return;
-  for (let url of Object.keys(POST_DATA)) {
-    beacon(url, { data: JSON.stringify(POST_DATA[url]) });
+  for (let [url, data] of POST_DATA) {
+    fetch('POST', url, {data: JSON.stringify(data)})
+        .then(() => POST_DATA.delete(url));
   }
-  POST_DATA = {};
 }
 
-const doDeferredPost = throttle(sendLogs, 5000);
+const doDeferredPost = throttle(sendPostData, 3000);
 window.addEventListener('online', doDeferredPost);
-window.onbeforeunload = function() { sendLogs(); };
+window.onbeforeunload = sendPostData;
 
 export function deferredPost(url, data) {
-  deepExtend(POST_DATA, { [url]: data });
+  if (POST_DATA.has(url)) {
+    deepExtend(POST_DATA.get(url), data, (a, b) => unique(a.concat(b)));
+  } else {
+    POST_DATA.set(url, data)
+  }
   doDeferredPost();
-}
-
-export function beacon(url, data = null) {
-  // TODO Use navigator.sendBeacon instead.
-  fetch('POST', url, data);
 }
