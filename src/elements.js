@@ -544,6 +544,15 @@ export class Element {
     return false;
   }
 
+  hasParentTag(tag) {
+    let $parent = this.parent;
+    while ($parent) {
+      if ($parent.tagName === tag) return true;
+      $parent = $parent.parent;
+    }
+    return false;
+  }
+
   get children() {
     let children = this._el.children || [];
     return Array.from(children, n => $(n));
@@ -586,9 +595,9 @@ export class Element {
   }
 
   one(events, fn, useCapture = false) {
-    const callback = () => {
+    const callback = (e) => {
       this.off(events, callback, useCapture);
-      fn(events, fn, useCapture);
+      fn(e);
     };
     this.on(events, callback, useCapture);
   }
