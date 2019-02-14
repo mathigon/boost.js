@@ -8,6 +8,7 @@
 import { without, isOneOf, delay } from '@mathigon/core';
 import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
+import {Browser} from "./browser";
 
 
 // -----------------------------------------------------------------------------
@@ -324,6 +325,36 @@ function makeMouseEvent(eventName, $el) {
 
 
 // -----------------------------------------------------------------------------
+// Keyboard Events
+
+function makeKeyEvent($el) {
+  // On Android, the keydown event always returns character 229, except for the
+  // backspace button which works as expected. Instead, we have to listen to the
+  // input event and get the last character of the typed text. Note that this
+  // only works if the cursor is at the end, or if the input field gets cleared
+  // after every key.
+
+  // Note that e.keyCode is deprecated, but iOS doesn't support e.key yet.
+
+  $el.on('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey) return;
+    if (Browser.isAndroid && e.keyCode === 229) return;
+
+    const key = (e.key || String.fromCharCode(e.which)).toLowerCase();
+    $el.trigger('key', {code: e.keyCode, key});
+  });
+
+  if (Browser.isAndroid) {
+    $el.on('input', (e) => {
+      const key = e.data[e.data.length - 1].toLowerCase();
+      $el.trigger('key', {code: null, key});
+      $el.value = '';
+    });
+  }
+}
+
+
+// -----------------------------------------------------------------------------
 // Event Creation
 
 const aliases = {
@@ -341,6 +372,7 @@ const customEvents = {
   hover: makeHoverEvent,
   click: makeClickEvent,
   clickOutside: makeClickOutsideEvent,
+  key: makeKeyEvent,
 
   mousedown: makeMouseEvent.bind(null, 'mousedown'),
   mousemove: makeMouseEvent.bind(null, 'mousemove'),

@@ -14,7 +14,7 @@ import { $, $body } from './elements';
 // Utilities
 
 const browserEvents = new Evented();
-const ua = window.navigator.userAgent;
+const ua = window.navigator.userAgent.toLowerCase();
 const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
 
 export function redraw() {
@@ -282,7 +282,7 @@ document.addEventListener(visibilityEvent, function() {
 
 export const Browser = {
   /** @type {boolean} */
-  isMobile: mobileRegex.test(navigator.userAgent.toLowerCase()),
+  isMobile: mobileRegex.test(ua),
 
   /** @type {boolean} */
   isRetina: ((window.devicePixelRatio || 1) > 1),
@@ -292,13 +292,16 @@ export const Browser = {
       (window.DocumentTouch && document instanceof window.DocumentTouch),
 
   /** @type {boolean} */
-  isChrome: window.chrome,
+  isChrome: !!window.chrome,
 
   /** @type {boolean} */
-  isIE: (ua.indexOf('MSIE') >= 0) || (ua.indexOf('Trident') >= 0),
+  isFirefox: ua.indexOf('firefox') >= 0,
 
   /** @type {boolean} */
-  isFirefox: navigator.userAgent.search('Firefox') >= 0,
+  isAndroid: ua.indexOf('android') >= 0,
+
+  /** @type {boolean} */
+  isIOS: /iphone|ipad|ipod/i.test(ua),
 
   redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, replaceSvgImports,
 
