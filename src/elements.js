@@ -286,6 +286,7 @@ export class Element {
   }
 
   fixOverflowScroll() {
+    // TODO Instead, use CSS overscroll-behavior: contain;
     if (this._data._fixOverflowScroll) return;
     this._data._fixOverflowScroll = true;
 

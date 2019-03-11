@@ -15,6 +15,7 @@ const defaultOptions = {
   moveY: true,
   snap: 1,
   useTransform: false,
+  margin: 0,
   round: (p => p),
   responsive: false  // TODO This should be the default for SVG elements.
 };
@@ -64,8 +65,9 @@ export class Draggable extends Evented {
   }
 
   setPosition(x, y) {
+    const m = this.options.margin;
     const p = this.options.round(new Point(x, y)
-        .clamp(0, this.width, 0, this.height)
+        .clamp(m, this.width - m, m, this.height - m)
         .round(this.options.snap));
 
     if (!this.options.moveX) p.x = 0;
