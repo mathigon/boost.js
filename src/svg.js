@@ -117,7 +117,7 @@ function drawArcArrows(x, type) {
 // -----------------------------------------------------------------------------
 // Draw Function
 
-export function draw(obj, options={}) {
+export function drawSVG(obj, options={}) {
   // TODO Use instanceof rather than constructor.name. That is more robust,
   // but doesn't currently work since we have duplicate declaration of
   // geometry classes in different JS bundles.

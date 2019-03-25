@@ -10,7 +10,8 @@ import { roundTo, Point, isBetween } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
 import { createEvent, removeEvent } from './events';
-import { draw } from './svg';
+import { drawSVG } from './svg';
+import { drawCanvas } from './canvas';
 import { bindObservable, observable } from './templates';
 
 
@@ -853,7 +854,7 @@ export class SVGElement extends Element {
       fill:  this.hasClass('fill'),
       round: this.hasAttr('round')
     };
-    this.setAttr('d', draw(obj, applyDefaults(options, attributes)));
+    this.setAttr('d', drawSVG(obj, applyDefaults(options, attributes)));
   }
 }
 
@@ -870,6 +871,25 @@ export class CanvasElement extends Element {
 
   get pngImage() {
     return this._el.toDataURL('image/png');
+  }
+
+  get canvasWidth() { return this._el.width; }
+  get canvasHeight() { return this._el.height; }
+
+  get ctx() {
+    if (!this._data.ctx) this._data.ctx = this.getContext();
+    return this._data.ctx;
+  }
+
+  draw(obj, options) {
+    this.ctx.save();
+    drawCanvas(this.ctx, obj, options);
+    this.ctx.restore();
+  }
+
+  clear() {
+    const canvas = this.ctx.canvas;
+    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 }
 
@@ -935,7 +955,7 @@ export function $N(tag, attributes = {}, parent = null) {
     } else if (a === 'text') {
       t.textContent = attributes.text;
     } else if (a === 'path') {
-      t.setAttribute('d', draw(attributes.path))
+      t.setAttribute('d', drawSVG(attributes.path))
     } else {
       t.setAttribute(a, attributes[a]);
     }
