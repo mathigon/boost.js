@@ -25,24 +25,22 @@ export function animate(callback, duration) {
   let lastTime = 0;
   let running = true;
 
-  let deferred = defer();
-  let then = deferred.promise.then.bind(deferred.promise);
+  const deferred = defer();
+  const then = deferred.promise.then.bind(deferred.promise);
+  const cancel = () => { running = false; deferred.reject(); };
 
   function getFrame() {
     if (running && (!duration || lastTime <= duration))
       window.requestAnimationFrame(getFrame);
 
     const time = Date.now() - startTime;
-    callback(duration ? Math.min(1,time/duration) : time, time - lastTime);
+    callback(duration ? Math.min(1,time/duration) : time, time - lastTime, cancel);
     if (duration && time >= duration) deferred.resolve();
     lastTime = time;
   }
 
   getFrame();
-
-  return {
-    cancel: function() { running = false; deferred.reject(); },
-    then };
+  return {cancel, then};
 }
 
 
