@@ -361,6 +361,22 @@ export class Element {
     return [matrix[0][0], matrix[1][1]];
   }
 
+  /**
+   * @param {Point} posn
+   * @param {number=} ang
+   * @param {number=} scale
+   */
+  setTransform(posn, ang = 0, scale = 1) {
+    let transform = `translate(${posn.x}px,${posn.y}px)`;
+    if (ang) transform += ` rotate(${ang}rad)`;
+    if (scale !== 1) transform += ` scale(${scale})`;
+    this.transform = transform;
+  }
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   */
   translate(x, y) {
     x = roundTo(+x || 0, 0.1);
     y = roundTo(+y || 0, 0.1);
@@ -855,6 +871,27 @@ export class SVGElement extends Element {
       round: this.hasAttr('round')
     };
     this.setAttr('d', drawSVG(obj, applyDefaults(options, attributes)));
+  }
+
+  pngImage(size) {
+    const width = size || this.svgWidth;
+    const height = size || this.svgHeight;
+
+    const svgString = new XMLSerializer().serializeToString(this._el);
+    let url = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString);
+    url = url.replace('svg ', 'svg xmlns="http://www.w3.org/2000/svg" ');
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const $canvas = $N('canvas', {width, height});
+        $canvas.ctx.fillStyle = '#fff';
+        $canvas.ctx.fillRect(0, 0, width, height);
+        $canvas.ctx.drawImage(img, 0, 0);
+        resolve($canvas.pngImage);
+      };
+      img.src = url;
+    });
   }
 }
 
