@@ -117,7 +117,7 @@ class _Router extends Evented {
     this.preloaded = options.preloaded || false;
     this.transition = options.transition || false;
     this.initialise = options.initialise || noop;
-    this.noload = options.noload || false;
+    this.noLoad = options.noLoad || false;
 
     this.views = [];
     this.active = null;
@@ -197,10 +197,10 @@ class _Router extends Evented {
       console.info('[boost] Routing to ' + path + hash);
       this.trigger('change', path + hash);
       if (window.ga) ga('send', 'pageview', path + hash);
-      if (this.noload) {
-        loadView(this, go.view, go.params, path);
-      } else {
+      if (this.noLoad) {
         if (go.view.enter) go.view.enter(this.$viewport, go.params);
+      } else {
+        loadView(this, go.view, go.params, path);
       }
       return true;
 
