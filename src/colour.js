@@ -30,26 +30,12 @@ function pad2(str) {
   return str.length === 1 ? '0' + str : str;
 }
 
-function interpolate(c1, c2, p) {
-  p = clamp(p, 0, 1);
-
-  if (!(c1 instanceof Colour)) c1 = Colour.fromHex(c1);
-  if (!(c2 instanceof Colour)) c2 = Colour.fromHex(c2);
-
-  return new Colour(
-    p * c1.r + (1 - p) * c2.r,
-    p * c1.g + (1 - p) * c2.g,
-    p * c1.b + (1 - p) * c2.b,
-    p * c1.a + (1 - p) * c2.a
-  );
-}
-
 // Gets the colour of a multi-step gradient at a given percentage p
 function getColourAt(gradient, p) {
   p = clamp(p, 0, 0.9999);  // FIXME
   let r = Math.floor(p * (gradient.length - 1));
   let q = p * (gradient.length - 1) - r;
-  return interpolate(gradient[r + 1], gradient[r], q);
+  return Colour.mix(gradient[r + 1], gradient[r], q);
 }
 
 
@@ -163,5 +149,27 @@ export class Colour {
 
   toString() {
     return this.rgb;
+  }
+
+  copy() {
+    return new Colour(this.r, this.g, this.b, this.a);
+  }
+
+
+  // -------------------------------------------------------------------------
+  // Operations
+
+  static mix(c1, c2, p = 0.5) {
+    p = clamp(p, 0, 1);
+
+    if (!(c1 instanceof Colour)) c1 = Colour.fromHex(c1);
+    if (!(c2 instanceof Colour)) c2 = Colour.fromHex(c2);
+
+    return new Colour(
+        p * c1.r + (1 - p) * c2.r,
+        p * c1.g + (1 - p) * c2.g,
+        p * c1.b + (1 - p) * c2.b,
+        p * c1.a + (1 - p) * c2.a
+    );
   }
 }
