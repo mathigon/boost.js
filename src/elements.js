@@ -930,6 +930,18 @@ export class CanvasElement extends Element {
   }
 }
 
+export class MediaElement extends Element {
+
+  /** @returns {Promise} */
+  play() {
+    return this._el.play() || Promise.resolve();
+  }
+
+  pause() {
+    this._el.pause();
+  }
+}
+
 
 // -----------------------------------------------------------------------------
 // Element Selectors and Constructors
@@ -959,6 +971,7 @@ export function $(query, context=null) {
   if (svgTags.indexOf(tagName) >= 0) return new SVGElement(el);
   if (formTags.indexOf(tagName) >= 0) return new FormElement(el);
   if (tagName === 'canvas') return new CanvasElement(el);
+  if (isOneOf(tagName, 'video', 'audio')) return new MediaElement(el);
 
   return new Element(el);
 }
