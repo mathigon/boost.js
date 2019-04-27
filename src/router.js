@@ -83,6 +83,7 @@ function renderView(router, view, template, params) {
 
   setTimeout(() => {
     router.$viewport.removeChildren();
+    // TODO Remove all event listeners in $viewport, to avoid memory leaks.
     $body.scrollTop = 0;
     router.$viewport.html = template;
     Browser.resize();
@@ -91,7 +92,7 @@ function renderView(router, view, template, params) {
     document.title = router.$viewport.$('title').text;
     router.initialise(router.$viewport, params);
     if (view.enter) view.enter(router.$viewport, params);
-    router.trigger('afterChange');
+    router.trigger('afterChange', {$viewport: router.$viewport});
   }, 350);
 }
 
