@@ -341,6 +341,7 @@ export class Element {
   get transition() { return this.css('transform'); }
   set transition(t) { this._el.style.transition = t; }
 
+  // TODO These functions are deprecated. Use SetTransform() instead.
   get transform() { return this.css('transform').replace('none', ''); }
   set transform(transform) { this._el.style.transform = transform; }
 
@@ -348,7 +349,7 @@ export class Element {
     let transform = this.css('transform');
     if (!transform || transform === 'none') return [[1, 0, 0], [0, 1, 0]];
 
-    let coords = transform.match(/matrix\(([0-9\,\.\s\-]*)\)/);
+    let coords = transform.match(/matrix\(([0-9,.\s\-]*)\)/);
     if (!coords[1]) return [[1, 0, 0], [0, 1, 0]];
 
     let matrix = coords[1].split(',');
@@ -362,15 +363,15 @@ export class Element {
   }
 
   /**
-   * @param {Point} posn
-   * @param {number=} ang
+   * @param {Point?} posn
+   * @param {number=} angle
    * @param {number=} scale
    */
-  setTransform(posn, ang = 0, scale = 1) {
-    let transform = `translate(${posn.x}px,${posn.y}px)`;
-    if (ang) transform += ` rotate(${ang}rad)`;
-    if (scale !== 1) transform += ` scale(${scale})`;
-    this.transform = transform;
+  setTransform(posn, angle = 0, scale = 1) {
+    const t1 = posn ? `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)})px` : '';
+    const t2 = angle ? `rotate(${angle}rad)` : '';
+    const t3 = scale ? `scale(${scale})` : '';
+    this._el.style.transform = [t1, t2, t3].join(' ');
   }
 
   /**
@@ -378,16 +379,18 @@ export class Element {
    * @param {number} y
    */
   translate(x, y) {
-    x = roundTo(+x || 0, 0.1);
-    y = roundTo(+y || 0, 0.1);
-    this.transform = `translate(${x}px,${y}px)`;
+    this.setTransform(new Point(x, y));
   }
 
   /** @param {number} x */
-  translateX(x) { this.transform = `translate(${roundTo(+x || 0, 0.1)}px,0)`; }
+  translateX(x) {
+    this.setTransform(new Point(x, 0));
+  }
 
   /** @param {number} y */
-  translateY(y) { this.transform = `translate(0,${roundTo(+y || 0, 0.1)}px)`; }
+  translateY(y) {
+    this.setTransform(new Point(0, y));
+  }
 
   show() {
     if (this.hasAttr('hidden')) this.removeAttr('hidden');
@@ -801,6 +804,18 @@ export class SVGElement extends Element {
     }
 
     return matrix;
+  }
+
+  /**
+   * @param {Point?} posn
+   * @param {number=} angle
+   * @param {number=} scale
+   */
+  setTransform(posn, angle = 0, scale = 1) {
+    const t1 = posn ? `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` : '';
+    const t2 = angle ? `rotate(${angle * 180 / Math.PI})` : '';
+    const t3 = scale ? `scale(${scale})` : '';
+    this.setAttr('transform', [t1, t2, t3].join(' '));
   }
 
   get strokeLength() {
