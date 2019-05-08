@@ -368,10 +368,11 @@ export class Element {
    * @param {number=} scale
    */
   setTransform(posn, angle = 0, scale = 1) {
-    const t1 = posn ? `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)})px` : '';
-    const t2 = angle ? `rotate(${angle}rad)` : '';
-    const t3 = scale ? `scale(${scale})` : '';
-    this._el.style.transform = [t1, t2, t3].join(' ');
+    let t = '';
+    if (posn) t += `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)}px)`;
+    if (angle) t += ` rotate(${angle}rad)`;
+    if (scale) t += ` scale(${scale})`;
+    this._el.style.transform = t;
   }
 
   /**
