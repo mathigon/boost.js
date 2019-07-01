@@ -878,6 +878,16 @@ export class SVGElement extends Element {
     this.setAttr('y2', q.y);
   }
 
+  /**
+   * @param {Rectangle} rect
+   */
+  setRect(rect) {
+    this.setAttr('x', rect.p.x);
+    this.setAttr('y', rect.p.y);
+    this.setAttr('width', rect.w);
+    this.setAttr('height', rect.h);
+  }
+
   draw(obj, options={}) {
     const attributes = {
       mark: this.attr('mark'),
