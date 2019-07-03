@@ -174,6 +174,6 @@ export function drawSVG(obj, options={}) {
   }
 
   if (type ===  'Rectangle') {
-    return drawPath(obj.polygon.points) + 'Z';
+    return drawPath(...obj.polygon.points) + 'Z';
   }
 }
