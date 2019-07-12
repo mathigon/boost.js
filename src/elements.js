@@ -411,6 +411,14 @@ export class Element {
     }
   }
 
+  toggle(show) {
+    if (show) {
+      this.show();
+    } else {
+      this.hide();
+    }
+  }
+
   transitionEnd(fn) { this.one('transitionend', fn); }
   animationEnd(fn) { this.one('animationend', fn); }
 

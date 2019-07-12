@@ -5,7 +5,7 @@
 
 
 
-import { without, isOneOf, delay } from '@mathigon/core';
+import { without, isOneOf, delay , words} from '@mathigon/core';
 import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
 import {Browser} from "./browser";
@@ -77,7 +77,7 @@ function makeClickOutsideEvent($el) {
   if ($el._events._clickOutside) return;
   $el._events._clickOutside = true;
 
-  Elements.$body.on('click', function(e) {
+  Elements.$body.on('pointerdown', function(e) {
     if (Elements.$(e.target).hasParent($el)) return;
     $el.trigger('clickOutside');
   });
@@ -288,8 +288,8 @@ function checkInside(event, element) {
 }
 
 function makePointerPositionEvents(element) {
-  if (element._data._pointerEvents) return;
-  element._data._pointerEvents = true;
+  if (element._data._pointerPositionEvents) return;
+  element._data._pointerPositionEvents = true;
 
   let parent = element.parent;
   let isInside = null;
@@ -357,14 +357,16 @@ function makeKeyEvent($el) {
 // -----------------------------------------------------------------------------
 // Event Creation
 
+const hasPointerEvents = 'onpointerdown' in document;
+
 const aliases = {
   change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
-  pointerdown: 'mousedown touchstart',
-  pointermove: 'mousemove touchmove',
-  pointerup: 'mouseup touchend',
-  pointercancel: 'touchcancel',
-  pointerstop: 'mouseup touchend touchcancel'
+  pointerdown: hasPointerEvents ? 'pointerdown' : 'mousedown touchstart',
+  pointermove: hasPointerEvents ? 'pointermove' : 'mousemove touchmove',
+  pointerup: hasPointerEvents ? 'pointerup' : 'mouseup touchend',
+  pointercancel: hasPointerEvents ? 'pointercancel' : 'touchcancel',
+  pointerstop: hasPointerEvents ? 'pointerup pointercancel' : 'mouseup touchend touchcancel'
 };
 
 const customEvents = {
@@ -393,7 +395,8 @@ export function createEvent($el, event, fn, options) {
   }
 
   if (event in aliases) {
-    $el.on(aliases[event], fn, options);
+    const events = words(aliases[event]);
+    for (let e of events)  $el._el.addEventListener(e, fn, options);
   } else if (event in customEvents) {
     customEvents[event]($el, fn);
   } else {
@@ -401,14 +404,15 @@ export function createEvent($el, event, fn, options) {
   }
 }
 
-export function removeEvent($el, event, fn, options) {
+export function removeEvent($el, event, fn) {
   if (event in $el._events) $el._events[event] = without($el._events[event], fn);
 
   if (event in aliases) {
-    $el.off(aliases[event], fn, options);
+    const events = words(aliases[event]);
+    for (let e of events)  $el._el.removeEventListener(e, fn);
   } else if (event in customEvents) {
     // TODO Remove custom events.
   } else {
-    $el._el.removeEventListener(event, fn, options);
+    $el._el.removeEventListener(event, fn);
   }
 }

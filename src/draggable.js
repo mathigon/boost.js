@@ -17,6 +17,8 @@ const defaultOptions = {
   useTransform: false,
   margin: 0,
   round: (p => p),
+  width: null,
+  height: null,
   responsive: false  // TODO This should be the default for SVG elements.
 };
 
@@ -29,9 +31,7 @@ export class Draggable extends Evented {
     this.position = new Point(0, 0);
     this.options = applyDefaults(options, defaultOptions);
     this.disabled = false;
-
-    this.width  = this.options.responsive ? $parent.svgWidth : $parent.width;
-    this.height = this.options.responsive ? $parent.svgHeight : $parent.height;
+    this.setDimensions($parent);
 
     let startPosn = null;
     slide($el, {
@@ -55,13 +55,15 @@ export class Draggable extends Evented {
     Browser.resize(() => {
       const oldWidth = this.width;
       const oldHeight = this.height;
-
-      this.width  = this.options.responsive ? $parent.svgWidth : $parent.width;
-      this.height = this.options.responsive ? $parent.svgHeight : $parent.height;
-
+      this.setDimensions($parent);
       this.setPosition(this.position.x * this.width  / oldWidth || 0,
           this.position.y * this.height / oldHeight || 0);
     });
+  }
+
+  setDimensions($parent) {
+    this.width  = this.options.width || (this.options.responsive ? $parent.svgWidth : $parent.width);
+    this.height = this.options.height || (this.options.responsive ? $parent.svgHeight : $parent.height);
   }
 
   setPosition(x, y) {
