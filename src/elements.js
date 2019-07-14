@@ -5,7 +5,7 @@
 
 
 
-import { isOneOf, words, toCamelCase, square, applyDefaults } from '@mathigon/core';
+import { isOneOf, words, square, applyDefaults } from '@mathigon/core';
 import { roundTo, Point, isBetween } from '@mathigon/fermat';
 import { ease, animate, transition, enter, exit, effect } from './animate';
 import { Browser } from './browser';
@@ -331,10 +331,10 @@ export class Element {
         return window.getComputedStyle(this._el).getPropertyValue(props);
       } else {
         const keys = Object.keys(props);
-        for (let p of keys) this._el.style[toCamelCase(p)] = props[p];
+        for (let p of keys) this._el.style.setProperty(p, props[p]);
       }
     } else {
-      this._el.style[toCamelCase(props)] = value;
+      this._el.style.setProperty(props, value);
     }
   }
 
@@ -691,6 +691,28 @@ export class Element {
     let end = preCaretRange.toString().length;
     return [start, end];
   }
+
+  // -------------------------------------------------------------------------
+  // Utilities
+
+  copy(recursive = true, withStyles = true) {
+    const $copy = $(this._el.cloneNode(recursive));
+    if (withStyles) $copy.copyInlineStyles(this, recursive);
+    return $copy;
+  }
+
+  copyInlineStyles($source, recursive = true) {
+    const style = window.getComputedStyle($source._el);
+    for (let s of style) this.css(s, style.getPropertyValue(s));
+
+    if (recursive) {
+      const children = this.children;
+      const sourceChildren = $source.children;
+      for (let i = 0; i < children.length; ++i) {
+        children[i].copyInlineStyles(sourceChildren[i], true);
+      }
+    }
+  }
 }
 
 
@@ -907,22 +929,28 @@ export class SVGElement extends Element {
     this.setAttr('d', drawSVG(obj, applyDefaults(options, attributes)));
   }
 
-  pngImage(size) {
+  pngImage(size = null) {
+    const $copy = this.copy(true, true);
+
+    const data = new XMLSerializer().serializeToString($copy._el);
+    let url = 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
+    url = url.replace('svg ', 'svg xmlns="http://www.w3.org/2000/svg" ');
+    // const svgBlob = new Blob([data], {type: "image/svg+xml;charset=utf-8"});
+    // const url = window.URL.createObjectURL(svgBlob);
+
     const width = size || this.svgWidth;
     const height = size || this.svgHeight;
 
-    const svgString = new XMLSerializer().serializeToString(this._el);
-    let url = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString);
-    url = url.replace('svg ', 'svg xmlns="http://www.w3.org/2000/svg" ');
+    const $canvas = $N('canvas', {width, height});
+    $canvas.ctx.fillStyle = '#fff';
+    $canvas.ctx.fillRect(0, 0, width, height);
 
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const $canvas = $N('canvas', {width, height});
-        $canvas.ctx.fillStyle = '#fff';
-        $canvas.ctx.fillRect(0, 0, width, height);
-        $canvas.ctx.drawImage(img, 0, 0);
+        $canvas.ctx.drawImage(img, 0, 0, width, height);
         resolve($canvas.pngImage);
+        // window.URL.revokeObjectURL(url);
       };
       img.src = url;
     });
