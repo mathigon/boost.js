@@ -893,8 +893,8 @@ export class SVGElement extends Element {
 
   /** @param {Point} c */
   setCenter(c) {
-    this.setAttr('cx', c.x);
-    this.setAttr('cy', c.y);
+    this.setAttr(this.tagName === 'TEXT' ? 'x' : 'cx', c.x);
+    this.setAttr(this.tagName === 'TEXT' ? 'y' : 'cy', c.y);
   }
 
   /**
@@ -932,14 +932,16 @@ export class SVGElement extends Element {
   pngImage(size = null) {
     const $copy = this.copy(true, true);
 
+    const width = size || this.svgWidth;
+    const height = size || this.svgHeight;
+    $copy.setAttr('width', width);
+    $copy.setAttr('height', height);
+
     const data = new XMLSerializer().serializeToString($copy._el);
     let url = 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
     url = url.replace('svg ', 'svg xmlns="http://www.w3.org/2000/svg" ');
     // const svgBlob = new Blob([data], {type: "image/svg+xml;charset=utf-8"});
     // const url = window.URL.createObjectURL(svgBlob);
-
-    const width = size || this.svgWidth;
-    const height = size || this.svgHeight;
 
     const $canvas = $N('canvas', {width, height});
     $canvas.ctx.fillStyle = '#fff';
