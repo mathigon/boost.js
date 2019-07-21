@@ -6,6 +6,7 @@
 
 
 import {defer, delay, total, toCamelCase} from '@mathigon/core';
+import {Browser} from './browser';
 
 // prevent animations on page load
 let isReady = false;
@@ -185,10 +186,11 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
     return transition($el, rules, duration, _delay);
 
   } else if (effect.startsWith('draw')) {
-    const l = $el.strokeLength + 'px';
-    $el.css({opacity: 1, 'stroke-dasharray': l});
-    const start = (effect === 'draw-reverse') ? '-' + l : l;
-    const rules = {'stroke-dashoffset': [start, 0]};
+    const l = $el.strokeLength;
+    $el.css({opacity: 1, 'stroke-dasharray': l + 'px'});
+    // Note that Safari can't handle negative dash offsets!
+    const end = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
+    const rules = {'stroke-dashoffset': [l + 'px', end]};
     return transition($el, rules, duration, _delay, 'linear')
         .then(() => $el.css('stroke-dasharray', ''));
 
@@ -227,10 +229,10 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
     animation = transition($el, rules, duration, delay);
 
   } else if (effect.startsWith('draw')) {
-    const l = $el.strokeLength + 'px';
+    const l = $el.strokeLength;
     $el.css('stroke-dasharray', l);
-    const end = (effect === 'draw-reverse') ? '-' + l : l;
-    const rules = {'stroke-dashoffset': [0, end]};
+    const start = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
+    const rules = {'stroke-dashoffset': [start, l + 'px']};
     animation = transition($el, rules, duration, delay, 'linear');
 
   } else if (effect.startsWith('slide')) {
