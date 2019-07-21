@@ -303,6 +303,9 @@ export const Browser = {
   /** @type {boolean} */
   isIOS: /iphone|ipad|ipod/i.test(ua),
 
+  /** @type {boolean} */
+  isSafari: /^((?!chrome|android).)*safari/i.test(ua),
+
   redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, replaceSvgImports,
 
   on: browserEvents.on.bind(browserEvents),
