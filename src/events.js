@@ -5,10 +5,11 @@
 
 
 
-import { without, isOneOf, delay , words} from '@mathigon/core';
+import { without, delay , words} from '@mathigon/core';
 import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
 import {Browser} from "./browser";
+import {$} from "./elements";
 
 
 // -----------------------------------------------------------------------------
@@ -40,6 +41,14 @@ export function canvasPointerPosition(event, $el) {
   const x = (posn.x - bounds.left) * $el._el.width / bounds.width;
   const y = (posn.y - bounds.top) * $el._el.height / bounds.height;
   return new Point(x, y);
+}
+
+export function getEventTarget(event) {
+  // Note: iOS does not correctly update the event.target for touchmove
+  // events that started on a different element.
+  if (!Browser.isIOS) return $(event.target);
+  const posn = pointerPosition(event);
+  return $(document.elementFromPoint(posn.x, posn.y));
 }
 
 
@@ -281,12 +290,6 @@ function makeIntersectionEvents($el) {
 // -----------------------------------------------------------------------------
 // Pointer Events
 
-function checkInside(event, element) {
-  let c = pointerPosition(event);
-  let current = document.elementFromPoint(c.x, c.y);
-  return isOneOf(element._el, current, current.parentNode, current.parentNode.parentNode);
-}
-
 function makePointerPositionEvents(element) {
   if (element._data._pointerPositionEvents) return;
   element._data._pointerPositionEvents = true;
@@ -299,7 +302,7 @@ function makePointerPositionEvents(element) {
 
   parent.on('pointermove', function (e) {
     let wasInside = isInside;
-    isInside = checkInside(e, element);
+    isInside = getEventTarget(e).hasParent(element);
     if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);
     if (!isInside && wasInside) element.trigger('pointerleave', e);
   });
