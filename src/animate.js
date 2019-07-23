@@ -6,7 +6,6 @@
 
 
 import {defer, delay, total, toCamelCase} from '@mathigon/core';
-import {Browser} from './browser';
 
 // prevent animations on page load
 let isReady = false;
