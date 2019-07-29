@@ -41,6 +41,10 @@ export class Element {
     return this._el.tagName.toUpperCase();
   }
 
+  equals(el) {
+    return this._el === el._el;
+  }
+
   getModel() {
     if (!this.parent) return null;
     return this.parent.model || this.parent.getModel() || observable();

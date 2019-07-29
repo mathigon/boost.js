@@ -296,13 +296,13 @@ function makePointerPositionEvents(element) {
 
   let parent = element.parent;
   let isInside = null;
-  parent.on('pointerend', function () {
-    isInside = null;
-  });
 
-  parent.on('pointermove', function (e) {
+  parent.on('pointerend', () => isInside = null);
+
+  parent.on('pointermove', (e) => {
     let wasInside = isInside;
-    isInside = getEventTarget(e).hasParent(element);
+    const target = getEventTarget(e);
+    isInside = target.equals(element) || target.hasParent(element);
     if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);
     if (!isInside && wasInside) element.trigger('pointerleave', e);
   });
