@@ -44,9 +44,9 @@ export function canvasPointerPosition(event, $el) {
 }
 
 export function getEventTarget(event) {
-  // Note: iOS does not correctly update the event.target for touchmove
-  // events that started on a different element.
-  if (!Browser.isIOS) return $(event.target);
+  // Only pointer mouse events update the target for move events that started
+  // on a different element.
+  if (event.pointerType === 'mouse') return $(event.target);
   const posn = pointerPosition(event);
   return $(document.elementFromPoint(posn.x, posn.y));
 }
