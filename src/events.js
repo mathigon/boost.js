@@ -9,11 +9,13 @@ import { without, delay , words} from '@mathigon/core';
 import { Point } from '@mathigon/fermat';
 import * as Elements from './elements';
 import {Browser} from "./browser";
-import {$} from "./elements";
 
 
 // -----------------------------------------------------------------------------
 // Utilities
+
+const touchSupport = ('ontouchstart' in window);
+const pointerSupport = ('onpointerdown' in window);
 
 export function pointerPosition(e) {
   if ('touches' in e) {
@@ -46,9 +48,9 @@ export function canvasPointerPosition(event, $el) {
 export function getEventTarget(event) {
   // Only pointer mouse events update the target for move events that started
   // on a different element.
-  if (event.pointerType === 'mouse') return $(event.target);
+  if (event.pointerType === 'mouse') return Elements.$(event.target);
   const posn = pointerPosition(event);
-  return $(document.elementFromPoint(posn.x, posn.y));
+  return Elements.$(document.elementFromPoint(posn.x, posn.y));
 }
 
 
@@ -67,7 +69,7 @@ function makeClickEvent($el) {
   let start;
 
   $el._el.addEventListener('touchstart', function(e) {
-    if (e.touches.length == 1) start = pointerPosition(e);
+    if (e.touches.length === 1) start = pointerPosition(e);
   });
 
   $el._el.addEventListener('touchend', function(e){
@@ -87,8 +89,9 @@ function makeClickOutsideEvent($el) {
   $el._events._clickOutside = true;
 
   Elements.$body.on('pointerdown', function(e) {
-    if (Elements.$(e.target).hasParent($el)) return;
-    $el.trigger('clickOutside');
+    const $target = Elements.$(e.target);
+    if ($target.equals($el) || $target.hasParent($el)) return;
+    $el.trigger('clickOutside', e);
   });
 }
 
@@ -313,17 +316,17 @@ function makePointerPositionEvents(element) {
 // Mouse Events
 // On touch devices, mouse events are emulated. We don't want that!
 
-let touchEnabled = false;
-document.addEventListener('touchstart', () => touchEnabled = true);
-
 function makeMouseEvent(eventName, $el) {
   if ($el._events['_' + eventName]) return;
   $el._events['_' + eventName] = true;
 
-  $el._el.addEventListener(eventName, function(e) {
-    // TODO Support devices with both touch and mouse (e.pointerType == 'mouse')
-    if (!touchEnabled) $el.trigger(eventName, e);
-  });
+  if (pointerSupport) {
+    $el.on(event, (e) => {
+      if (e.pointerType === 'mouse') $el.trigger(eventName, e);
+    })
+  } else if (!touchSupport) {
+    $el._el.addEventListener(eventName, (e) => $el.trigger(eventName, e));
+  }
 }
 
 
@@ -360,16 +363,14 @@ function makeKeyEvent($el) {
 // -----------------------------------------------------------------------------
 // Event Creation
 
-const hasPointerEvents = 'onpointerdown' in document;
-
 const aliases = {
   change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
-  pointerdown: hasPointerEvents ? 'pointerdown' : 'mousedown touchstart',
-  pointermove: hasPointerEvents ? 'pointermove' : 'mousemove touchmove',
-  pointerup: hasPointerEvents ? 'pointerup' : 'mouseup touchend',
-  pointercancel: hasPointerEvents ? 'pointercancel' : 'touchcancel',
-  pointerstop: hasPointerEvents ? 'pointerup pointercancel' : 'mouseup touchend touchcancel'
+  pointerdown: pointerSupport ? 'pointerdown' : touchSupport ? 'touchstart' : 'mousedown',
+  pointermove: pointerSupport ? 'pointermove' : touchSupport ? 'touchmove' : 'mousemove',
+  pointerup: pointerSupport ? 'pointerup' : touchSupport ?  'touchend' : 'mouseup',
+  pointercancel: pointerSupport ? 'pointercancel' : 'touchcancel',
+  pointerstop: pointerSupport ? 'pointerup pointercancel' : touchSupport ? 'touchend touchcancel' : 'mouseup'
 };
 
 const customEvents = {
@@ -399,6 +400,7 @@ export function createEvent($el, event, fn, options) {
 
   if (event in aliases) {
     const events = words(aliases[event]);
+    // Note that the mouse event aliases don't pass through makeMouseEvent()!
     for (let e of events)  $el._el.addEventListener(e, fn, options);
   } else if (event in customEvents) {
     customEvents[event]($el, fn);
