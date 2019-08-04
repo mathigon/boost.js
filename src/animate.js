@@ -6,6 +6,7 @@
 
 
 import {defer, delay, total, toCamelCase} from '@mathigon/core';
+import {Browser} from './browser';
 
 // prevent animations on page load
 let isReady = false;
@@ -101,12 +102,22 @@ export function ease(type, t = 0, s = 0) {
 
 export function transition($el, properties, duration=400, _delay=0, easing='ease-in-out') {
   if (!isReady) {
-    Object.keys(properties).forEach(k => { let p = properties[k]; $el.css(k, Array.isArray(p) ? p[1] : p); });
+    Object.keys(properties).forEach(k => {
+      let p = properties[k];
+      $el.css(k, Array.isArray(p) ? p[1] : p);
+    });
     return Promise.resolve();
   }
 
   if (easing === 'bounce-in') easing = BOUNCE_IN;
   if (easing === 'bounce-out') easing = BOUNCE_OUT;
+
+  let oldTransition = null;
+  if (Browser.isSafari) {
+    oldTransition = $el._el.style.transition;
+    $el.css('transition', 'none');
+    Browser.redraw();
+  }
 
   // Cancel any previous animations
   if ($el._data._animation) $el._data._animation.cancel();
@@ -137,6 +148,7 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
     player = $el._el.animate([from, to], {duration, easing, fill: 'forwards'});
     player.onfinish = function(e) {
       if ($el._el) Object.keys(properties).forEach(k => $el.css(k, k === 'height' ? oldHeight : to[k]));
+      if (Browser.isSafari) $el.css('transition', oldTransition || '');
       deferred.resolve(e);
       player.cancel();  // bit ugly, but needed for Safari...
     };
