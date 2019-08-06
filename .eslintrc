@@ -19,3 +19,4 @@ rules:
     - 2
     - argsIgnorePattern: ^_
   no-useless-escape: 0
+  prefer-const: 1

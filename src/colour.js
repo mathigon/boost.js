@@ -33,38 +33,45 @@ function pad2(str) {
 // Gets the colour of a multi-step gradient at a given percentage p
 function getColourAt(gradient, p) {
   p = clamp(p, 0, 0.9999);  // FIXME
-  let r = Math.floor(p * (gradient.length - 1));
-  let q = p * (gradient.length - 1) - r;
+  const r = Math.floor(p * (gradient.length - 1));
+  const q = p * (gradient.length - 1) - r;
   return Colour.mix(gradient[r + 1], gradient[r], q);
 }
 
 
+/**
+ * Colour generation and conversion class.
+ */
 export class Colour {
 
   // -------------------------------------------------------------------------
-  // Static Colours
+  // Gradients
 
-  static get red()    { return '#D90000'; }
-  static get orange() { return '#F15A24'; }
-  static get yellow() { return '#edd200'; }
-  static get lime()   { return '#b2d300'; }
-  static get green()  { return '#00B200'; }
-  static get cyan()   { return '#29ABE2'; }
-  static get blue()   { return '#006DD9'; }
-  static get violet() { return '#662D91'; }
-  static get purple() { return '#9d0069'; }
-  static get pink()   { return '#ED1E79'; }
-
+  /**
+   * Generates a rainbow gradient with a given number of steps.
+   * @param {number} steps
+   * @returns {Colour[]}
+   */
   static rainbow(steps) {
     return tabulate(x => getColourAt(rainbow, x/(steps-1)), steps);
   }
 
+  /**
+   * Generates a temperature gradient with a given number of steps.
+   * @param {number} steps
+   * @returns {Colour[]}
+   */
   static temperature(steps) {
-    let scale = clamp(0.1 * steps, 0, 1);
+    const scale = clamp(0.1 * steps, 0, 1);
     return tabulate(function(x) {
       return getColourAt(temperature, (1-scale)/2 + scale*x/(steps-1) ); }, steps);
   }
 
+  /**
+   * Generates a solar gradient with a given number of steps.
+   * @param {number} steps
+   * @returns {Colour[]}
+   */
   static solar(steps) {
     return tabulate(x => getColourAt(solar, x/(steps-1)), steps);
   }
@@ -73,6 +80,12 @@ export class Colour {
   // -------------------------------------------------------------------------
   // Constructor Functions
 
+  /**
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   * @param {number=} a
+   */
   constructor(r, g, b, a = 1) {
     this.r = r;
     this.g = g;
@@ -80,12 +93,17 @@ export class Colour {
     this.a = a;
   }
 
+  /**
+   * Creates a Colour instance from a hex string.
+   * @param {string} hex
+   * @returns {Colour}
+   */
   static fromHex(hex) {
     hex = hex.replace(shortHexRegex, function(m, r, g, b) {
       return r + r + g + g + b + b;
     });
 
-    let rgbParts = longHexRegex.exec(hex);
+    const rgbParts = longHexRegex.exec(hex);
     if (!rgbParts) return new Colour(0,0,0);
 
     return new Colour(
@@ -95,8 +113,13 @@ export class Colour {
     );
   }
 
+  /**
+   * Creates a Colour instance from an rgb or rgba CSS string.
+   * @param {string} rgb
+   * @returns {Colour}
+   */
   static fromRgb(rgb) {
-    let c = rgb.replace(/rgba?\(/,'').replace(')','').split(',');
+    const c = rgb.replace(/rgba?\(/,'').replace(')','').split(',');
 
     return new Colour(
       +c[0],
@@ -110,31 +133,43 @@ export class Colour {
   // -------------------------------------------------------------------------
   // Properties
 
+  /**
+   * Converts this colour to a hex string.
+   * @returns {string}
+   */
   get hex() {
-    let c = [this.r, this.g, this.b].map(x => pad2(Math.round(x).toString(16)));
+    const c = [this.r, this.g, this.b].map(x => pad2(Math.round(x).toString(16)));
     return '#' + c.join('');
   }
 
+  /**
+   * Converts this colour to an rgba string.
+   * @returns {string}
+   */
   get rgb() {
-    let c = [this.r, this.g, this.b].map(x => Math.round(x)).join(',');
+    const c = [this.r, this.g, this.b].map(x => Math.round(x)).join(',');
     return 'rgba(' + c + ',' + this.a + ')';
   }
 
+  /**
+   * Converts this colour to an hsl string.
+   * @returns {string}
+   */
   get hsl() {
-    let r = this.r / 255;
-    let g = this.g / 255;
-    let b = this.b / 255;
+    const r = this.r / 255;
+    const g = this.g / 255;
+    const b = this.b / 255;
 
-    let max = Math.max(r, g, b);
-    let min = Math.min(r, g, b);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
 
     let h, s;
-    let l = (max + min) / 2;
+    const l = (max + min) / 2;
 
     if (max === min) {
       h = s = 0; // achromatic
     } else {
-      let d = max - min;
+      const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
       switch(max){
         case r: h = (g - b) / d + (g < b ? 6 : 0); break;
@@ -151,6 +186,10 @@ export class Colour {
     return this.rgb;
   }
 
+  /**
+   * Creates a copy of this colour.
+   * @returns {Colour}
+   */
   copy() {
     return new Colour(this.r, this.g, this.b, this.a);
   }
@@ -159,6 +198,13 @@ export class Colour {
   // -------------------------------------------------------------------------
   // Operations
 
+  /**
+   * Linearly interpolates two colours or hex strings.
+   * @param {Colour|string} c1
+   * @param {Colour|string} c2
+   * @param {number} p
+   * @returns {Colour}
+   */
   static mix(c1, c2, p = 0.5) {
     p = clamp(p, 0, 1);
 

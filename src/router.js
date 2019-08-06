@@ -7,7 +7,6 @@
 
 /* global ga */
 import { noop, run, zip, Evented } from '@mathigon/core';
-import * as Ajax from './ajax';
 import { Browser } from './browser';
 import { $body } from './elements';
 
@@ -16,7 +15,7 @@ import { $body } from './elements';
 // Utilities
 
 function getViewParams(url, view) {
-  let match = view.regex.exec(url);
+  const match = view.regex.exec(url);
   if (match) {
     match.shift();
     return zip(view.params, match);
@@ -67,10 +66,10 @@ function onLinkClick(e) {
   if (el.hasAttribute('download') || el.getAttribute('rel') === 'external') return;
 
   // Check for mailto: in the href
-  let link = el.getAttribute('href');
+  const link = el.getAttribute('href');
   if (link && link.indexOf('mailto:') > -1) return;
 
-  let success = this.goTo(el.pathname + el.search, el.hash);
+  const success = this.goTo(el.pathname + el.search, el.hash);
   if (success) e.preventDefault();
 }
 
@@ -96,9 +95,15 @@ function renderView(router, view, template, params) {
   }, 350);
 }
 
+function loadUrl(src) {
+  // Append a query string to only load the body of the page, not the header.
+  return fetch(src + (src.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1'))
+      .then(response => response.text());
+}
+
 function loadView(router, view, params = {}, url = '') {
   router.$viewport.css({ opacity: 0.4, 'pointer-events': 'none' });
-  let template = run(view.template, params) || Ajax.get(url);
+  const template = run(view.template, params) || loadUrl(url);
 
   if (template.then) {
     template.then(response => renderView(router, view, response, params));
@@ -145,14 +150,14 @@ class _Router extends Evented {
 
     // TODO case insensitive, trailing slashes, more options
     // TODO error on multiple matching views
-    let params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
-    let regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') + '\\/?';
-    let regex = new RegExp('^' + regexStr + '$');
+    const params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
+    const regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') + '\\/?';
+    const regex = new RegExp('^' + regexStr + '$');
 
-    let thisView = { regex, params, enter, exit, template };
+    const thisView = { regex, params, enter, exit, template };
     this.views.push(thisView);
 
-    let viewParams = getViewParams(window.location.pathname, thisView);
+    const viewParams = getViewParams(window.location.pathname, thisView);
     if (!viewParams) return;
 
     this.active = { path: window.location.pathname, hash: window.location.hash, index: 0 };
@@ -175,8 +180,8 @@ class _Router extends Evented {
   }
 
   getView(path) {
-    for (let view of this.views) {
-      let params = getViewParams(path, view);
+    for (const view of this.views) {
+      const params = getViewParams(path, view);
       if (params) return { view, params };
     }
   }
@@ -186,7 +191,7 @@ class _Router extends Evented {
   // Navigation Functions
 
   load(path, hash = '') {
-    let go = this.getView(path);
+    const go = this.getView(path);
 
     if (path === this.active.path && hash !== this.active.hash) {
       console.info('[boost] Routing to ' + path + hash);
@@ -212,7 +217,7 @@ class _Router extends Evented {
 
   goToState(state) {
     if (!state || !state.path) return;
-    let change = this.load(state.path, state.hash);
+    const change = this.load(state.path, state.hash);
 
     if (change && state.index < this.active.index) this.trigger('back');
     if (change && state.index > this.active.index) this.trigger('forward');
@@ -221,9 +226,9 @@ class _Router extends Evented {
 
 
   goTo(path, hash = '') {
-    let success = this.load(path, hash);
+    const success = this.load(path, hash);
     if (success) {
-      let index = (this.active ? this.active.index + 1 : 0);
+      const index = (this.active ? this.active.index + 1 : 0);
       this.active = { path, hash, index };
       window.history.pushState(this.active, '', path + hash);
     }

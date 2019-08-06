@@ -18,30 +18,30 @@ function applyTemplate(el, options) {
   if (options.template) {
     el.innerHTML = options.template;
   } else if (options.templateId) {
-    let template = document.querySelector(options.templateId);
+    const template = document.querySelector(options.templateId);
     if (!template) throw new Error('Template not found:', options.templateId);
     while(el.firstChild) el.removeChild(el.firstChild);
-    let clone = document.importNode(template.content, true);
+    const clone = document.importNode(template.content, true);
     el.appendChild(clone);
   }
 
   if (!children.length) return;
   const defaultSlot = el.querySelector('slot:not([name])');
 
-  for (let child of children) {
-    let name = child.getAttribute ? child.getAttribute('slot') : null;
-    let slot = name ? el.querySelector(`slot[name="${name}"]`) : defaultSlot;
+  for (const child of children) {
+    const name = child.getAttribute ? child.getAttribute('slot') : null;
+    const slot = name ? el.querySelector(`slot[name="${name}"]`) : defaultSlot;
     if (slot) slot.parentNode.insertBefore(child, slot);
   }
 
-  for (let slot of el.querySelectorAll('slot')) {
+  for (const slot of el.querySelectorAll('slot')) {
     slot.parentNode.removeChild(slot);
   }
 }
 
 function customElementChildren(el) {
   const result = [];
-  for (let c of Array.from(el.children)) {
+  for (const c of Array.from(el.children)) {
     if (c.tagName.startsWith('X-')) {
       result.push(c);
     } else {
@@ -79,7 +79,7 @@ class CustomHTMLElement extends HTMLElement {
 
     // Select all unresolved custom element children
     // TODO improve performance
-    let promises = customElementChildren(this).filter(c => !c._isReady)
+    const promises = customElementChildren(this).filter(c => !c._isReady)
       .map(c => new Promise(resolve => c.addEventListener('_ready', resolve)));
 
     // TODO run ready() synchronously, if promises.length == 0
@@ -99,11 +99,22 @@ class CustomHTMLElement extends HTMLElement {
   }
 }
 
+/**
+ * Base class for custom HTML elements. In addition to other custom methods,
+ * it can implement `created()` and `ready()` methods that are executed during
+ * the element lifecycle.
+ */
 export class CustomElement extends Element {
   created() {}
   ready() {}
 }
 
+/**
+ * Registers a new custom HTML element.
+ * @param {string} tagName
+ * @param {CustomElement} ElementClass
+ * @param {{attributes, template, templateId}} options
+ */
 export function registerElement(tagName, ElementClass, options={}) {
   // Every class can only be used once as custom element,
   // so we have to make a copy.

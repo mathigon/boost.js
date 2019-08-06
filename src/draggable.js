@@ -22,8 +22,33 @@ const defaultOptions = {
   responsive: false  // TODO This should be the default for SVG elements.
 };
 
+
+/**
+ * A draggable HTML element.
+ * @emits {void} Draggable#start when the user starts dragging this element.
+ * @emits {Point} Draggable#drag while the user is dragging this element.
+ * @emits {void} Draggable#click when the user clicks on the this element.
+ * @emits {void} Draggable#end after the user stops dragging this element.
+ * @emits {Point} Draggable#move When the position of this element changes.
+ */
 export class Draggable extends Evented {
 
+  /**
+   * @param {Element} $el
+   * @param {Element} $parent
+   * @param {Object} options
+   * @param {boolean=} options.moveX Whether it is draggable along the x-axis.
+   * @param {boolean=} options.moveY Whether it is draggable along the y-axis.
+   * @param {number=} options.snap Interval for snapping (in px)
+   * @param {boolean=} options.useTransform Whether to use CSS transforms rather
+   *                   than `left` and `right`.
+   * @param {number=} options.margin Margin within the `$parent` element.
+   * @param {Function=} options.round Custom rounding function.
+   * @param {number=} options.width Override `$parent` width.
+   * @param {number=} options.height Override `$parent` height.
+   * @param {boolean=} options.responsive Whether to use the intrinsic svgWidth
+   *                   and svgHeight when positioning the element.
+   */
   constructor($el, $parent, options={}) {
     super();
 
@@ -61,11 +86,17 @@ export class Draggable extends Evented {
     });
   }
 
+  /** @private */
   setDimensions($parent) {
     this.width  = this.options.width || (this.options.responsive ? $parent.svgWidth : $parent.width);
     this.height = this.options.height || (this.options.responsive ? $parent.svgHeight : $parent.height);
   }
 
+  /**
+   * Sets the position of the element.
+   * @param {number} x
+   * @param {number} y
+   */
   setPosition(x, y) {
     const m = this.options.margin;
     const p = this.options.round(new Point(x, y)

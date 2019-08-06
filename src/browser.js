@@ -6,7 +6,6 @@
 
 
 import { throttle, Evented, words } from '@mathigon/core';
-import { get } from './ajax';
 import { $, $body } from './elements';
 
 
@@ -29,8 +28,8 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 
 window.addEventListener('resize', () => {
-  let newWidth = window.innerWidth;
-  let newHeight = window.innerHeight;
+  const newWidth = window.innerWidth;
+  const newHeight = window.innerHeight;
 
   if (width === newWidth && height === newHeight) return;
 
@@ -47,7 +46,7 @@ const doResize = throttle(function() {
   browserEvents.trigger('resize', { width, height });
 });
 
-export function resize(fn = null) {
+function resize(fn = null) {
   if (fn) {
     fn({ width, height });
     browserEvents.on('resize', fn);
@@ -60,20 +59,20 @@ export function resize(fn = null) {
 // -----------------------------------------------------------------------------
 // Load Events
 
-let loadQueue = [];
+const loadQueue = [];
 let loaded = false;
 
 function afterLoad() {
   if (loaded) return;
   loaded = true;
-  for (let fn of loadQueue) fn();
+  for (const fn of loadQueue) fn();
   setTimeout(resize);
 }
 
 window.onload = afterLoad;
 document.addEventListener('DOMContentLoaded', afterLoad);
 
-export function ready(fn) {
+function ready(fn) {
   if (loaded) {
     fn();
   } else {
@@ -83,57 +82,30 @@ export function ready(fn) {
 
 
 // -----------------------------------------------------------------------------
-// CSS
+// Cookies
+// TODO Refactor this!
 
-export function cssTimeToNumber(cssTime) {
-  let regex = /^([\-\+]?[0-9]+(\.[0-9]+)?)(m?s)$/;
-  let matches = regex.exec(cssTime.trim());
-  if (matches === null) return null;
-  return (+matches[1]) * (matches[3] === 's' ? 1000 : 1);
-}
-
-export function addCSS(css) {
-  let style = document.createElement('style');
-  style.type = 'text/css';
-  style.innerHTML = css;
-  document.head.appendChild(style);
-}
-
-export function addCSSRule(selector, rules) {
-  let css = document.styleSheets[document.styleSheets.length-1];
-  let index = css.cssRules.length - 1;
-  if(css.insertRule) {
-    css.insertRule(selector + '{' + rules + '}', index);
-  } else {
-    css.addRule(selector, rules, index);
-  }
-}
-
-
-// -----------------------------------------------------------------------------
-// Cookies TODO
-
-export function getCookies() {  // FIXME
-  let pairs = document.cookie.split(';');
-  let result = {};
+function getCookies() {
+  const pairs = document.cookie.split(';');
+  const result = {};
   for (let i = 0, n = pairs.length; i < n; ++i) {
-    let pair = pairs[i].split('=');
+    const pair = pairs[i].split('=');
     pair[0] = pair[0].replace(/^\s+|\s+$/, '');
     result[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
   }
   return result;
 }
 
-export function getCookie(name) {
-  let v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
+function getCookie(name) {
+  const v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
   return v ? v[2] : null;
 }
 
-export function setCookie(name, value, maxAge = 60 * 60* 24 * 365) {
+function setCookie(name, value, maxAge = 60 * 60* 24 * 365) {
   document.cookie = name + '=' + value + ';path=/;max-age=' + maxAge;
 }
 
-export function deleteCookie(name) {
+function deleteCookie(name) {
   setCookie(name, '', -1);
 }
 
@@ -143,9 +115,9 @@ export function deleteCookie(name) {
 
 const STORAGE_KEY = '_M';
 
-export function setStorage(key, value) {
-  let keys = (key||'').split('.');
-  let storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
+function setStorage(key, value) {
+  const keys = (key||'').split('.');
+  const storage = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
   let path = storage;
 
   for (let i=0; i<keys.length-1; ++i) {
@@ -157,21 +129,21 @@ export function setStorage(key, value) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
 }
 
-export function getStorage(key) {
+function getStorage(key) {
   let path = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
   if (!key) return path;
 
   const keys = (key||'').split('.');
   const lastKey = keys.pop();
 
-  for (let k of keys) {
+  for (const k of keys) {
     if (!(k in path)) return null;
     path = path[k];
   }
   return path[lastKey]
 }
 
-export function deleteStorage(key) {
+function deleteStorage(key) {
   if (key) {
     setStorage(key, null);
   } else {
@@ -183,7 +155,7 @@ export function deleteStorage(key) {
 // -----------------------------------------------------------------------------
 // Keyboard Events
 
-const keyCodes = {
+export const KEY_CODES = {
   backspace: 8,
   tab: 9,
   enter: 13,
@@ -206,16 +178,16 @@ const keyCodes = {
   'delete': 46
 };
 
-export function activeInput() {
-  let active = document.activeElement;
+function activeInput() {
+  const active = document.activeElement;
   return active === document.body ? undefined : $(active);
 }
 
 // Executes fn if any one of [keys] is pressed
-export function onKey(keys, fn) {
-  keys = words(keys).map(k => keyCodes[k] || k);
+function onKey(keys, fn) {
+  keys = words(keys).map(k => KEY_CODES[k] || k);
   document.addEventListener('keydown', function(e) {
-    let $active = activeInput();
+    const $active = activeInput();
     if ($active && $active.is('input, textarea, [contenteditable]')) return;
     if (keys.indexOf(e.keyCode) >= 0) fn(e);
   });
@@ -238,26 +210,26 @@ const requests = {};
 function replaceSvgImports() {
   if (!polyfill) return;
 
-  let uses = Array.from(document.querySelectorAll('svg > use'));
+  const uses = Array.from(document.querySelectorAll('svg > use'));
   uses.forEach(function(use) {
-    let src = use.getAttribute('xlink:href');
-    let [url, id] = src.split('#');
-    if (!url.length) return;
+    const src = use.getAttribute('xlink:href');
+    const [url, id] = src.split('#');
+    if (!url.length || !id) return;
 
-    let svg = use.parentNode;
+    const svg = use.parentNode;
     svg.removeChild(use);
 
-    if (!(url in requests)) requests[url] = get(url);
-    let request = requests[url];
+    if (!(url in requests)) requests[url] = fetch(url).then(r => r.text());
+    const request = requests[url];
 
     request.then(function(response) {
-      let doc = document.implementation.createHTMLDocument('');
+      const doc = document.implementation.createHTMLDocument('');
       doc.documentElement.innerHTML = response;
 
-      let icon = doc.getElementById(id);
-      let clone = icon.cloneNode(true);
+      const icon = doc.getElementById(id);
+      const clone = icon.cloneNode(true);
 
-      let fragment = document.createDocumentFragment();
+      const fragment = document.createDocumentFragment();
       while (clone.childNodes.length) fragment.appendChild(clone.firstChild);
       svg.appendChild(fragment);
     });
@@ -268,9 +240,9 @@ function replaceSvgImports() {
 // -----------------------------------------------------------------------------
 // Visibility API
 
-let isOldWebkit = !('hidden' in document) && ('webkitHidden' in document);
-let visibilityProperty = isOldWebkit ? 'webkitHidden' : 'hidden';
-let visibilityEvent = isOldWebkit ? 'webkitvisibilitychange' : 'visibilitychange';
+const isOldWebkit = !('hidden' in document) && ('webkitHidden' in document);
+const visibilityProperty = isOldWebkit ? 'webkitHidden' : 'hidden';
+const visibilityEvent = isOldWebkit ? 'webkitvisibilitychange' : 'visibilitychange';
 
 document.addEventListener(visibilityEvent, function() {
   browserEvents.trigger(document[visibilityProperty] ? 'focus' : 'blur');
@@ -280,6 +252,7 @@ document.addEventListener(visibilityEvent, function() {
 // -----------------------------------------------------------------------------
 // Exports
 
+/** Browser utilities class. */
 export const Browser = {
   /** @type {boolean} */
   isMobile: mobileRegex.test(ua),
@@ -306,27 +279,84 @@ export const Browser = {
   /** @type {boolean} */
   isSafari: /^((?!chrome|android).)*safari/i.test(ua),
 
-  redraw, ready, resize, cssTimeToNumber, addCSS, addCSSRule, replaceSvgImports,
+  /** Forces a re-paint. This is useful when updating transition properties. */
+  redraw,
+
+  /**
+   * Binds an event listener that is fired when the page has finished loading.
+   * @param {Function} callback
+   */
+  ready,
+
+  /**
+   * Binds a throttled event listener that is fired when the browser is resized.
+   * @param {Function} callback
+   */
+  resize,
+
+  /**
+   * Replaces SVG `<use>` imports that are not supported by older browsers.
+   */
+  replaceSvgImports,
 
   on: browserEvents.on.bind(browserEvents),
+
   off: browserEvents.off.bind(browserEvents),
+
   trigger: browserEvents.trigger.bind(browserEvents),
 
+  /**
+   * The current width of the Browser window.
+   * @returns {number}
+   */
   get width()  { return width; },
+
+  /**
+   * The current height of the Browser window.
+   * @returns {number}
+   */
   get height() { return height; },
 
+  /**
+   * Returns the hash string of the current window.
+   * @returns {string}
+   */
   get hash() { return window.location.hash.slice(1); },
+
+  /**
+   * Set the hash string of the current window.
+   * @param {string} h
+   */
   set hash(h) {
     // prevent scroll to top when resetting hash
-    let scroll = document.body.scrollTop;
+    const scroll = document.body.scrollTop;
     window.location.hash = h;
     document.body.scrollTop = scroll;
   },
 
+  /**
+   * Returns a JSON object of all cookies.
+   * @returns {Object.<string,string>}
+   */
   get cookies() { return getCookies(); },
-  getCookie, setCookie, deleteCookie,
-  setStorage, getStorage, deleteStorage,
 
+  getCookie,
+  setCookie,
+  deleteCookie,
+  setStorage,
+  getStorage,
+  deleteStorage,
+
+  /**
+   * The current active element on the page (e.g. and `<input>`).
+   * @returns {Element}
+   */
   get activeInput() { return activeInput(); },
-  keyCodes, onKey
+
+  /**
+   * Binds an event listener that is fired when a key is pressed.
+   * @param {string} keys Multiple space-separated keys,
+   * @param {Function} callback
+   */
+  onKey
 };

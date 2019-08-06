@@ -8,22 +8,29 @@
 import { defer, isString } from '@mathigon/core';
 
 
-// fn has to be a single function with no external references or bindings
-// args has to be a single number or string, or an array or numbers and strings
+/**
+ * Executes a function in a separate thread, for improved performance. Note that
+ * `fn` has to be a single function with no external references or bindings, so
+ * that it can be stringified using .toString(). Similarly, `args` has to be a
+ * single number or string, or an array or numbers and strings
+ * @param {Function} fn
+ * @param {number|string|Array.<number|string>} args
+ * @param {number=} timeout
+ * @returns {Promise}
+ */
 export function thread(fn, args, timeout = 1000) {
-  let deferred = defer();
-  let start = Date.now();
-
   if (!window.Worker || !window.Blob) {
-    deferred.resolve(fn.apply(null, args));
-    return deferred.promise;
+    return Promise.resolve(fn.apply(null, args));
   }
 
-  let content = 'onmessage = function(e){return postMessage(eval(e.data[0]));}';
-  let blob = new Blob([content], {type: 'application/javascript'});
-  let w = new Worker(URL.createObjectURL(blob));
+  const deferred = defer();
+  const start = Date.now();
 
-  let t = setTimeout(function() {
+  const content = 'onmessage = function(e){return postMessage(eval(e.data[0]));}';
+  const blob = new Blob([content], {type: 'application/javascript'});
+  const w = new Worker(URL.createObjectURL(blob));
+
+  const t = setTimeout(function() {
     w.terminate();
     deferred.reject('Timeout!');
   }, timeout);

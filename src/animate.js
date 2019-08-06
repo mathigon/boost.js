@@ -19,10 +19,22 @@ const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 // -----------------------------------------------------------------------------
 // Simple Animations
 
+/**
+ * Runs an animation. If no duration is provided, the animation will run
+ * indefinitely, and call `callback` with the time since start as first
+ * argument. If a duration is provided, the first callback argument is instead
+ * the proportion of the duration passed (between 0 and 1). The second callback
+ * argument is the time difference since the last animation frame, and the
+ * third callback argument is a `cancel()` function to stop the animation.
+ *
+ * @param {Function} callback
+ * @param {number?} duration
+ * @returns {{cancel, then}}
+ */
 export function animate(callback, duration) {
   if (duration === 0) { callback(); return; }
 
-  let startTime = Date.now();
+  const startTime = Date.now();
   let lastTime = 0;
   let running = true;
 
@@ -84,8 +96,18 @@ function easeIn(type, t, s) {
   }
 }
 
+/**
+ * Applies an easing function to a number `t` between 0 and 1. Options include
+ * `quad`, `cubic`, `quart`, `quint`, `circ`, `sine`, `exp`, `back`, `elastic`,
+ * `swing`, `spring` and `bounce`, optionally followed by `-in` or `-out`. The
+ * `s` parameter is only used by `back` and `elastic` easing.
+ *
+ * @param {string} type Easing type.
+ * @param {number=} t Linear progress between 0 and 1.
+ * @param {number=} s Optional parameter.
+ * @returns {number}
+ */
 export function ease(type, t = 0, s = 0) {
-
   if (t === 0) return 0;
   if (t === 1) return 1;
   type = type.split('-');
@@ -103,7 +125,7 @@ export function ease(type, t = 0, s = 0) {
 export function transition($el, properties, duration=400, _delay=0, easing='ease-in-out') {
   if (!isReady) {
     Object.keys(properties).forEach(k => {
-      let p = properties[k];
+      const p = properties[k];
       $el.css(k, Array.isArray(p) ? p[1] : p);
     });
     return Promise.resolve();
@@ -136,7 +158,7 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
   });
 
   // Special rules for animations to height: auto
-  let oldHeight = to.height;
+  const oldHeight = to.height;
   if (to.height === 'auto') to.height = total($el.children.map($c => $c.outerHeight)) + 'px';
 
   let player;
@@ -265,8 +287,6 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
 // These animations are defined in effects.css:
 // pulse-down, pulse-up, flash, bounce-up, bounce-right
 export function effect(element, name) {
-  element.animationEnd(function(){
-    element.removeClass('effects-' + name);
-  });
+  element.one('animationend', () => element.removeClass('effects-' + name));
   element.addClass('effects-' + name);
 }

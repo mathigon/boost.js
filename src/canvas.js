@@ -29,12 +29,12 @@ export function drawCanvas(ctx, obj, options={}) {
 
   } else if (type ===  'Polygon' || type ===  'Triangle') {
     ctx.moveTo(obj.points[0].x, obj.points[0].y);
-    for (let p of obj.points.slice(1)) ctx.lineTo(p.x, p.y);
+    for (const p of obj.points.slice(1)) ctx.lineTo(p.x, p.y);
     ctx.closePath();
 
   } else if (type ===  'Polyline') {
     ctx.moveTo(obj.points[0].x, obj.points[0].y);
-    for (let p of obj.points.slice(1)) ctx.lineTo(p.x, p.y);
+    for (const p of obj.points.slice(1)) ctx.lineTo(p.x, p.y);
   }
 
   // TODO Support for Line, Ray, Arc, Sector, Angle and Rectangle objects

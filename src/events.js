@@ -17,34 +17,54 @@ import {Browser} from "./browser";
 const touchSupport = ('ontouchstart' in window);
 const pointerSupport = ('onpointerdown' in window);
 
+/**
+ * Gets the pointer position from an event.
+ * @param {Event} e
+ * @returns {Point}
+ */
 export function pointerPosition(e) {
   if ('touches' in e) {
-    let touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
+    const touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
     return new Point(touches[0].clientX, touches[0].clientY);
   } else {
     return new Point(e.clientX, e.clientY);
   }
 }
 
-export function stopEvent(event) {
-  event.preventDefault();
-  event.stopPropagation();
-}
-
+/**
+ * Gets the pointer position from an event triggered on an `<svg>` element, in
+ * the coordinate system of the `<svg>` element.
+ * @param {Event} event
+ * @param {SVGElement} $svg
+ * @returns {Point}
+ */
 export function svgPointerPosn(event, $svg) {
-  let posn = pointerPosition(event);
+  const posn = pointerPosition(event);
   return posn.transform($svg.inverseTransformMatrix);
 }
 
-export function canvasPointerPosition(event, $el) {
+/**
+ * Gets the pointer position from an event triggered on an `<canvas>` element,
+ * in the coordinate system of the `<canvas>` element.
+ * @param {Event} event
+ * @param {SVGElement} $canvas
+ * @returns {Point}
+ */
+export function canvasPointerPosition(event, $canvas) {
   const posn = pointerPosition(event);
-  const bounds = $el.bounds;
+  const bounds = $canvas.bounds;
 
-  const x = (posn.x - bounds.left) * $el._el.width / bounds.width;
-  const y = (posn.y - bounds.top) * $el._el.height / bounds.height;
+  const x = (posn.x - bounds.left) * $canvas.canvasWidth / bounds.width;
+  const y = (posn.y - bounds.top) * $canvas.canvasHeight / bounds.height;
   return new Point(x, y);
 }
 
+/**
+ * Get the target element for an event, including for touch/pointer events
+ * that started on a different element.
+ * @param {Event} event
+ * @returns {Element}
+ */
 export function getEventTarget(event) {
   // Only pointer mouse events update the target for move events that started
   // on a different element.
@@ -74,7 +94,7 @@ function makeClickEvent($el) {
 
   $el._el.addEventListener('touchend', function(e){
     if (!start) return;
-    let end = pointerPosition(e);
+    const end = pointerPosition(e);
     if (Math.abs(end.x - start.x) < 5 && Math.abs(end.y - start.y) < 5) {
       $el.trigger('click', e);
     }
@@ -99,6 +119,10 @@ function makeClickOutsideEvent($el) {
 // -----------------------------------------------------------------------------
 // Slide Events
 
+/**
+ * @param {Element} $el
+ * @param {{start: Function?, move: Function?, end: Function?}} fns
+ */
 export function slide($el, fns) {
   let isAnimating = false;
 
@@ -112,7 +136,7 @@ export function slide($el, fns) {
     posn = (e) => svgPointerPosn(e, $svg);
   }
 
-  let $parent = fns.justInside ? $el : Elements.$body;
+  const $parent = fns.justInside ? $el : Elements.$body;
 
   let startPosn, lastPosn;
 
@@ -170,8 +194,8 @@ function makeScrollEvents($el) {
   let top = null;
 
   function tick() {
-    let newTop = $el.scrollTop;
-    if (newTop == top) { ticking = false; return; }
+    const newTop = $el.scrollTop;
+    if (newTop === top) { ticking = false; return; }
 
     top = newTop;
     $el.trigger('scroll', { top });
@@ -185,7 +209,7 @@ function makeScrollEvents($el) {
   }
 
   // Mouse Events
-  let target = $el instanceof Elements.WindowElement ? window : $el._el;
+  const target = $el instanceof Elements.WindowElement ? window : $el._el;
   target.addEventListener('scroll', scroll);
 
   // Touch Events
@@ -259,7 +283,7 @@ function makeHoverEvent($el, options) {
 let observer;
 
 function intersectionCallback(entries) {
-  for (let e of entries) {
+  for (const e of entries) {
     const event = e.isIntersecting ? 'enterViewport' : 'exitViewport';
     setTimeout(() => Elements.$(e.target).trigger(event));
   }
@@ -273,7 +297,7 @@ function makeIntersectionEvents($el) {
   if (!window.IntersectionObserver) {
     let wasVisible = false;
     Elements.$body.on('scroll', () => {
-      let isVisible = $el.isInViewport;
+      const isVisible = $el.isInViewport;
       if (wasVisible && !isVisible) {
         $el.trigger('exitViewport');
         wasVisible = false;
@@ -297,13 +321,13 @@ function makePointerPositionEvents(element) {
   if (element._data._pointerPositionEvents) return;
   element._data._pointerPositionEvents = true;
 
-  let parent = element.parent;
+  const parent = element.parent;
   let isInside = null;
 
   parent.on('pointerend', () => isInside = null);
 
   parent.on('pointermove', (e) => {
-    let wasInside = isInside;
+    const wasInside = isInside;
     const target = getEventTarget(e);
     isInside = target.equals(element) || target.hasParent(element);
     if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);

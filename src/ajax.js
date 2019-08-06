@@ -5,17 +5,21 @@
 
 
 
-import { defer, deepExtend, throttle, isString, unique } from '@mathigon/core';
-import { $ } from './elements';
+import {deepExtend, throttle, isString, unique} from '@mathigon/core';
 
 
 // -----------------------------------------------------------------------------
 // Helper functions
 
+/**
+ * Converts a JSON object to an HTML query string.
+ * @param {Object} data
+ * @returns {string}
+ */
 export function toQueryString(data) {
-  let pairs = [];
+  const pairs = [];
 
-  for (let key in data) {
+  for (let key of Object.keys(data)) {
     let value = data[key];
     key = encodeURIComponent(key);
     if (value == null) { pairs.push(key); return; }
@@ -29,86 +33,57 @@ export function toQueryString(data) {
   return pairs.join('&');
 }
 
+/**
+ * Converts an HTML query string to JSON object.
+ * @param {string} str
+ * @returns {Object}
+ */
 export function fromQueryString(str) {
   str = str.replace(/^[?,&]/,'');
-  let pairs = decodeURIComponent(str).split('&');
-  let result = {};
+  const pairs = decodeURIComponent(str).split('&');
+  const result = {};
   pairs.forEach(function(pair) {
-    let x = pair.split('=');
+    const x = pair.split('=');
     result[x[0]] = x[1];
   });
   return result;
 }
 
-export function formatResponse(response, type = 'json') {
-  switch(type) {
-    case 'html': {
-      let doc = document.implementation.createHTMLDocument('');
-      doc.documentElement.innerHTML = response;
-      return $(doc);
-    }
-    case 'json':
-      return JSON.parse(response);
-  }
-  return response;
-}
-
 
 // -----------------------------------------------------------------------------
-// Fetchers
+// Request Utilities
 
-export function fetch(type, url, data=null, options={ async: true, cache: true }) {
-  // TODO Use window.fetch() instead.
-
-  let xhr = new XMLHttpRequest();
-  let deferred = defer();
-  let params = '';
-
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState <= 3) return;
-    let status = xhr.status;
-    if ((status >= 200 && status < 300) || status === 304) {
-      deferred.resolve(xhr.responseText);
-    } else {
-      deferred.reject(xhr);
+/**
+ * Asynchronously loads a resource using a POST request. This utility function
+ * automatically form-encodes JSON data and adds a CSRF header.
+ * @param {string} url
+ * @param {Object|string|null} data
+ * @returns {Promise.<string>}
+ */
+export function post(url, data = null) {
+  const options = {
+    method: 'POST',
+    body: !data ? undefined : isString(data) ? data : toQueryString(data),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-CSRF-Token': window.csrfToken || ''
     }
   };
 
-  if (type === 'GET') {
-    url += (url.indexOf('?') >= 0 ? '&xhr=1' : '?xhr=1');
-    if (!options.cache) url += '_cachebust=' + Date.now();
-    if (data) url += toQueryString(data) + '&';
-    xhr.open(type, url, options.async, options.user, options.password);
-
-  } else if (type === 'POST') {
-    xhr.open(type, url, options.async, options.user, options.password);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.setRequestHeader('X-CSRF-Token', window.csrfToken || '');
-    params = isString(data) ? '?' + data : Object.keys(data).map(
-      k => encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
-    ).join('&');
-  }
-
-  xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
-  xhr.send(params);
-  return deferred.promise;
+  return fetch(url, options).then((r) => r.text());
 }
 
-export function get(url, data = null) {
-  return fetch('GET', url, data);
-}
-
-export function post(url, data = null) {
-  return fetch('POST', url, data);
-}
-
+/**
+ * Asynchronously loads and executes a JS script.
+ * @param {string} src
+ * @returns {Promise}
+ */
 export function script(src) {
-  return new Promise(function(resolve, reject) {
-    let el = document.createElement('script');
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
     el.src = src;
     el.onerror = reject;
     el.onload = resolve;
-
     document.head.appendChild(el);  // TODO Needs document!
   });
 }
@@ -117,7 +92,7 @@ export function script(src) {
 // -----------------------------------------------------------------------------
 // Deferred Post
 
-let POST_DATA = new Map();
+const POST_DATA = new Map();
 
 function savePostData(url, data) {
   if (POST_DATA.has(url)) {
@@ -129,12 +104,12 @@ function savePostData(url, data) {
 
 function sendPostData() {
   if (navigator.onLine === false) return;
-  for (let [url, data] of POST_DATA) {
+  for (const [url, data] of POST_DATA) {
     // Remove the POST data immediately, but add it back if the request fails.
     // This means that deferredPost() can be called while an AJAX request is
     // in progress, and the data is not lost.
     POST_DATA.delete(url);
-    fetch('POST', url, {data: JSON.stringify(data)})
+    post(url, {data: JSON.stringify(data)})
         .catch(() => savePostData(url, data));
   }
 }
@@ -143,6 +118,13 @@ const doDeferredPost = throttle(sendPostData, 5000);
 window.addEventListener('online', doDeferredPost);
 window.onbeforeunload = sendPostData;
 
+/**
+ * Utility function to throttle repeated POST requests. A request to the same
+ * URL will be made at most every 5s, and the corresponding data objects will
+ * be deep-merged.
+ * @param {string} url
+ * @param {Object} data
+ */
 export function deferredPost(url, data) {
   savePostData(url, data);
   doDeferredPost();
