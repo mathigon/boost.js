@@ -125,6 +125,7 @@ class _Router extends Evented {
     this.initialise = options.initialise || noop;
     this.noLoad = options.noLoad || false;
 
+    this.search = window.location.search;
     this.views = [];
     this.active = null;
     this.current = '';
@@ -161,7 +162,7 @@ class _Router extends Evented {
     if (!viewParams) return;
 
     this.active = { path: window.location.pathname, hash: window.location.hash, index: 0 };
-    window.history.replaceState(this.active, '', this.active.path + this.active.hash);
+    window.history.replaceState(this.active, '', this.active.path + this.search + this.active.hash);
 
     // The wrappers fix stupid Firefox, which doesn't seem to take its time
     // triggering .createdCallbacks for web components...
@@ -217,7 +218,7 @@ class _Router extends Evented {
 
   goToState(state) {
     if (!state || !state.path) return;
-    const change = this.load(state.path, state.hash);
+    const change = this.load(state.path + this.search, state.hash);
 
     if (change && state.index < this.active.index) this.trigger('back');
     if (change && state.index > this.active.index) this.trigger('forward');
@@ -230,7 +231,7 @@ class _Router extends Evented {
     if (success) {
       const index = (this.active ? this.active.index + 1 : 0);
       this.active = { path, hash, index };
-      window.history.pushState(this.active, '', path + hash);
+      window.history.pushState(this.active, '', path + this.search + hash);
     }
     return success;
   }
