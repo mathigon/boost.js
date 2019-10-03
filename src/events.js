@@ -254,7 +254,7 @@ function makeHoverEvent($el, options) {
       if (!active) return;
       if (options.exit) options.exit();
       active = false;
-    }, options.delay);
+    }, options.exitDelay || options.delay);
   });
 
   const $clickTarget = options.$clickTarget || $el;
