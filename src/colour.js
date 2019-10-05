@@ -14,7 +14,7 @@ const longHexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
 // -----------------------------------------------------------------------------
 // Static Colours (gradients from http://www.sron.nl/~pault/colourschemes.pdf)
 
-const rainbow = ['#31b304', '#1f7aff', '#b30469','#ff941f'];
+const rainbow = ['#22ab24', '#0f82f2', '#cd0e66','#fd8c00'];
 
 const temperature = ['#3D52A1', '#3A89C9', '#77B7E5', '#B4DDF7', '#E6F5FE',
   '#FFFAD2', '#FFE3AA', '#F9BD7E', '#ED875E', '#D24D3E', '#AE1C3E'];
