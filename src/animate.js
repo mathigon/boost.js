@@ -29,7 +29,7 @@ const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
  *
  * @param {Function} callback
  * @param {number?} duration
- * @returns {{cancel, then}}
+ * @returns {{cancel, then, promise}}
  */
 export function animate(callback, duration) {
   if (duration === 0) { callback(); return; }
@@ -53,7 +53,7 @@ export function animate(callback, duration) {
   }
 
   getFrame();
-  return {cancel, then};
+  return {cancel, then, promise: deferred.promise};
 }
 
 
@@ -182,7 +182,8 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
       cancelled = true;
       if ($el._el) Object.keys(properties).forEach(k => $el.css(k, $el.css(k)));
       if (player) player.cancel();
-    }
+    },
+    promise: deferred.promise
   };
 
   // Only allow cancelling of animation in next thread.

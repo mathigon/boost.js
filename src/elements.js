@@ -706,7 +706,7 @@ export class Element {
    * @param {number=} duration
    * @param {number=} delay
    * @param {string=} ease
-   * @returns {{cancel: Function, then: Function}}
+   * @returns {{cancel: Function, then: Function, promise: Promise}}
    */
   animate(rules, duration, delay, ease) {
     return transition(this, rules, duration, delay, ease);
@@ -722,7 +722,7 @@ export class Element {
    * @param {string=} effect
    * @param {number=} duration
    * @param {number=} delay
-   * @returns {{cancel: Function, then: Function}}
+   * @returns {{cancel: Function, then: Function, promise: Promise}}
    */
   enter(effect = 'fade', duration = 500, delay = 0) {
     return enter(this, effect, duration, delay);
@@ -734,7 +734,7 @@ export class Element {
    * @param {number=} duration
    * @param {number=} delay
    * @param {boolean=} remove Whether to the remove the element afterwards.
-   * @returns {{cancel: Function, then: Function}}
+   * @returns {{cancel: Function, then: Function, promise: Promise}}
    */
   exit(effect = 'fade', duration = 500, delay = 0, remove = false) {
     return exit(this, effect, duration, delay, remove);
