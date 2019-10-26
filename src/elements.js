@@ -57,25 +57,25 @@ export class Element {
 
   /** @param {string} className Multiple space-separated classes to add. */
   addClass(className) {
-    if (this.tagName === 'TEXT') return;
+    if (this._el instanceof Text) return;
     for (const c of words(className)) this._el.classList.add(c);
   }
 
   /** @param {string} className Multiple space-separated classes to add. */
   removeClass(className) {
-    if (this.tagName === 'TEXT') return;
+    if (this._el instanceof Text) return;
     for (const c of words(className)) this._el.classList.remove(c);
   }
 
   /** @param {string} className */
   hasClass(className) {
-    if (this.tagName === 'TEXT') return;
+    if (this._el instanceof Text) return;
     return this._el.classList.contains(className);
   }
 
   /** @param {string} className */
   toggleClass(className) {
-    if (this.tagName === 'TEXT') return;
+    if (this._el instanceof Text) return;
     return this._el.classList.toggle(className);
   }
 
