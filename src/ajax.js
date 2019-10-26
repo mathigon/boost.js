@@ -22,7 +22,7 @@ export function toQueryString(data) {
   for (let key of Object.keys(data)) {
     let value = data[key];
     key = encodeURIComponent(key);
-    if (value == null) { pairs.push(key); return; }
+    if (value == null) { pairs.push(key); continue; }
     value = Array.isArray(value) ? value.join(',') : '' + value;
     value = value.replace(/(\r)?\n/g, '\r\n');
     value = encodeURIComponent(value);
@@ -42,7 +42,7 @@ export function fromQueryString(str) {
   str = str.replace(/^[?,&]/,'');
   const pairs = decodeURIComponent(str).split('&');
   const result = {};
-  pairs.forEach(function(pair) {
+  pairs.forEach((pair) => {
     const x = pair.split('=');
     result[x[0]] = x[1];
   });
@@ -110,7 +110,10 @@ function sendPostData() {
     // in progress, and the data is not lost.
     POST_DATA.delete(url);
     post(url, {data: JSON.stringify(data)})
-        .catch(() => savePostData(url, data));
+        .catch((error) => {
+          console.error('Failed to send POST request:', error);
+          savePostData(url, data);
+        });
   }
 }
 
