@@ -345,7 +345,7 @@ function makeMouseEvent(eventName, $el) {
   $el._events['_' + eventName] = true;
 
   if (pointerSupport) {
-    $el.on(event, (e) => {
+    $el.on(eventName.replace('mouse', 'pointer'), (e) => {
       if (e.pointerType === 'mouse') $el.trigger(eventName, e);
     })
   } else if (!touchSupport) {
@@ -425,7 +425,7 @@ export function createEvent($el, event, fn, options) {
   if (event in aliases) {
     const events = words(aliases[event]);
     // Note that the mouse event aliases don't pass through makeMouseEvent()!
-    for (let e of events)  $el._el.addEventListener(e, fn, options);
+    for (const e of events)  $el._el.addEventListener(e, fn, options);
   } else if (event in customEvents) {
     customEvents[event]($el, fn);
   } else {
@@ -438,7 +438,7 @@ export function removeEvent($el, event, fn) {
 
   if (event in aliases) {
     const events = words(aliases[event]);
-    for (let e of events)  $el._el.removeEventListener(e, fn);
+    for (const e of events)  $el._el.removeEventListener(e, fn);
   } else if (event in customEvents) {
     // TODO Remove custom events.
   } else {
