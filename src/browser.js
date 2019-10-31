@@ -184,12 +184,17 @@ function activeInput() {
 }
 
 // Executes fn if any one of [keys] is pressed
-function onKey(keys, fn) {
-  keys = words(keys).map(k => KEY_CODES[k] || k);
-  document.addEventListener('keydown', function(e) {
+function onKey(keys, fn, up = false) {
+  const keyNames = words(keys);
+  const keyCodes = keyNames.map(k => KEY_CODES[k] || k);
+  const event = up ? 'keyup' : 'keydown';
+
+  document.addEventListener(event, function(e) {
     const $active = activeInput();
     if ($active && $active.is('input, textarea, [contenteditable]')) return;
-    if (keys.indexOf(e.keyCode) >= 0) fn(e);
+
+    const i = keyCodes.indexOf(e.keyCode);
+    if (i >= 0) fn(e, keyNames[i]);
   });
 }
 
