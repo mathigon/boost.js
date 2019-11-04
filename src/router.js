@@ -149,11 +149,11 @@ class _Router extends Evented {
 
   view(url, { enter, exit, template } = {}) {
 
-    // TODO case insensitive, trailing slashes, more options
-    // TODO error on multiple matching views
+    // TODO Error on multiple matching views
     const params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
     const regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') + '\\/?';
-    const regex = new RegExp('^' + regexStr + '$');
+    const searchStr = url.includes('?') ? '' : '(\\?.*)?';
+    const regex = new RegExp('^' + regexStr + searchStr + '$', 'i');
 
     const thisView = { regex, params, enter, exit, template };
     this.views.push(thisView);
@@ -161,8 +161,8 @@ class _Router extends Evented {
     const viewParams = getViewParams(window.location.pathname, thisView);
     if (!viewParams) return;
 
-    this.active = { path: window.location.pathname, hash: window.location.hash, index: 0 };
-    window.history.replaceState(this.active, '', this.active.path + this.search + this.active.hash);
+    this.active = { path: window.location.pathname + this.search, hash: window.location.hash, index: 0 };
+    window.history.replaceState(this.active, '', this.active.path + this.active.hash);
 
     // The wrappers fix stupid Firefox, which doesn't seem to take its time
     // triggering .createdCallbacks for web components...
@@ -231,7 +231,7 @@ class _Router extends Evented {
     if (success) {
       const index = (this.active ? this.active.index + 1 : 0);
       this.active = { path, hash, index };
-      window.history.pushState(this.active, '', path + this.search + hash);
+      window.history.pushState(this.active, '', path + hash);
     }
     return success;
   }
