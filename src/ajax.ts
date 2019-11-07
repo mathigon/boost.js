@@ -4,25 +4,31 @@
 // =============================================================================
 
 
-
-import {deepExtend, throttle, isString, unique} from '@mathigon/core';
+import {deepExtend, throttle, unique} from '@mathigon/core';
 
 
 // -----------------------------------------------------------------------------
 // Helper functions
 
-/**
- * Converts a JSON object to an HTML query string.
- * @param {Object} data
- * @returns {string}
- */
-export function toQueryString(data) {
-  const pairs = [];
+declare global {
+  interface Window {
+    csrfToken: string;
+  }
+}
+
+type PostData = {[key: string]: any};
+
+/** Converts a JSON object to an HTML query string. */
+export function toQueryString(data: PostData) {
+  const pairs: string[] = [];
 
   for (let key of Object.keys(data)) {
     let value = data[key];
     key = encodeURIComponent(key);
-    if (value == null) { pairs.push(key); continue; }
+    if (value == null) {
+      pairs.push(key);
+      continue;
+    }
     value = Array.isArray(value) ? value.join(',') : '' + value;
     value = value.replace(/(\r)?\n/g, '\r\n');
     value = encodeURIComponent(value);
@@ -33,15 +39,12 @@ export function toQueryString(data) {
   return pairs.join('&');
 }
 
-/**
- * Converts an HTML query string to JSON object.
- * @param {string} str
- * @returns {Object}
- */
-export function fromQueryString(str) {
-  str = str.replace(/^[?,&]/,'');
+
+/** Converts an HTML query string to JSON object. */
+export function fromQueryString(str: string) {
+  str = str.replace(/^[?,&]/, '');
   const pairs = decodeURIComponent(str).split('&');
-  const result = {};
+  const result: {[key: string]: string} = {};
   pairs.forEach((pair) => {
     const x = pair.split('=');
     result[x[0]] = x[1];
@@ -56,14 +59,12 @@ export function fromQueryString(str) {
 /**
  * Asynchronously loads a resource using a POST request. This utility function
  * automatically form-encodes JSON data and adds a CSRF header.
- * @param {string} url
- * @param {Object|string|null} data
- * @returns {Promise.<string>}
  */
-export function post(url, data = null) {
+export function post(url: string, data?: string|PostData) {
   const options = {
     method: 'POST',
-    body: !data ? undefined : isString(data) ? data : toQueryString(data),
+    body: !data ? undefined :
+          (typeof data === 'string') ? data : toQueryString(data),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'X-CSRF-Token': window.csrfToken || ''
@@ -73,12 +74,8 @@ export function post(url, data = null) {
   return fetch(url, options).then((r) => r.text());
 }
 
-/**
- * Asynchronously loads and executes a JS script.
- * @param {string} src
- * @returns {Promise}
- */
-export function script(src) {
+/** Asynchronously loads and executes a JS script. */
+export function loadScript(src: string) {
   return new Promise((resolve, reject) => {
     const el = document.createElement('script');
     el.src = src;
@@ -88,22 +85,32 @@ export function script(src) {
   });
 }
 
+/** Asynchronously loads an Image. */
+export function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.src = url;
+  });
+}
+
 
 // -----------------------------------------------------------------------------
 // Deferred Post
 
-const POST_DATA = new Map();
+const POST_DATA = new Map<string, PostData>();
 
-function savePostData(url, data) {
+function savePostData(url: string, data: PostData) {
   if (POST_DATA.has(url)) {
     deepExtend(POST_DATA.get(url), data, (a, b) => unique(a.concat(b)));
   } else {
-    POST_DATA.set(url, data)
+    POST_DATA.set(url, data);
   }
 }
 
 function sendPostData() {
-  if (navigator.onLine === false) return;
+  if (!window.navigator.onLine) return;
+
   for (const [url, data] of POST_DATA) {
     // Remove the POST data immediately, but add it back if the request fails.
     // This means that deferredPost() can be called while an AJAX request is
@@ -125,10 +132,8 @@ window.onbeforeunload = sendPostData;
  * Utility function to throttle repeated POST requests. A request to the same
  * URL will be made at most every 5s, and the corresponding data objects will
  * be deep-merged.
- * @param {string} url
- * @param {Object} data
  */
-export function deferredPost(url, data) {
+export function deferredPost(url: string, data: PostData) {
   savePostData(url, data);
   doDeferredPost();
 }

@@ -4,36 +4,52 @@
 // =============================================================================
 
 
+import {isOneOf} from '@mathigon/core';
+import {Point, clamp, Angle, intersections, Line, Ray, Segment, Circle, Arc, Sector, Polygon, Polyline, Rectangle} from '@mathigon/fermat';
 
-import { isOneOf, clamp } from '@mathigon/core';
-import { Point, Line, intersections } from '@mathigon/fermat';
+
+export type GeoShape = Angle|Line|Ray|Segment|Circle|Arc|Sector|Polygon|Polyline
+                       |Rectangle;
+
+export enum LineMark {BAR, BAR2, ARROW, ARROW2}
+
+export enum LineArrow {START, END, BOTH}
+
+export interface SVGDrawingOptions {
+  round?: boolean;
+  size?: number;
+  fill?: string;
+  mark?: LineMark;
+  arrows?: LineArrow;
+  box?: Rectangle;
+}
 
 
 // -----------------------------------------------------------------------------
 // Utility Functions
 
 /** Draws an arc from a to c, with center b. */
-function drawArc(a, b, c) {
+function drawArc(a: Point, b: Point, c: Point) {
   const orient = b.x * (c.y - a.y) + a.x * (b.y - c.y) + c.x * (a.y - b.y);
   const sweep = (orient > 0) ? 1 : 0;
   const size = Point.distance(b, a);
   return [a.x, a.y + 'A' + size, size, 0, sweep, 1, c.x, c.y].join(',');
 }
 
-export function angleSize(angle, options={}) {
+export function angleSize(angle: Angle, options: SVGDrawingOptions = {}) {
   if (angle.isRight && !options.round) return 20;
   return 24 + 20 * (1 - clamp(angle.rad, 0, Math.PI) / Math.PI);
 }
 
-function drawAngle(angle, options={}) {
+function drawAngle(angle: Angle, options: SVGDrawingOptions = {}) {
   let a = angle.a;
   const b = angle.b;
   let c = angle.c;
 
   const size = options.size || angleSize(angle, options);
 
-  const ba = Point.difference(a, b).normal;
-  const bc = Point.difference(c, b).normal;
+  const ba = Point.difference(a, b).unitVector;
+  const bc = Point.difference(c, b).unitVector;
 
   a = Point.sum(b, ba.scale(size));
   c = Point.sum(b, bc.scale(size));
@@ -51,7 +67,7 @@ function drawAngle(angle, options={}) {
   return p;
 }
 
-function drawPath(...points) {
+function drawPath(...points: Point[]) {
   return 'M' + points.map(p => p.x + ',' + p.y).join('L');
 }
 
@@ -59,26 +75,28 @@ function drawPath(...points) {
 // -----------------------------------------------------------------------------
 // Arrows and Line Marks
 
-function drawLineMark(x, type) {
+function drawLineMark(x: Line, type: LineMark) {
   const p = x.perpendicularVector.scale(6);
-  const n = x.normalVector.scale(3);
+  const n = x.unitVector.scale(3);
   const m = x.midpoint;
 
   switch (type) {
-    case 'bar':
+    case LineMark.BAR:
       return drawPath(m.add(p), m.add(p.inverse));
-    case 'bar2':
+    case LineMark.BAR2:
       return drawPath(m.add(n).add(p), m.add(n).add(p.inverse)) +
-          drawPath(m.add(n.inverse).add(p), m.add(n.inverse).add(p.inverse));
-    case 'arrow':
-      return drawPath(m.add(n.inverse).add(p), m.add(n), m.add(n.inverse).add(p.inverse));
-    case 'arrow2':
-      return drawPath(m.add(n.scale(-2)).add(p), m, m.add(n.scale(-2)).add(p.inverse)) +
-          drawPath(m.add(p), m.add(n.scale(2)), m.add(p.inverse));
+             drawPath(m.add(n.inverse).add(p), m.add(n.inverse).add(p.inverse));
+    case LineMark.ARROW:
+      return drawPath(m.add(n.inverse).add(p), m.add(n),
+                      m.add(n.inverse).add(p.inverse));
+    case LineMark.ARROW2:
+      return drawPath(m.add(n.scale(-2)).add(p), m,
+                      m.add(n.scale(-2)).add(p.inverse)) +
+             drawPath(m.add(p), m.add(n.scale(2)), m.add(p.inverse));
   }
 }
 
-function arrowPath(start, normal) {
+function arrowPath(start: Point, normal: Point) {
   if (!start || !normal) return '';
   const perp = normal.perpendicular;
   const a = start.add(normal.scale(9)).add(perp.scale(9));
@@ -86,26 +104,26 @@ function arrowPath(start, normal) {
   return drawPath(a, start, b);
 }
 
-function drawLineArrows(x, type) {
+function drawLineArrows(x: Line, type: LineArrow) {
   let path = '';
-  if (isOneOf(type, 'start', 'both')) {
-    path += arrowPath(x.p1, x.normalVector);
+  if (isOneOf(type, LineArrow.START, LineArrow.BOTH)) {
+    path += arrowPath(x.p1, x.unitVector);
   }
-  if (isOneOf(type, 'end', 'both')) {
-    path += arrowPath(x.p2, x.normalVector.inverse);
+  if (isOneOf(type, LineArrow.END, LineArrow.BOTH)) {
+    path += arrowPath(x.p2, x.unitVector.inverse);
   }
   return path;
 }
 
-function drawArcArrows(x, type) {
+function drawArcArrows(x: Arc, type: LineArrow) {
   let path = '';
 
-  if (isOneOf(type, 'start', 'both')) {
+  if (isOneOf(type, LineArrow.START, LineArrow.BOTH)) {
     const normal = new Line(x.c, x.start).perpendicularVector.inverse;
     path += arrowPath(x.start, normal);
   }
 
-  if (isOneOf(type, 'end', 'both')) {
+  if (isOneOf(type, LineArrow.END, LineArrow.BOTH)) {
     const normal = new Line(x.c, x.end).perpendicularVector;
     path += arrowPath(x.end, normal);
   }
@@ -117,17 +135,14 @@ function drawArcArrows(x, type) {
 // -----------------------------------------------------------------------------
 // Draw Function
 
-export function drawSVG(obj, options={}) {
-  // TODO Use instanceof rather than constructor.name. That is more robust,
-  // but doesn't currently work since we have duplicate declaration of
-  // geometry classes in different JS bundles.
-  const type = obj.constructor.name;
-
-  if (type ===  'Angle') {
+export function drawSVG(obj: GeoShape, options: SVGDrawingOptions = {}) {
+  if (obj.type === 'angle') {
+    obj = obj as Angle;
     return drawAngle(obj, options);
   }
 
-  if (type ===  'Segment') {
+  if (obj.type === 'segment') {
+    obj = obj as Segment;
     if (obj.p1.equals(obj.p2)) return '';
     let line = drawPath(obj.p1, obj.p2);
     if (options.mark) line += drawLineMark(obj, options.mark);
@@ -135,13 +150,15 @@ export function drawSVG(obj, options={}) {
     return line;
   }
 
-  if (type ===  'Ray') {
+  if (obj.type === 'ray') {
+    obj = obj as Ray;
     if (!options.box) return '';
     const end = intersections(obj, options.box)[0];
     return end ? drawPath(obj.p1, end) : '';
   }
 
-  if (type ===  'Line') {
+  if (obj.type === 'line') {
+    obj = obj as Line;
     if (!options.box) return '';
     const points = intersections(obj, options.box);
     if (points.length < 2) return '';
@@ -150,30 +167,38 @@ export function drawSVG(obj, options={}) {
     return line;
   }
 
-  if (type ===  'Circle') {
+  if (obj.type === 'circle') {
+    obj = obj as Circle;
     return `M ${obj.c.x - obj.r} ${obj.c.y} a ${obj.r},${obj.r} 0 1 0 ` +
-        `${2 * obj.r} 0 a ${obj.r} ${obj.r} 0 1 0 ${-2 * obj.r} 0`;
+           `${2 * obj.r} 0 a ${obj.r} ${obj.r} 0 1 0 ${-2 * obj.r} 0`;
   }
 
-  if (type ===  'Arc') {
+  if (obj.type === 'arc') {
+    obj = obj as Arc;
     let path = 'M' + drawArc(obj.start, obj.c, obj.end);
     if (options.arrows) path += drawArcArrows(obj, options.arrows);
     return path;
   }
 
-  if (type ===  'Sector') {
+  if (obj.type === 'sector') {
+    obj = obj as Sector;
     return `M ${obj.c.x} ${obj.c.y} L ${drawArc(obj.start, obj.c, obj.end)} Z`;
   }
 
-  if (type ===  'Polyline') {
+  if (obj.type === 'polyline') {
+    obj = obj as Polyline;
     return drawPath(...obj.points);
   }
 
-  if (type ===  'Polygon' || type ===  'Triangle') {
+  if (obj.type === 'polygon' || obj.type === 'triangle') {
+    obj = obj as Polygon;
     return drawPath(...obj.points) + 'Z';
   }
 
-  if (type ===  'Rectangle') {
+  if (obj.type === 'rectangle') {
+    obj = obj as Rectangle;
     return drawPath(...obj.polygon.points) + 'Z';
   }
+
+  return '';
 }

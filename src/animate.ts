@@ -4,13 +4,14 @@
 // =============================================================================
 
 
-
 import {defer, delay, total, toCamelCase} from '@mathigon/core';
+import {ElementView, HTMLView, SVGView} from './elements';
 import {Browser} from './browser';
 
-// prevent animations on page load
+
+// Prevent animations on page load.
 let isReady = false;
-setTimeout(function() { isReady = true; });
+setTimeout(() => isReady = true);
 
 const BOUNCE_IN = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
@@ -19,6 +20,14 @@ const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 // -----------------------------------------------------------------------------
 // Simple Animations
 
+export type AnimationCancel = () => void;
+export type AnimationCallback = (p: number, dt: number,
+                                 cancel: AnimationCancel) => void;
+export type AnimationResponse = {cancel: AnimationCancel, promise: Promise<void>};
+
+const ResolvedAnimation = {cancel: () => {}, promise: Promise.resolve()};
+
+
 /**
  * Runs an animation. If no duration is provided, the animation will run
  * indefinitely, and call `callback` with the time since start as first
@@ -26,50 +35,66 @@ const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
  * the proportion of the duration passed (between 0 and 1). The second callback
  * argument is the time difference since the last animation frame, and the
  * third callback argument is a `cancel()` function to stop the animation.
- *
- * @param {Function} callback
- * @param {number?} duration
- * @returns {{cancel, then, promise}}
  */
-export function animate(callback, duration) {
-  if (duration === 0) { callback(); return; }
+export function animate(callback: AnimationCallback,
+                        duration?: number): AnimationResponse {
+  if (duration === 0) {
+    callback(1, 0, () => {});
+    return ResolvedAnimation;
+  }
 
   const startTime = Date.now();
+  const deferred = defer<void>();
+
   let lastTime = 0;
   let running = true;
 
-  const deferred = defer();
-  const then = deferred.promise.then.bind(deferred.promise);
-  const cancel = () => { running = false; deferred.reject(); };
+  const cancel = () => {
+    running = false;
+    deferred.reject();
+  };
 
   function getFrame() {
     if (running && (!duration || lastTime <= duration))
       window.requestAnimationFrame(getFrame);
 
     const time = Date.now() - startTime;
-    callback(duration ? Math.min(1,time/duration) : time, time - lastTime, cancel);
+    callback(duration ? Math.min(1, time / duration) : time, time - lastTime,
+        cancel);
     if (duration && time >= duration) deferred.resolve();
     lastTime = time;
   }
 
   getFrame();
-  return {cancel, then, promise: deferred.promise};
+  return {cancel, promise: deferred.promise};
 }
 
 
 // -----------------------------------------------------------------------------
 // Easing
 
-function easeIn(type, t, s) {
+function easeIn(type: string, t = 0, s = 0) {
   switch (type) {
+    case 'quad':
+      return t ** 2;
 
-    case 'quad':   return t * t;
-    case 'cubic':  return t * t * t;
-    case 'quart':  return t * t * t * t;
-    case 'quint':  return t * t * t * t * t;
-    case 'circ':   return 1 - Math.sqrt(1 - t * t);
-    case 'sine':   return 1 - Math.cos(t * Math.PI / 2);
-    case 'exp':    return (t <= 0) ? 0 : Math.pow(2, 10 * (t - 1));
+    case 'cubic':
+      return t ** 3;
+
+    case 'quart':
+      return t ** 4;
+
+    case 'quint':
+      return t ** 5;
+
+    case 'circ':
+      return 1 - Math.sqrt(1 - t ** 2);
+
+    case 'sine':
+      return 1 - Math.cos(t * Math.PI / 2);
+
+    case 'exp':
+      return (t <= 0) ? 0 : Math.pow(2, 10 * (t - 1));
 
     case 'back':
       if (!s) s = 1.70158;
@@ -77,7 +102,8 @@ function easeIn(type, t, s) {
 
     case 'elastic':
       if (!s) s = 0.3;
-      return - Math.pow(2, 10 * (t - 1)) * Math.sin(((t - 1) * 2 / s - 0.5) * Math.PI );
+      return -Math.pow(2, 10 * (t - 1)) *
+             Math.sin(((t - 1) * 2 / s - 0.5) * Math.PI);
 
     case 'swing':
       return 0.5 - Math.cos(t * Math.PI) / 2;
@@ -86,10 +112,10 @@ function easeIn(type, t, s) {
       return 1 - (Math.cos(t * 4.5 * Math.PI) * Math.exp(-t * 6));
 
     case 'bounce':
-      if (t < 1/11) return 1/64 - 7.5625 * (0.5/11 - t) * (0.5/11 - t);  // 121/16 = 7.5625
-      if (t < 3/11) return 1/16 - 7.5625 * (  2/11 - t) * (  2/11 - t);
-      if (t < 7/11) return 1/4  - 7.5625 * (  5/11 - t) * (  5/11 - t);
-      return 1    - 7.5625 * (     1 - t) * (     1 - t);
+      if (t < 1 / 11) return 1 / 64 - 7.5625 * (0.5 / 11 - t) * (0.5 / 11 - t);  // 121/16 = 7.5625
+      if (t < 3 / 11) return 1 / 16 - 7.5625 * (2 / 11 - t) * (2 / 11 - t);
+      if (t < 7 / 11) return 1 / 4 - 7.5625 * (5 / 11 - t) * (5 / 11 - t);
+      return 1 - 7.5625 * (1 - t) * (1 - t);
 
     default:
       return t;
@@ -101,40 +127,43 @@ function easeIn(type, t, s) {
  * `quad`, `cubic`, `quart`, `quint`, `circ`, `sine`, `exp`, `back`, `elastic`,
  * `swing`, `spring` and `bounce`, optionally followed by `-in` or `-out`. The
  * `s` parameter is only used by `back` and `elastic` easing.
- *
- * @param {string} type Easing type.
- * @param {number=} t Linear progress between 0 and 1.
- * @param {number=} s Optional parameter.
- * @returns {number}
  */
-export function ease(type, t = 0, s = 0) {
+export function ease(type: string, t = 0, s = 0) {
   if (t === 0) return 0;
   if (t === 1) return 1;
-  type = type.split('-');
+  const [name, direction] = type.split('-');
 
-  if (type[1] === 'in')  return     easeIn(type[0], t, s);
-  if (type[1] === 'out') return 1 - easeIn(type[0], 1 - t, s);
-  if (t <= 0.5)          return     easeIn(type[0], 2 * t,     s) / 2;
-  return 1 - easeIn(type[0], 2 * (1-t), s) / 2;
+  if (direction === 'in') return easeIn(name, t, s);
+  if (direction === 'out') return 1 - easeIn(name, 1 - t, s);
+  if (t <= 0.5) return easeIn(name, 2 * t, s) / 2;
+  return 1 - easeIn(name, 2 * (1 - t), s) / 2;
 }
 
 
 // -----------------------------------------------------------------------------
 // Element Animations
 
-export function transition($el, properties, duration=400, _delay=0, easing='ease-in-out') {
+type AnimationValue = string|number;
+export type AnimationProperties = {[key: string]: AnimationValue|AnimationValue[]};
+
+
+export function transition($el: ElementView, properties: AnimationProperties,
+                           duration = 400, _delay = 0,
+                           easing = 'ease-in-out'): AnimationResponse {
+
+  // Don't play animations while the page is loading.
   if (!isReady) {
     Object.keys(properties).forEach(k => {
       const p = properties[k];
       $el.css(k, Array.isArray(p) ? p[1] : p);
     });
-    return Promise.resolve();
+    return ResolvedAnimation;
   }
 
   if (easing === 'bounce-in') easing = BOUNCE_IN;
   if (easing === 'bounce-out') easing = BOUNCE_OUT;
 
-  let oldTransition = null;
+  let oldTransition: string = '';
   if (Browser.isSafari) {
     oldTransition = $el._el.style.transition;
     $el.css('transition', 'none');
@@ -142,10 +171,11 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
   }
 
   // Cancel any previous animations
-  if ($el._data._animation) $el._data._animation.cancel();
+  const currentAnimation = $el._data['animation'];
+  if (currentAnimation) (currentAnimation as AnimationResponse).cancel();
 
-  const to = {}, from = {};
-  const deferred = defer();
+  const to: Keyframe = {}, from: Keyframe = {};
+  const deferred = defer<void>();
 
   const style = window.getComputedStyle($el._el);
   Object.keys(properties).forEach((k) => {
@@ -154,30 +184,33 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
     from[k1] = Array.isArray(p) ? p[0] : style.getPropertyValue(k);
     to[k1] = Array.isArray(p) ? p[1] : p;
     // Set initial style, for the duration of the delay.
-    if (_delay) $el.css(k, from[k1]);
+    if (_delay) $el.css(k, from[k1]!);
   });
 
   // Special rules for animations to height: auto
   const oldHeight = to.height;
-  if (to.height === 'auto') to.height = total($el.children.map($c => $c.outerHeight)) + 'px';
+  if (to.height === 'auto') {
+    to.height =
+        total($el.children.map($c => ($c as HTMLView).outerHeight)) + 'px';
+  }
 
-  let player;
+  let player: Animation;
   let cancelled = false;
 
   delay(() => {
     if (cancelled) return;
 
     player = $el._el.animate([from, to], {duration, easing, fill: 'forwards'});
-    player.onfinish = function(e) {
-      if ($el._el) Object.keys(properties).forEach(k => $el.css(k, k === 'height' ? oldHeight : to[k]));
-      if (Browser.isSafari) $el.css('transition', oldTransition || '');
-      deferred.resolve(e);
+    player.onfinish = () => {
+      if ($el._el) Object.keys(properties)
+          .forEach(k => $el.css(k, k === 'height' ? oldHeight! : to[k]!));
+      if (Browser.isSafari) $el.css('transition', oldTransition);
+      deferred.resolve();
       player.cancel();  // bit ugly, but needed for Safari...
     };
   }, _delay);
 
   const animation = {
-    then: deferred.promise.then.bind(deferred.promise),
     cancel() {
       cancelled = true;
       if ($el._el) Object.keys(properties).forEach(k => $el.css(k, $el.css(k)));
@@ -187,7 +220,7 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
   };
 
   // Only allow cancelling of animation in next thread.
-  setTimeout(() => $el._data._animation = animation);
+  setTimeout(() => $el._data['animation'] = animation);
   return animation;
 }
 
@@ -197,36 +230,40 @@ export function transition($el, properties, duration=400, _delay=0, easing='ease
 
 // When applying the 'pop' effect, we want to respect all existing transform
 // except scale. To do that, we have to expand the matrix() notation.
-const cssMatrix = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
+const CSS_MATRIX = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
 
-export function enter($el, effect='fade', duration=500, _delay=0) {
+export function enter($el: ElementView, effect = 'fade', duration = 500,
+                      _delay = 0): AnimationResponse {
   $el.show();
-  if (!isReady) return Promise.resolve();
+  if (!isReady) return ResolvedAnimation;
 
   if (effect === 'fade') {
     return transition($el, {opacity: [0, 1]}, duration, _delay);
 
   } else if (effect === 'pop') {
     const transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
-      .replace(cssMatrix, 'translate($1px,$2px)');
+        .replace(CSS_MATRIX, 'translate($1px,$2px)');
 
     // TODO Merge into one transition.
     transition($el, {opacity: [0, 1]}, duration, _delay);
-    return transition($el, {transform: [transform + ' scale(0.5)',
-        transform + ' scale(1)']}, duration, _delay, 'bounce-in');
+    return transition($el, {
+      transform: [transform + ' scale(0.5)',
+        transform + ' scale(1)']
+    }, duration, _delay, 'bounce-in');
 
   } else if (effect === 'descend') {
     const rules = {opacity: [0, 1], transform: ['translateY(-50%)', 'none']};
     return transition($el, rules, duration, _delay);
 
   } else if (effect.startsWith('draw')) {
-    const l = $el.strokeLength;
+    const l = ($el as SVGView).strokeLength;
     $el.css({opacity: 1, 'stroke-dasharray': l + 'px'});
     // Note that Safari can't handle negative dash offsets!
     const end = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
     const rules = {'stroke-dashoffset': [l + 'px', end]};
-    return transition($el, rules, duration, _delay, 'linear')
-        .then(() => $el.css('stroke-dasharray', ''));
+    const animation = transition($el, rules, duration, _delay, 'linear');
+    animation.promise.then(() => $el.css('stroke-dasharray', ''));
+    return animation;
 
   } else if (effect.startsWith('slide')) {
     const rules = {opacity: [0, 1], transform: ['translateY(50px)', 'none']};
@@ -234,19 +271,26 @@ export function enter($el, effect='fade', duration=500, _delay=0) {
     return transition($el, rules, duration, _delay);
 
   } else if (effect.startsWith('reveal')) {
-    const rules = {opacity: [0, 1], height: [0, 'auto']};
+    const rules: AnimationProperties = {opacity: [0, 1], height: [0, 'auto']};
     if (effect.includes('left')) rules.transform = ['translateX(-50%)', 'none'];
     if (effect.includes('right')) rules.transform = ['translateX(50%)', 'none'];
     return transition($el, rules, duration, _delay);
   }
+
+  return ResolvedAnimation;
 }
 
-export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
-  if (!$el._el) return Promise.resolve();
-  if (!isReady) { $el.hide(); return Promise.resolve(); }
-  if ($el.css('display') === 'none') return Promise.resolve();
+export function exit($el: ElementView, effect = 'fade', duration = 400,
+                     delay = 0, remove = false): AnimationResponse {
+  if (!$el._el) return ResolvedAnimation;
 
-  let animation;
+  if (!isReady) {
+    $el.hide();
+    return ResolvedAnimation;
+  }
+  if ($el.css('display') === 'none') return ResolvedAnimation;
+
+  let animation: AnimationResponse;
 
   if (effect === 'fade') {
     animation = transition($el, {opacity: [1, 0]}, duration, delay);
@@ -255,15 +299,17 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
     const transform = $el.transform.replace(/scale\([0-9.]*\)/, '');
 
     transition($el, {opacity: [1, 0]}, duration, delay);
-    animation = transition($el, {transform: [transform + ' scale(1)',
-        transform + ' scale(0.5)']}, duration, delay, 'bounce-out');
+    animation = transition($el, {
+      transform: [transform + ' scale(1)',
+        transform + ' scale(0.5)']
+    }, duration, delay, 'bounce-out');
 
   } else if (effect === 'ascend') {
     const rules = {opacity: [1, 0], transform: ['none', 'translateY(-50%)']};
     animation = transition($el, rules, duration, delay);
 
   } else if (effect.startsWith('draw')) {
-    const l = $el.strokeLength;
+    const l = ($el as SVGView).strokeLength;
     $el.css('stroke-dasharray', l);
     const start = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
     const rules = {'stroke-dashoffset': [start, l + 'px']};
@@ -275,19 +321,12 @@ export function exit($el, effect='fade', duration=400, delay=0, remove=false) {
     animation = transition($el, rules, duration, delay);
 
   } else if (effect.startsWith('reveal')) {
-    const rules = {opacity: 0, height: 0};
+    const rules: AnimationProperties = {opacity: 0, height: 0};
     if (effect.includes('left')) rules.transform = 'translateX(-50%)';
     if (effect.includes('right')) rules.transform = 'translateX(50%)';
     animation = transition($el, rules, duration, delay);
   }
 
-  animation.then(() => remove ? $el.remove() : $el.hide());
-  return animation;
-}
-
-// These animations are defined in effects.css:
-// pulse-down, pulse-up, flash, bounce-up, bounce-right
-export function effect(element, name) {
-  element.one('animationend', () => element.removeClass('effects-' + name));
-  element.addClass('effects-' + name);
+  animation!.promise.then(() => remove ? $el.remove() : $el.hide());
+  return animation!;
 }

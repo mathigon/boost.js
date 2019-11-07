@@ -4,26 +4,36 @@
 // =============================================================================
 
 
+import {delay, words} from '@mathigon/core';
+import {Point} from '@mathigon/fermat';
+import {SVGParentView, $, $body, ElementView, CanvasView, SVGBaseView, WindowView, InputView} from './elements';
+import {Browser} from './browser';
 
-import { without, delay , words} from '@mathigon/core';
-import { Point } from '@mathigon/fermat';
-import * as Elements from './elements';
-import {Browser} from "./browser";
+
+declare global {
+  interface Window {
+    IntersectionObserver?: IntersectionObserver;
+  }
+
+  interface Event {
+    handled?: boolean;
+  }
+}
 
 
 // -----------------------------------------------------------------------------
 // Utilities
 
+export type ScreenEvent = PointerEvent|TouchEvent|MouseEvent;
+export type EventCallback = (e: any) => void;
+
 const touchSupport = ('ontouchstart' in window);
 const pointerSupport = ('onpointerdown' in window);
 
-/**
- * Gets the pointer position from an event.
- * @param {Event} e
- * @returns {Point}
- */
-export function pointerPosition(e) {
-  if ('touches' in e) {
+
+/** Gets the pointer position from an event. */
+export function pointerPosition(e: ScreenEvent) {
+  if (e instanceof TouchEvent) {
     const touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
     return new Point(touches[0].clientX, touches[0].clientY);
   } else {
@@ -31,14 +41,15 @@ export function pointerPosition(e) {
   }
 }
 
+function getTouches(e: ScreenEvent) {
+  return (e instanceof TouchEvent) ? e.touches : [];
+}
+
 /**
  * Gets the pointer position from an event triggered on an `<svg>` element, in
  * the coordinate system of the `<svg>` element.
- * @param {Event} event
- * @param {SVGElement} $svg
- * @returns {Point}
  */
-export function svgPointerPosn(event, $svg) {
+export function svgPointerPosn(event: ScreenEvent, $svg: SVGParentView) {
   const posn = pointerPosition(event);
   return posn.transform($svg.inverseTransformMatrix);
 }
@@ -46,11 +57,8 @@ export function svgPointerPosn(event, $svg) {
 /**
  * Gets the pointer position from an event triggered on an `<canvas>` element,
  * in the coordinate system of the `<canvas>` element.
- * @param {Event} event
- * @param {SVGElement} $canvas
- * @returns {Point}
  */
-export function canvasPointerPosition(event, $canvas) {
+export function canvasPointerPosition(event: ScreenEvent, $canvas: CanvasView) {
   const posn = pointerPosition(event);
   const bounds = $canvas.bounds;
 
@@ -62,55 +70,47 @@ export function canvasPointerPosition(event, $canvas) {
 /**
  * Get the target element for an event, including for touch/pointer events
  * that started on a different element.
- * @param {Event} event
- * @returns {Element}
  */
-export function getEventTarget(event) {
-  // Only pointer mouse events update the target for move events that started
-  // on a different element.
-  if (event.pointerType === 'mouse') return Elements.$(event.target);
+export function getEventTarget(event: ScreenEvent) {
+  if (event instanceof PointerEvent && event.pointerType === 'mouse') {
+    // Only pointer mouse events update the target for move events that started
+    // on a different element.
+    return $(event.target as Element);
+  }
+
   const posn = pointerPosition(event);
-  return Elements.$(document.elementFromPoint(posn.x, posn.y));
+  return $(document.elementFromPoint(posn.x, posn.y));
 }
 
 
 // -----------------------------------------------------------------------------
 // Click Events
 
-function makeClickEvent($el) {
-  if ($el._events._click) return;
-  $el._events._click = true;
+function makeTapEvent($el: ElementView) {
+  if ($el._data['tapEvent']) return;
+  $el._data['tapEvent'] = true;
 
-  if (!navigator.userAgent.match(/iP(ad|hone|od)/g)) {
-    $el._el.addEventListener('click', function(e) { $el.trigger('click', e); });
-    return;
-  }
+  let start: Point|null = null;
 
-  let start;
+  $el.on('pointerdown', (e: ScreenEvent) => start = pointerPosition(e));
 
-  $el._el.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 1) start = pointerPosition(e);
-  });
-
-  $el._el.addEventListener('touchend', function(e){
+  $el.on('pointerup', (e: ScreenEvent) => {
     if (!start) return;
     const end = pointerPosition(e);
-    if (Math.abs(end.x - start.x) < 5 && Math.abs(end.y - start.y) < 5) {
-      $el.trigger('click', e);
-    }
+    if (Point.distance(start, end) < 6) $el.trigger('tap', e);
     start = null;
   });
 
-  $el._el.addEventListener('touchcancel', function() { start = null; });
+  $el.on('pointercancel', () => start = null);
 }
 
-function makeClickOutsideEvent($el) {
-  if ($el._events._clickOutside) return;
-  $el._events._clickOutside = true;
+function makeClickOutsideEvent($el: ElementView) {
+  if ($el._data['clickOutsideEvent']) return;
+  $el._data['clickOutsideEvent'] = true;
 
-  Elements.$body.on('pointerdown', function(e) {
-    const $target = Elements.$(e.target);
-    if ($target.equals($el) || $target.hasParent($el)) return;
+  $body.on('pointerdown', (e: ScreenEvent) => {
+    const $target = $(e.target as Element);
+    if ($target && ($target.equals($el) || $target.hasParent($el))) return;
     $el.trigger('clickOutside', e);
   });
 }
@@ -119,86 +119,90 @@ function makeClickOutsideEvent($el) {
 // -----------------------------------------------------------------------------
 // Slide Events
 
-/**
- * @param {Element} $el
- * @param {{start: Function?, move: Function?, end: Function?}} fns
- */
-export function slide($el, fns) {
+interface SlideEventOptions {
+  start?: (p: Point) => void;
+  move?: (p: Point, start: Point, last: Point) => void;
+  end?: (last: Point, start: Point) => void;
+  justInside?: boolean;
+}
+
+export function slide($el: ElementView, fns: SlideEventOptions) {
   let isAnimating = false;
 
   let posn = pointerPosition;
-  if ($el.tagName === 'SVG') {
-    posn = (e) => svgPointerPosn(e, $el);
-  } else if ($el.tagName === 'CANVAS') {
+  if ($el instanceof SVGBaseView) {
+    posn = (e) => svgPointerPosn(e, $el.$ownerSVG);
+  } else if ($el instanceof CanvasView) {
     posn = (e) => canvasPointerPosition(e, $el);
-  } else if ($el instanceof Elements.SVGElement) {
-    const $svg = $el.parents('svg')[0];
-    posn = (e) => svgPointerPosn(e, $svg);
   }
 
-  const $parent = fns.justInside ? $el : Elements.$body;
+  const $parent = fns.justInside ? $el : $body;
 
-  let startPosn, lastPosn;
+  let startPosn: Point|null = null;
+  let lastPosn: Point|null = null;
 
   if ($el.css('touch-action') === 'auto') $el.css('touch-action', 'none');
 
-  function start(e) {
+  function start(e: ScreenEvent) {
     e.preventDefault();
-    if(e.handled || (e.touches && e.touches.length > 1)) return;
+    if (e.handled || getTouches(e).length > 1) return;
     e.handled = true;
 
     if ('move' in fns) $parent.on('pointermove', move);
     $parent.on('pointerstop', end);
     startPosn = lastPosn = posn(e);
-    if ('start' in fns) fns.start(startPosn);
+    if (fns.start) fns.start(startPosn);
   }
 
-  function move(e) {
+  function move(e: ScreenEvent) {
     e.preventDefault();
-    if(isAnimating) return;
+    if (isAnimating) return;
     isAnimating = true;
 
-    window.requestAnimationFrame(function() {
-      if(!isAnimating) return;
+    window.requestAnimationFrame(function () {
+      if (!isAnimating) return;
       const p = posn(e);
-      fns.move(p, startPosn, lastPosn);
+      if (fns.move) fns.move(p, startPosn!, lastPosn!);
       lastPosn = p;
       isAnimating = false;
     });
   }
 
-  function end(e) {
+  function end(e: ScreenEvent) {
     e.preventDefault();
-    if(e.touches && e.touches.length > 0) return;
+    if (getTouches(e).length > 0) return;
     isAnimating = false;
 
-    if ('move' in fns) $parent.off('pointermove', move);
+    if (fns.move) $parent.off('pointermove', move);
     $parent.off('pointerstop', end);
 
-    if ('end' in fns) fns.end(lastPosn, startPosn);
+    if (fns.end) fns.end(lastPosn!, startPosn!);
   }
 
   $el.on('pointerdown', start);
-  if (fns.justInside) $el.on('mouseleave', end)
+  if (fns.justInside) $el.on('mouseleave', end);
 }
 
 
 // -----------------------------------------------------------------------------
 // Scroll Events
 
-function makeScrollEvents($el) {
-  if ($el._data._scrollEvents) return;
-  $el._data._scrollEvents = true;
+function makeScrollEvents($el: ElementView) {
+  if ($el._data['scrollEvents']) return;
+  $el._data['scrollEvents'] = true;
 
   let ticking = false;
-  let top = null;
+  let top: number|null = null;
 
   function tick() {
     const newTop = $el.scrollTop;
-    if (newTop === top) { ticking = false; return; }
+    if (newTop === top) {
+      ticking = false;
+      return;
+    }
 
     top = newTop;
-    $el.trigger('scroll', { top });
+    $el.trigger('scroll', {top});
     // TODO Scroll should trigger mousemove events.
     window.requestAnimationFrame(tick);
   }
@@ -209,7 +213,7 @@ function makeScrollEvents($el) {
   }
 
   // Mouse Events
-  const target = $el instanceof Elements.WindowElement ? window : $el._el;
+  const target = $el instanceof WindowView ? window : $el._el;
   target.addEventListener('scroll', scroll);
 
   // Touch Events
@@ -217,12 +221,13 @@ function makeScrollEvents($el) {
     window.addEventListener('touchmove', scroll);
     window.addEventListener('touchend', touchEnd);
   }
+
   function touchEnd() {
     window.removeEventListener('touchmove', scroll);
     window.removeEventListener('touchend', touchEnd);
   }
 
-  $el._el.addEventListener('touchstart', function(e) {
+  $el._el.addEventListener('touchstart', function (e) {
     if (!e.handled) touchStart();
   });
 }
@@ -231,8 +236,17 @@ function makeScrollEvents($el) {
 // -----------------------------------------------------------------------------
 // Hover Events
 
-function makeHoverEvent($el, options) {
-  let timeout = null;
+interface HoverEventOptions {
+  enter: () => void;
+  exit: () => void;
+  preventMouseover?: () => boolean;
+  delay?: number;
+  exitDelay?: number;
+  $clickTarget?: ElementView;
+}
+
+export function hover($el: ElementView, options: HoverEventOptions) {
+  let timeout = 0;
   let active = false;
   let wasTriggeredByMouse = false;
 
@@ -280,23 +294,23 @@ function makeHoverEvent($el, options) {
 // -----------------------------------------------------------------------------
 // Intersection Events
 
-let observer;
+let observer: IntersectionObserver;
 
-function intersectionCallback(entries) {
+function intersectionCallback(entries: IntersectionObserverEntry[]) {
   for (const e of entries) {
     const event = e.isIntersecting ? 'enterViewport' : 'exitViewport';
-    setTimeout(() => Elements.$(e.target).trigger(event));
+    setTimeout(() => $(e.target)!.trigger(event));
   }
 }
 
-function makeIntersectionEvents($el) {
-  if ($el._data.intersectionEvents) return;
-  $el._data.intersectionEvents = true;
+function makeIntersectionEvents($el: ElementView) {
+  if ($el._data['intersectionEvents']) return;
+  $el._data['intersectionEvents'] = true;
 
   // Polyfill for window.IntersectionObserver
   if (!window.IntersectionObserver) {
     let wasVisible = false;
-    Elements.$body.on('scroll', () => {
+    $body.on('scroll', () => {
       const isVisible = $el.isInViewport;
       if (wasVisible && !isVisible) {
         $el.trigger('exitViewport');
@@ -317,21 +331,21 @@ function makeIntersectionEvents($el) {
 // -----------------------------------------------------------------------------
 // Pointer Events
 
-function makePointerPositionEvents(element) {
-  if (element._data._pointerPositionEvents) return;
-  element._data._pointerPositionEvents = true;
+function makePointerPositionEvents($el: ElementView) {
+  if ($el._data['pointerPositionEvents']) return;
+  $el._data['pointerPositionEvents'] = true;
 
-  const parent = element.parent;
-  let isInside = null;
+  const parent = $el.parent!;
+  let isInside: boolean|null = null;
 
   parent.on('pointerend', () => isInside = null);
 
-  parent.on('pointermove', (e) => {
+  parent.on('pointermove', (e: ScreenEvent) => {
     const wasInside = isInside;
-    const target = getEventTarget(e);
-    isInside = target.equals(element) || target.hasParent(element);
-    if (wasInside != null && isInside && !wasInside) element.trigger('pointerenter', e);
-    if (!isInside && wasInside) element.trigger('pointerleave', e);
+    const target = getEventTarget(e)!;
+    isInside = target.equals($el) || target.hasParent($el);
+    if (wasInside != null && isInside && !wasInside) $el.trigger('pointerenter', e);
+    if (!isInside && wasInside) $el.trigger('pointerleave', e);
   });
 }
 
@@ -340,14 +354,14 @@ function makePointerPositionEvents(element) {
 // Mouse Events
 // On touch devices, mouse events are emulated. We don't want that!
 
-function makeMouseEvent(eventName, $el) {
+function makeMouseEvent(eventName: string, $el: ElementView) {
   if ($el._events['_' + eventName]) return;
   $el._events['_' + eventName] = true;
 
   if (pointerSupport) {
     $el.on(eventName.replace('mouse', 'pointer'), (e) => {
       if (e.pointerType === 'mouse') $el.trigger(eventName, e);
-    })
+    });
   } else if (!touchSupport) {
     $el._el.addEventListener(eventName, (e) => $el.trigger(eventName, e));
   }
@@ -357,7 +371,7 @@ function makeMouseEvent(eventName, $el) {
 // -----------------------------------------------------------------------------
 // Keyboard Events
 
-function makeKeyEvent($el) {
+function makeKeyEvent($el: ElementView) {
   // On Android, the keydown event always returns character 229, except for the
   // backspace button which works as expected. Instead, we have to listen to the
   // input event and get the last character of the typed text. Note that this
@@ -366,7 +380,7 @@ function makeKeyEvent($el) {
 
   // Note that e.keyCode is deprecated, but iOS doesn't support e.key yet.
 
-  $el.on('keydown', (e) => {
+  $el.on('keydown', (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey) return;
     if (Browser.isAndroid && e.keyCode === 229) return;
 
@@ -374,7 +388,7 @@ function makeKeyEvent($el) {
     $el.trigger('key', {code: e.keyCode, key});
   });
 
-  if (Browser.isAndroid) {
+  if (Browser.isAndroid && $el instanceof InputView) {
     $el.on('input', (e) => {
       const key = e.data[e.data.length - 1].toLowerCase();
       $el.trigger('key', {code: null, key});
@@ -387,20 +401,23 @@ function makeKeyEvent($el) {
 // -----------------------------------------------------------------------------
 // Event Creation
 
-const aliases = {
+const aliases: {[key: string]: string} = {
   change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
-  pointerdown: pointerSupport ? 'pointerdown' : touchSupport ? 'touchstart' : 'mousedown',
-  pointermove: pointerSupport ? 'pointermove' : touchSupport ? 'touchmove' : 'mousemove',
-  pointerup: pointerSupport ? 'pointerup' : touchSupport ?  'touchend' : 'mouseup',
+  pointerdown: pointerSupport ? 'pointerdown' :
+               touchSupport ? 'touchstart' : 'mousedown',
+  pointermove: pointerSupport ? 'pointermove' :
+               touchSupport ? 'touchmove' : 'mousemove',
+  pointerup: pointerSupport ? 'pointerup' :
+             touchSupport ? 'touchend' : 'mouseup',
   pointercancel: pointerSupport ? 'pointercancel' : 'touchcancel',
-  pointerstop: pointerSupport ? 'pointerup pointercancel' : touchSupport ? 'touchend touchcancel' : 'mouseup'
+  pointerstop: pointerSupport ? 'pointerup pointercancel' :
+               touchSupport ? 'touchend touchcancel' : 'mouseup'
 };
 
-const customEvents = {
+const customEvents: {[key: string]: ($el: ElementView) => void} = {
   scroll: makeScrollEvents,
-  hover: makeHoverEvent,
-  click: makeClickEvent,
+  tap: makeTapEvent,
   clickOutside: makeClickOutsideEvent,
   key: makeKeyEvent,
 
@@ -415,30 +432,25 @@ const customEvents = {
   exitViewport: makeIntersectionEvents
 };
 
-export function createEvent($el, event, fn, options) {
-  if (event in $el._events) {
-    if ($el._events[event].indexOf(fn) < 0) $el._events[event].push(fn);
-  } else {
-    $el._events[event] = [fn];
-  }
-
+export function bindEvent($el: ElementView, event: string, fn: EventCallback,
+                          options?: EventListenerOptions) {
   if (event in aliases) {
     const events = words(aliases[event]);
     // Note that the mouse event aliases don't pass through makeMouseEvent()!
-    for (const e of events)  $el._el.addEventListener(e, fn, options);
+    for (const e of events) $el._el.addEventListener(e, fn, options);
   } else if (event in customEvents) {
-    customEvents[event]($el, fn);
+    customEvents[event]($el);
   } else {
     $el._el.addEventListener(event, fn, options);
   }
 }
 
-export function removeEvent($el, event, fn) {
-  if (event in $el._events) $el._events[event] = without($el._events[event], fn);
+export function unbindEvent($el: ElementView, event: string,
+                            fn: EventCallback) {
 
   if (event in aliases) {
     const events = words(aliases[event]);
-    for (const e of events)  $el._el.removeEventListener(e, fn);
+    for (const e of events) $el._el.removeEventListener(e, fn);
   } else if (event in customEvents) {
     // TODO Remove custom events.
   } else {

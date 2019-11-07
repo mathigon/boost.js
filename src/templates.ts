@@ -4,25 +4,41 @@
 // =============================================================================
 
 
-import { repeat } from '@mathigon/core';
+import {repeat} from '@mathigon/core';
+import {ElementView} from './elements';
+
 
 // -----------------------------------------------------------------------------
 // Object Observables
 
 const ALPHABETH = 'zyxwvutsrqponmlkjihgfedcba';
 
-/**
- * Creates a new observable.
- * @param {Object} state Initial state
- */
-export function observable(state={}) {
-  const changes = [];
-  const values = {};
+type Callback = (values: any) => void;
+
+export interface Observable {
+  update: () => void;
+  watch: (fn: Callback, silent?: boolean) => void;
+  set: (key: string, value: any) => void;
+  assign: (obj: any) => void;
+  name: () => string;
+
+  [key: string]: any;
+}
+
+
+/** Creates a new observable. */
+export function observable(state: any = {}): Observable {
+  // TODO Add stronger typings.
+  // TODO Use Proxies rather than .set(0 and .get().
+  // TODO Only run callbacks that depend on properties that have changes.
+
+  const changes: Callback[] = [];
+  const values: any = {};
 
   let n = 1;
   let names = ALPHABETH.split('').map(x => '_' + x);
 
-  function setProperty(key, value) {
+  function setProperty(key: string, value: any) {
     values[key] = value;
     if (key in state) return;
     Object.defineProperty(state, key, {
@@ -38,34 +54,22 @@ export function observable(state={}) {
 
   // ---------------------------------------------------------------------------
 
-  /**
-   * Re-evaluates all functions in this observable.
-   * @memberOf {observable}
-   */
-  state.update = function() {
-    // TODO Should only execute functions that use state properties that have
-    // changed. See https://github.com/elbywan/hyperactiv
+  /** Re-evaluates all functions in this observable. */
+  state.update = () => {
     for (const fn of changes) fn(values);
   };
 
   /**
-   * Adds a change listener to this observable.
-   * @param {Function} fn
-   * @param {silent=} silent Whether to execute `fn` immediately.
-   * @memberOf {observable}
+   * Adds a change listener to this observable. If `silent` is false, the
+   * listener will also be executed once, immediately.
    */
-  state.watch = function(fn, silent=false) {
+  state.watch = (fn: Callback, silent?: boolean) => {
     changes.push(fn);
     if (!silent) fn(values);
   };
 
-  /**
-   * Sets the value of a property of the observable, and triggers an update.
-   * @param {string} key
-   * @param {any} value
-   * @memberOf {observable}
-   */
-  state.set = function(key, value) {
+  /** Sets the value of a property of the observable, and triggers an update. */
+  state.set = (key: string, value: any) => {
     if (values[key] === value) return;
     setProperty(key, value);
     state.update();
@@ -74,20 +78,14 @@ export function observable(state={}) {
   /**
    * Assigns one or more properties of a JSON object to this observable, and
    * triggers an update.
-   * @param {Object.<string, any>} obj
-   * @memberOf {observable}
    */
-  state.assign = function(obj) {
+  state.assign = (obj: any) => {
     for (const key of Object.keys(obj)) setProperty(key, obj[key]);
     state.update();
   };
 
-  /**
-   * Generates a new, unique property name for this observable.
-   * @returns {string}
-   * @memberOf {observable}
-   */
-  state.name = function() {
+  /** Generates a new, unique property name for this observable. */
+  state.name = () => {
     if (!names.length) {
       n += 1;
       names = ALPHABETH.split('').map(x => repeat('_', n) + x);
@@ -107,19 +105,15 @@ export function observable(state={}) {
  * false, it will replace all `${x}` type expressions within the string and
  * return a concatenated string. If `expr` is true, it will directly return
  * the result of the expression.
- * @param {string} string
- * @param {boolean=} expr
- * @returns {Function}
  */
-export function parse(string, expr=false) {
+export function parse(string: string, expr = false) {
   // TODO Use native expressions instead of eval().
-  // jshint evil: true
 
   let fn = string.replace(/×/g, '*');
 
   if (!expr) {
-    fn = fn.replace(/"/g,'\"')
-      .replace(/\${([^}]+)}/g, (x, y) => `" + (${y}) + "`);
+    fn = fn.replace(/"/g, '\"')
+        .replace(/\${([^}]+)}/g, (x, y) => `" + (${y}) + "`);
     fn = '"' + fn + '"';
   }
 
@@ -132,14 +126,15 @@ export function parse(string, expr=false) {
     }`);
   } catch (e) {
     console.warn('WHILE PARSING: ', string, '\n', e);
-    return function() { return ''; };
+    return () => '';
   }
 }
 
-function makeTemplate(model, property, fromObj, toObj = fromObj) {
+function makeTemplate(model: Observable, property: string, fromObj: any,
+                      toObj = fromObj) {
   if (fromObj[property].indexOf('${') < 0) return;
   const fn = parse(fromObj[property]);
-  model.watch(() => { toObj[property] = fn(model); });
+  model.watch(() => toObj[property] = fn(model));
   toObj[property] = fn(model);
 }
 
@@ -147,21 +142,20 @@ function makeTemplate(model, property, fromObj, toObj = fromObj) {
  * Binds an observable to a DOM element, and parses all attributes as well as
  * the text content. Use `recursive = true` to also bind the observable to all
  * child elements.
- * @param {Element} $el
- * @param {observable} observable
- * @param {boolean=} recursive
  */
-export function bindObservable($el, observable, recursive=true) {
+export function bindObservable($el: ElementView, observable: Observable,
+                               recursive = true) {
   for (const a of $el.attributes) {
     // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
-    const to = a.name.match(/^x-/) ? document.createAttribute(a.name.replace(/^x-/, '')) : a;
+    const to = a.name.startsWith('x-') ?
+               document.createAttribute(a.name.slice(2)) : a;
     makeTemplate(observable, 'value', a, to);
     if (to !== a) $el._el.setAttributeNode(to);
   }
 
   if ($el.children.length) {
     for (const $c of $el.childNodes) {
-      if ($c.tagName === 'TEXT') {
+      if ($c instanceof Text) {
         makeTemplate(observable, 'text', $c);
       } else if (recursive) {
         bindObservable($c, observable);

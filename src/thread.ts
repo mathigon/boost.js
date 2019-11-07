@@ -4,8 +4,18 @@
 // =============================================================================
 
 
+import {defer} from '@mathigon/core';
 
-import { defer, isString } from '@mathigon/core';
+
+declare global {
+  interface Window {
+    Worker?: Worker;
+  }
+}
+
+type Args = (number|string)[];
+type Callback = (...args: Args) => number|string;
+type Response = {data: number|string, time: number};
 
 
 /**
@@ -13,43 +23,41 @@ import { defer, isString } from '@mathigon/core';
  * `fn` has to be a single function with no external references or bindings, so
  * that it can be stringified using .toString(). Similarly, `args` has to be a
  * single number or string, or an array or numbers and strings
- * @param {Function} fn
- * @param {number|string|Array.<number|string>} args
- * @param {number=} timeout
- * @returns {Promise}
  */
-export function thread(fn, args, timeout = 1000) {
+export function thread(fn: Callback, args: number|string|Args, timeout = 1000) {
+  if (!Array.isArray(args)) args = [args];
+
   if (!window.Worker || !window.Blob) {
-    return Promise.resolve(fn.apply(null, args));
+    return Promise.resolve(fn(...args));
   }
 
-  const deferred = defer();
+  const deferred = defer<Response>();
   const start = Date.now();
 
   const content = 'onmessage = function(e){return postMessage(eval(e.data[0]));}';
   const blob = new Blob([content], {type: 'application/javascript'});
   const w = new Worker(URL.createObjectURL(blob));
 
-  const t = setTimeout(function() {
+  const t = setTimeout(function () {
     w.terminate();
     deferred.reject('Timeout!');
   }, timeout);
 
-  w.onmessage = function(e) {
+  w.onmessage = function (e) {
     clearTimeout(t);
     w.terminate();
-    deferred.resolve({ data: e.data, time: Date.now() - start });
+    deferred.resolve({data: e.data, time: Date.now() - start});
   };
 
-  w.onerror = function(e) {
+  w.onerror = function (e) {
     clearTimeout(t);
     console.error('WebWorker error', e);
     w.terminate();
     deferred.reject(e);
   };
 
-  if (!Array.isArray(args)) args = [args];
-  args = args.map(x => isString(x) ? '"' + x + '"' : x);
+  // TODO Find a solution that works without function stringification.
+  args = args.map(x => (typeof x === 'string') ? '"' + x + '"' : x);
   w.postMessage(['(' + fn.toString() + ')(' + args.join(',') + ')']);
 
   return deferred.promise;
