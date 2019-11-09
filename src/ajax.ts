@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {deepExtend, throttle, unique} from '@mathigon/core';
+import {Obj, deepExtend, throttle, unique} from '@mathigon/core';
 
 
 // -----------------------------------------------------------------------------
@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-type PostData = {[key: string]: any};
+type PostData = Obj<any>;
 
 /** Converts a JSON object to an HTML query string. */
 export function toQueryString(data: PostData) {
@@ -44,7 +44,7 @@ export function toQueryString(data: PostData) {
 export function fromQueryString(str: string) {
   str = str.replace(/^[?,&]/, '');
   const pairs = decodeURIComponent(str).split('&');
-  const result: {[key: string]: string} = {};
+  const result: Obj<string> = {};
   pairs.forEach((pair) => {
     const x = pair.split('=');
     result[x[0]] = x[1];

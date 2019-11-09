@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {delay, words} from '@mathigon/core';
+import {delay, Obj, words} from '@mathigon/core';
 import {Point} from '@mathigon/fermat';
 import {SVGParentView, $, $body, ElementView, CanvasView, SVGBaseView, WindowView, InputView} from './elements';
 import {Browser} from './browser';
@@ -25,6 +25,7 @@ declare global {
 // Utilities
 
 export type ScreenEvent = PointerEvent|TouchEvent|MouseEvent;
+export type ScrollEvent = {top: number};
 export type EventCallback = (e: any) => void;
 
 const touchSupport = ('ontouchstart' in window);
@@ -401,7 +402,7 @@ function makeKeyEvent($el: ElementView) {
 // -----------------------------------------------------------------------------
 // Event Creation
 
-const aliases: {[key: string]: string} = {
+const aliases: Obj<string> = {
   change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
   pointerdown: pointerSupport ? 'pointerdown' :
@@ -415,7 +416,7 @@ const aliases: {[key: string]: string} = {
                touchSupport ? 'touchend touchcancel' : 'mouseup'
 };
 
-const customEvents: {[key: string]: ($el: ElementView) => void} = {
+const customEvents: Obj<($el: ElementView) => void> = {
   scroll: makeScrollEvents,
   tap: makeTapEvent,
   clickOutside: makeClickOutsideEvent,

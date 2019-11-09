@@ -13,10 +13,6 @@ declare global {
   }
 }
 
-type Args = (number|string)[];
-type Callback = (...args: Args) => number|string;
-type Response = {data: number|string, time: number};
-
 
 /**
  * Executes a function in a separate thread, for improved performance. Note that
@@ -24,14 +20,17 @@ type Response = {data: number|string, time: number};
  * that it can be stringified using .toString(). Similarly, `args` has to be a
  * single number or string, or an array or numbers and strings
  */
-export function thread(fn: Callback, args: number|string|Args, timeout = 1000) {
+export function thread<T>(fn: (...args: number[]) => T,
+                          args: number|number[],
+                          timeout = 5000): Promise<{data: T, time: number}> {
+
   if (!Array.isArray(args)) args = [args];
 
   if (!window.Worker || !window.Blob) {
-    return Promise.resolve(fn(...args));
+    return Promise.resolve({data: fn(...args), time: 0});
   }
 
-  const deferred = defer<Response>();
+  const deferred = defer<{data: T, time: number}>();
   const start = Date.now();
 
   const content = 'onmessage = function(e){return postMessage(eval(e.data[0]));}';
@@ -43,13 +42,13 @@ export function thread(fn: Callback, args: number|string|Args, timeout = 1000) {
     deferred.reject('Timeout!');
   }, timeout);
 
-  w.onmessage = function (e) {
+  w.onmessage = (e: MessageEvent) => {
     clearTimeout(t);
     w.terminate();
     deferred.resolve({data: e.data, time: Date.now() - start});
   };
 
-  w.onerror = function (e) {
+  w.onerror = (e: ErrorEvent) => {
     clearTimeout(t);
     console.error('WebWorker error', e);
     w.terminate();
@@ -57,7 +56,6 @@ export function thread(fn: Callback, args: number|string|Args, timeout = 1000) {
   };
 
   // TODO Find a solution that works without function stringification.
-  args = args.map(x => (typeof x === 'string') ? '"' + x + '"' : x);
   w.postMessage(['(' + fn.toString() + ')(' + args.join(',') + ')']);
 
   return deferred.promise;

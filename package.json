@@ -17,8 +17,8 @@
     "email": "dev@mathigon.org",
     "url": "https://mathigon.org"
   },
+  "main": "index",
   "module": "index",
-  "jsnext:main": "index",
   "repository": "mathigon/boost.js",
   "scripts": {
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",

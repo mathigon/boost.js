@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {defer, delay, total, toCamelCase} from '@mathigon/core';
+import {defer, delay, total, toCamelCase, Obj} from '@mathigon/core';
 import {ElementView, HTMLView, SVGView} from './elements';
 import {Browser} from './browser';
 
@@ -25,7 +25,7 @@ export type AnimationCallback = (p: number, dt: number,
                                  cancel: AnimationCancel) => void;
 export type AnimationResponse = {cancel: AnimationCancel, promise: Promise<void>};
 
-const ResolvedAnimation = {cancel: () => {}, promise: Promise.resolve()};
+export const ResolvedAnimation = {cancel: () => {}, promise: Promise.resolve()};
 
 
 /**
@@ -144,7 +144,7 @@ export function ease(type: string, t = 0, s = 0) {
 // Element Animations
 
 type AnimationValue = string|number;
-export type AnimationProperties = {[key: string]: AnimationValue|AnimationValue[]};
+export type AnimationProperties = Obj<AnimationValue|AnimationValue[]>;
 
 
 export function transition($el: ElementView, properties: AnimationProperties,

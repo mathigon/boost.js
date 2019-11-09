@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {EventTarget} from '@mathigon/core';
+import {EventTarget, Obj} from '@mathigon/core';
 import {Browser, replaceSvgImports} from './browser';
 import {$body, ElementView} from './elements';
 
@@ -27,7 +27,7 @@ interface RouterOptions {
   history?: boolean;
 }
 
-type ViewParams = {[key: string]: string};
+type ViewParams = Obj<string>;
 
 interface ViewOptions {
   enter?: Callback;

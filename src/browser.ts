@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {throttle, words, safeToJSON} from '@mathigon/core';
+import {throttle, words, safeToJSON, Obj} from '@mathigon/core';
 import {$, $body} from './elements';
 
 
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export const KEY_CODES: {[key: string]: number} = {
+export const KEY_CODES: Obj<number> = {
   backspace: 8,
   tab: 9,
   enter: 13,
@@ -38,6 +38,8 @@ export const KEY_CODES: {[key: string]: number} = {
   'delete': 46
 };
 
+export type ResizeEvent = {width: number, height: number};
+
 
 // -----------------------------------------------------------------------------
 // Browser Namespace
@@ -46,7 +48,8 @@ export namespace Browser {
 
   const ua = window.navigator.userAgent.toLowerCase();
 
-  export const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+  export const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+      ua);
   export const isRetina = ((window.devicePixelRatio || 1) > 1);
   export const isTouch = window.Touch || 'ontouchstart' in window;
 
@@ -91,7 +94,7 @@ export namespace Browser {
   // ---------------------------------------------------------------------------
   // Resize Events
 
-  type ResizeCallback = (e: {width: number, height: number}) => void;
+  type ResizeCallback = (e: ResizeEvent) => void;
   const resizeCallbacks: ResizeCallback[] = [];
 
   export let width = window.innerWidth;
@@ -104,13 +107,18 @@ export namespace Browser {
     $body.trigger('scroll', {top: $body.scrollTop});
   });
 
-  export function resize(fn?: ResizeCallback) {
-    if (fn) {
-      fn({width, height});
-      resizeCallbacks.push(fn);
-    } else {
-      doResize();
-    }
+  export function onResize(fn: ResizeCallback) {
+    fn({width, height});
+    resizeCallbacks.push(fn);
+  }
+
+  export function offResize(fn: ResizeCallback) {
+    const i = resizeCallbacks.indexOf(fn);
+    if (i >= 0) resizeCallbacks.splice(i, 1);
+  }
+
+  export function resize() {
+    doResize();
   }
 
   window.addEventListener('resize', () => {
@@ -147,7 +155,7 @@ export namespace Browser {
   /** Returns a JSON object of all cookies. */
   export function getCookies() {
     const pairs = document.cookie.split(';');
-    const result: {[key: string]: string} = {};
+    const result: Obj<string> = {};
     for (let i = 0, n = pairs.length; i < n; ++i) {
       const pair = pairs[i].split('=');
       pair[0] = pair[0].replace(/^\s+|\s+$/, '');
@@ -161,7 +169,8 @@ export namespace Browser {
     return v ? v[2] : null;
   }
 
-  export function setCookie(name: string, value: any, maxAge = 60 * 60 * 24 * 365) {
+  export function setCookie(name: string, value: any,
+                            maxAge = 60 * 60 * 24 * 365) {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge}`;
   }
 
@@ -248,10 +257,10 @@ const webkitUA = /\bAppleWebKit\/(\d+)\b/;
 const EdgeUA = /\bEdge\/12\.(\d+)\b/;
 
 const polyfill = IEUA.test(navigator.userAgent) ||
-  +(navigator.userAgent.match(EdgeUA) || [])[1] < 10547 ||
-  +(navigator.userAgent.match(webkitUA) || [])[1] < 537;
+                 +(navigator.userAgent.match(EdgeUA) || [])[1] < 10547 ||
+                 +(navigator.userAgent.match(webkitUA) || [])[1] < 537;
 
-const requests: {[key: string]: Promise<string>} = {};
+const requests: Obj<Promise<string>> = {};
 
 /** Replaces SVG `<use>` imports that are not supported by older browsers. */
 export function replaceSvgImports() {

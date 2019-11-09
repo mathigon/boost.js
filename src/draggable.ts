@@ -64,7 +64,7 @@ export class Draggable extends EventTarget {
       }
     });
 
-    Browser.resize(() => {
+    Browser.onResize(() => {
       const oldWidth = this.width;
       const oldHeight = this.height;
       this.setDimensions($parent);

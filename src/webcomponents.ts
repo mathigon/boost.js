@@ -8,7 +8,9 @@ import {HTMLBaseView} from './elements';
 
 
 type CustomElementOptions = {attributes?: string[], template?: string, templateId?: string};
-type CustomElementConstructor = new ($el: HTMLElement) => CustomElementView;
+type CustomElementConstructor = new (el: CustomHTMLElement) => CustomElementView;
+
+export type AttributeChangedEvent = {newVal: string, oldVal: string};
 
 
 // -----------------------------------------------------------------------------

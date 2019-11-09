@@ -4,8 +4,8 @@
 // =============================================================================
 
 
-import {isOneOf, words, applyDefaults, last} from '@mathigon/core';
-import {roundTo, Point, isBetween, Rectangle} from '@mathigon/fermat';
+import {isOneOf, words, applyDefaults, last, Obj} from '@mathigon/core';
+import {roundTo, Point, isBetween, Rectangle, SimplePoint} from '@mathigon/fermat';
 import {loadImage} from './ajax';
 
 import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
@@ -13,7 +13,7 @@ import {Browser, KEY_CODES} from './browser';
 import {bindEvent, EventCallback, unbindEvent} from './events';
 import {drawSVG, GeoShape, SVGDrawingOptions} from './svg';
 import {CanvasDrawingOptions, drawCanvas} from './canvas';
-import {bindObservable, Observable} from './templates';
+import {bindObservable, observable, Observable} from './templates';
 
 
 declare global {
@@ -22,15 +22,13 @@ declare global {
   }
 }
 
-type SimplePoint = {x: number, y: number};
-
 
 // -----------------------------------------------------------------------------
 // Base Element Class
 
 abstract class BaseView<T extends HTMLElement|SVGElement> {
-  readonly _data: {[key: string]: any} = {};
-  readonly _events: {[key: string]: any} = {};
+  readonly _data: Obj<any> = {};
+  readonly _events: Obj<any> = {};
   model: Observable|null = null;
 
   constructor(readonly _el: T) {
@@ -50,9 +48,9 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el === el._el;
   }
 
-  getModel(): Observable|null {
+  getModel(): Observable {
     const parent = this.parent;
-    return parent ? (parent.model || parent.getModel()) : null;
+    return parent ? (parent.model || parent.getModel()) : observable();
   }
 
   bindObservable(model: Observable, recursive = true) {
@@ -196,7 +194,7 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
    *   * $el.css('color', 'blue');
    *   * $el.css({color: 'blue'});
    */
-  css(props: string|{[key: string]: string|number}, value?: string|number) {
+  css(props: string|Obj<string|number>, value?: string|number) {
     if (value === undefined) {
       if (typeof props === 'string') {
         return window.getComputedStyle(this._el).getPropertyValue(props);
@@ -233,7 +231,7 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Sets the CSS transform on this element. */
-  setTransform(posn: Point, angle = 0, scale = 1) {
+  setTransform(posn: SimplePoint, angle = 0, scale = 1) {
     let t = '';
     if (posn) t +=
         `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)}px)`;
@@ -875,12 +873,16 @@ export class FormView extends HTMLBaseView<HTMLFormElement> {
 
   /** Summarises the data for an HTML <form> element in an JSON Object. */
   get formData() {
-    const data: {[key: string]: string} = {};
+    const data: Obj<string> = {};
     for (const el of Array.from(this._el.elements)) {
       const id = (el as InputOrSelectElement).name || el.id;
       if (id) data[id] = (el as InputOrSelectElement).value;
     }
     return data;
+  }
+
+  get isValid() {
+    return this._el.checkValidity();
   }
 }
 
@@ -1030,8 +1032,8 @@ export function $$(selector: string,
 }
 
 /** Creates a new Element instance from a given set of options. */
-export function $N(tag: string, attributes: {[key: string]: any} = {},
-                   parent?: HTMLView|SVGView) {
+export function $N(tag: string, attributes: Obj<any> = {},
+                   parent?: ElementView) {
 
   const el = SVG_TAGS.includes(tag) ? document.createElement(tag) :
              document.createElementNS('http://www.w3.org/2000/svg', tag);
