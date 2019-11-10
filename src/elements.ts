@@ -1035,7 +1035,7 @@ export function $$(selector: string,
 export function $N(tag: string, attributes: Obj<any> = {},
                    parent?: ElementView) {
 
-  const el = SVG_TAGS.includes(tag) ? document.createElement(tag) :
+  const el = !SVG_TAGS.includes(tag) ? document.createElement(tag) :
              document.createElementNS('http://www.w3.org/2000/svg', tag);
 
   for (const [key, value] of Object.entries(attributes)) {

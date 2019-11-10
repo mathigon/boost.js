@@ -63,7 +63,7 @@ function customElementChildren(el: Element) {
 
 const customElementOptions = new Map<string, CustomElementOptions>();
 
-class CustomHTMLElement extends HTMLElement {
+abstract class CustomHTMLElement extends HTMLElement {
   private wasConnected = false;
   private isReady = false;
   _view!: CustomElementView;
@@ -120,23 +120,23 @@ export abstract class CustomElementView extends HTMLBaseView<CustomHTMLElement> 
 
 
 /**
- * Registers a new custom HTML element.
+ * Decorator for registering a new custom HTML element.
  */
-export function registerElement(tagName: string,
-                                ElementClass: CustomElementConstructor,
-                                options: CustomElementOptions = {}) {
-  // Every class can only be used once as custom element,
-  // so we have to make a copy.
+export function register(tagName: string, options: CustomElementOptions = {}) {
+  return function(ElementClass: CustomElementConstructor) {
+    // Every class can only be used once as custom element,
+    // so we have to make a copy.
 
-  class Constructor extends CustomHTMLElement {
-    constructor() {
-      super();
-      this._view = new ElementClass(this);
+    class Constructor extends CustomHTMLElement {
+      constructor() {
+        super();
+        this._view = new ElementClass(this);
+      }
+
+      static observedAttributes = options.attributes || [];
     }
 
-    static observedAttributes = options.attributes || [];
+    customElementOptions.set(tagName.toUpperCase(), options);
+    window.customElements.define(tagName, Constructor);
   }
-
-  customElementOptions.set(tagName.toUpperCase(), options);
-  window.customElements.define(tagName, Constructor);
 }
