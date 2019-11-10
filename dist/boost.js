@@ -4237,24 +4237,21 @@ class CustomElementView extends HTMLBaseView {
     ready() { }
 }
 /**
- * Registers a new custom HTML element.
+ * Decorator for registering a new custom HTML element.
  */
-function registerElement(tagName, ElementClass, options = {}) {
-    // Every class can only be used once as custom element,
-    // so we have to make a copy.
-    class Constructor extends CustomHTMLElement {
-        constructor() {
-            super();
-            this._view = new ElementClass(this);
-        }
-    }
-    Constructor.observedAttributes = options.attributes || [];
-    customElementOptions.set(tagName.toUpperCase(), options);
-    window.customElements.define(tagName, Constructor);
-}
 function register(tagName, options = {}) {
-    return function (Constructor) {
-        registerElement(tagName, Constructor, options);
+    return function (ElementClass) {
+        // Every class can only be used once as custom element,
+        // so we have to make a copy.
+        class Constructor extends CustomHTMLElement {
+            constructor() {
+                super();
+                this._view = new ElementClass(this);
+            }
+        }
+        Constructor.observedAttributes = options.attributes || [];
+        customElementOptions.set(tagName.toUpperCase(), options);
+        window.customElements.define(tagName, Constructor);
     };
 }
 
@@ -4296,7 +4293,6 @@ exports.parse = parse;
 exports.pointerPosition = pointerPosition;
 exports.post = post;
 exports.register = register;
-exports.registerElement = registerElement;
 exports.replaceSvgImports = replaceSvgImports;
 exports.slide = slide;
 exports.svgPointerPosn = svgPointerPosn;
