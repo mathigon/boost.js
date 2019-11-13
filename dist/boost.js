@@ -3,13 +3,6 @@
 Object.defineProperty(exports, '__esModule', { value: true });
 
 // =============================================================================
-// Core.ts | Utility Functions
-// (c) Mathigon
-// =============================================================================
-/** Creates a random UID string of a given length. */
-function uid(n = 10) {
-    return Math.random().toString(36).substr(2, n);
-}
 /** Checks if x is strictly equal to any one of the following arguments. */
 function isOneOf(x, ...values) {
     for (let v of values) {
@@ -112,58 +105,6 @@ function safeToJSON(str, fallback = {}) {
 function repeat(value, n) {
     return new Array(n).fill(value);
 }
-/** Creates a matrix of size `x` by `y`, containing `value` at every entry. */
-function repeat2D(value, x, y) {
-    const result = [];
-    for (let i = 0; i < x; ++i) {
-        result.push(repeat(value, y));
-    }
-    return result;
-}
-/** Creates an array of size `n`, with the result of `fn(i)` at position i. */
-function tabulate(fn, n) {
-    const result = [];
-    for (let i = 0; i < n; ++i) {
-        result.push(fn(i));
-    }
-    return result;
-}
-/**
- * Creates a matrix of size `x` by `y`, with the result of `fn(i, j)` at
- * position (i, j.
- */
-function tabulate2D(fn, x, y) {
-    const result = [];
-    for (let i = 0; i < x; ++i) {
-        const row = [];
-        for (let j = 0; j < y; ++j) {
-            row.push(fn(i, j));
-        }
-        result.push(row);
-    }
-    return result;
-}
-/** Creates an array of numbers from 0 to a, or from a to b. */
-function list(a, b, step = 1) {
-    const arr = [];
-    if (b === undefined && a >= 0) {
-        for (let i = 0; i < a; i += step)
-            arr.push(i);
-    }
-    else if (b === undefined) {
-        for (let i = 0; i > a; i -= step)
-            arr.push(i);
-    }
-    else if (a <= b) {
-        for (let i = a; i <= b; i += step)
-            arr.push(i);
-    }
-    else {
-        for (let i = a; i >= b; i -= step)
-            arr.push(i);
-    }
-    return arr;
-}
 /** Returns the last item in an array, or the ith item from the end. */
 function last(array, i = 0) {
     return array[array.length - 1 - i];
@@ -175,20 +116,6 @@ function total(array) {
 /** Filters all duplicate elements from an array. */
 function unique(array) {
     return array.filter((a, i) => array.indexOf(a) === i);
-}
-/** Flattens a nested array into a single list. */
-function flatten(array) {
-    return array.reduce((a, b) => a.concat(Array.isArray(b) ? flatten(b) : b), []);
-}
-/** Converts an array to a linked list data structure. */
-function toLinkedList(array) {
-    const result = array.map(a => ({ val: a, next: null }));
-    const n = result.length;
-    for (let i = 0; i < n - 1; ++i) {
-        result[i].next = result[i + 1];
-    }
-    result[n - 1].next = result[0];
-    return result;
 }
 
 // =============================================================================
@@ -435,6 +362,86 @@ function subsetsHelper(array) {
 }
 
 // =============================================================================
+// Core.ts | Utility Functions
+// (c) Mathigon
+// =============================================================================
+/** Creates a random UID string of a given length. */
+function uid(n = 10) {
+    return Math.random().toString(36).substr(2, n);
+}
+/** Checks if x is strictly equal to any one of the following arguments. */
+function isOneOf$1(x, ...values) {
+    for (let v of values) {
+        if (x === v)
+            return true;
+    }
+    return false;
+}
+
+// =============================================================================
+// Core.ts | Array Functions
+// (c) Mathigon
+// =============================================================================
+/** Creates an array of size `n`, containing `value` at every entry. */
+function repeat$1(value, n) {
+    return new Array(n).fill(value);
+}
+/** Creates a matrix of size `x` by `y`, containing `value` at every entry. */
+function repeat2D(value, x, y) {
+    const result = [];
+    for (let i = 0; i < x; ++i) {
+        result.push(repeat$1(value, y));
+    }
+    return result;
+}
+/**
+ * Creates a matrix of size `x` by `y`, with the result of `fn(i, j)` at
+ * position (i, j.
+ */
+function tabulate2D(fn, x, y) {
+    const result = [];
+    for (let i = 0; i < x; ++i) {
+        const row = [];
+        for (let j = 0; j < y; ++j) {
+            row.push(fn(i, j));
+        }
+        result.push(row);
+    }
+    return result;
+}
+/** Creates an array of numbers from 0 to a, or from a to b. */
+function list(a, b, step = 1) {
+    const arr = [];
+    if (b === undefined && a >= 0) {
+        for (let i = 0; i < a; i += step)
+            arr.push(i);
+    }
+    else if (b === undefined) {
+        for (let i = 0; i > a; i -= step)
+            arr.push(i);
+    }
+    else if (a <= b) {
+        for (let i = a; i <= b; i += step)
+            arr.push(i);
+    }
+    else {
+        for (let i = a; i >= b; i -= step)
+            arr.push(i);
+    }
+    return arr;
+}
+/** Finds the sum of all elements in an numeric array. */
+function total$1(array) {
+    return array.reduce((t, v) => t + v, 0);
+}
+/** Flattens a nested array into a single list. */
+function flatten(array) {
+    return array.reduce((a, b) => a.concat(Array.isArray(b) ? flatten(b) : b), []);
+}
+
+// =============================================================================
+// -----------------------------------------------------------------------------
+// Points
 /** A single point class defined by two coordinates x and y. */
 class Point {
     constructor(x = 0, y = 0) {
@@ -533,8 +540,8 @@ class Point {
     }
     /** Calculates the average of multiple points. */
     static average(...points) {
-        let x = total(points.map(p => p.x)) / points.length;
-        let y = total(points.map(p => p.y)) / points.length;
+        let x = total$1(points.map(p => p.x)) / points.length;
+        let y = total$1(points.map(p => p.y)) / points.length;
         return new Point(x, y);
     }
     /** Calculates the dot product of two points p1 and p2. */
@@ -678,427 +685,8 @@ class Line {
         return l1.contains(l2.p1) && l1.contains(l2.p2);
     }
 }
-/** An infinite ray defined by an endpoint and another point on the ray. */
-class Ray extends Line {
-    constructor() {
-        super(...arguments);
-        this.type = 'ray';
-    }
-}
-/** A finite line segment defined by its two endpoints. */
-class Segment extends Line {
-    constructor() {
-        super(...arguments);
-        this.type = 'segment';
-    }
-    contains(p) {
-        // TODO Implement!
-        return true;
-    }
-    make(p1, p2) {
-        return new Segment(p1, p2);
-    }
-    project(p) {
-        const a = Point.difference(this.p2, this.p1);
-        const b = Point.difference(p, this.p1);
-        const q = clamp(Point.dot(a, b) / square(this.length), 0, 1);
-        return Point.sum(this.p1, a.scale(q));
-    }
-    /** Contracts (or expands) a line by a specific ratio. */
-    contract(x) {
-        return new Segment(this.at(x), this.at(1 - x));
-    }
-    /** Checks if two line segments l1 and l2 are equal. */
-    static equals(l1, l2, oriented = false) {
-        return (Point.equals(l1.p1, l2.p1) && Point.equals(l1.p2, l2.p2)) ||
-            (!oriented && Point.equals(l1.p1, l2.p2) &&
-                Point.equals(l1.p2, l2.p1));
-    }
-    /** Finds the intersection of two line segments l1 and l2 (or null). */
-    static intersect(s1, s2) {
-        return intersections(s1, s2)[0] || null;
-    }
-}
 // -----------------------------------------------------------------------------
-// Circles, Ellipses and Arcs
-/** A circle with a given center and radius. */
-class Circle {
-    constructor(c = ORIGIN, r = 1) {
-        this.c = c;
-        this.r = r;
-        this.type = 'circle';
-    }
-    /** The length of the circumference of this circle. */
-    get circumference() {
-        return TWO_PI * this.r;
-    }
-    /** The area of this circle. */
-    get area() {
-        return Math.PI * Math.pow(this.r, 2);
-    }
-    get arc() {
-        let start = this.c.shift(this.r, 0);
-        return new Arc(this.c, start, TWO_PI);
-    }
-    transform(m) {
-        return new Circle(this.c.transform(m), this.r * (m[0][0] + m[1][1]) / 2);
-    }
-    rotate(a, c = ORIGIN) {
-        return new Circle(this.c.rotate(a, c), this.r);
-    }
-    reflect(l) {
-        return new Circle(this.c.reflect(l), this.r);
-    }
-    scale(sx, sy = sx) {
-        return new Circle(this.c.scale(sx, sy), this.r * (sx + sy) / 2);
-    }
-    shift(x, y = x) {
-        return new Circle(this.c.shift(x, y), this.r);
-    }
-    translate(p) {
-        return this.shift(p.x, p.y);
-    }
-    contains(p) {
-        return Point.distance(p, this.c) <= this.r;
-    }
-    equals(other) {
-        return nearlyEquals(this.r, other.r) && this.c.equals(other.c);
-    }
-    project(p) {
-        const proj = Point.difference(p, this.c).perpendicular.scale(this.r);
-        return Point.sum(this.c, proj);
-    }
-    at(t) {
-        const a = 2 * Math.PI * t;
-        return this.c.shift(this.r * Math.cos(a), this.r * Math.sin(a));
-    }
-    tangentAt(t) {
-        const p1 = this.at(t);
-        const p2 = this.c.rotate(Math.PI / 2, p1);
-        return new Line(p1, p2);
-    }
-}
-/** An arc segment of a circle, with given center, start point and angle. */
-class Arc {
-    constructor(c, start, angle) {
-        this.c = c;
-        this.start = start;
-        this.angle = angle;
-        this.type = 'arc';
-    }
-    get radius() {
-        return Point.distance(this.c, this.start);
-    }
-    get end() {
-        return this.start.rotate(this.angle, this.c);
-    }
-    transform(m) {
-        return new this.constructor(this.c.transform(m), this.start.transform(m), this.angle);
-    }
-    get startAngle() {
-        return rad(this.start, this.c);
-    }
-    project(p) {
-        let start = this.startAngle;
-        let end = start + this.angle;
-        let angle = rad(p, this.c);
-        if (end > TWO_PI && angle < end - TWO_PI)
-            angle += TWO_PI;
-        angle = clamp(angle, start, end);
-        return this.c.shift(this.radius, 0).rotate(angle, this.c);
-    }
-    at(t) {
-        return this.start.rotate(this.angle * t, this.c);
-    }
-    contract(p) {
-        return new this.constructor(this.c, this.at(p / 2), this.angle * (1 - p));
-    }
-    get minor() {
-        if (this.angle <= Math.PI)
-            return this;
-        return new this.constructor(this.c, this.end, 2 * Math.PI - this.angle);
-    }
-    get major() {
-        if (this.angle >= Math.PI)
-            return this;
-        return new this.constructor(this.c, this.end, 2 * Math.PI - this.angle);
-    }
-    get center() {
-        return this.at(0.5);
-    }
-}
-// -----------------------------------------------------------------------------
-// Polygons
-/** A polygon defined by its vertex points. */
-class Polygon {
-    constructor(...points) {
-        this.type = 'polygon';
-        this.points = points;
-    }
-    get circumference() {
-        let C = 0;
-        for (let i = 1; i < this.points.length; ++i) {
-            C += Point.distance(this.points[i - 1], this.points[i]);
-        }
-        return C;
-    }
-    /**
-     * The (signed) area of this polygon. The result is positive if the vertices
-     * are ordered clockwise, and negative otherwise.
-     */
-    get signedArea() {
-        let p = this.points;
-        let n = p.length;
-        let A = p[n - 1].x * p[0].y - p[0].x * p[n - 1].y;
-        for (let i = 1; i < n; ++i) {
-            A += p[i - 1].x * p[i].y - p[i].x * p[i - 1].y;
-        }
-        return A / 2;
-    }
-    get area() {
-        return Math.abs(this.signedArea);
-    }
-    get centroid() {
-        let p = this.points;
-        let n = p.length;
-        let Cx = 0;
-        for (let i = 0; i < n; ++i)
-            Cx += p[i].x;
-        let Cy = 0;
-        for (let i = 0; i < n; ++i)
-            Cy += p[i].y;
-        return new Point(Cx / n, Cy / n);
-    }
-    get edges() {
-        let p = this.points;
-        let n = p.length;
-        let edges = [];
-        for (let i = 0; i < n; ++i)
-            edges.push(new Segment(p[i], p[(i + 1) % n]));
-        return edges;
-    }
-    get radius() {
-        const c = this.centroid;
-        const radii = this.points.map(p => Point.distance(p, c));
-        return Math.max(...radii);
-    }
-    transform(m) {
-        return new this.constructor(...this.points.map(p => p.transform(m)));
-    }
-    rotate(a, center = ORIGIN) {
-        const points = this.points.map(p => p.rotate(a, center));
-        return new this.constructor(...points);
-    }
-    reflect(line) {
-        const points = this.points.map(p => p.reflect(line));
-        return new this.constructor(...points);
-    }
-    scale(sx, sy = sx) {
-        const points = this.points.map(p => p.scale(sx, sy));
-        return new this.constructor(...points);
-    }
-    shift(x, y = x) {
-        const points = this.points.map(p => p.shift(x, y));
-        return new this.constructor(...points);
-    }
-    translate(p) {
-        return this.shift(p.x, p.y);
-    }
-    /** Checks if a point p lies inside this polygon. */
-    contains(p) {
-        let n = this.points.length;
-        let inside = false;
-        for (let i = 0; i < n; ++i) {
-            const q1 = this.points[i];
-            const q2 = this.points[(i + 1) % n];
-            const x = (q1.y > p.y) !== (q2.y > p.y);
-            const y = p.x < (q2.x - q1.x) * (p.y - q1.y) / (q2.y - q1.y) + q1.x;
-            if (x && y)
-                inside = !inside;
-        }
-        return inside;
-    }
-    equals(other) {
-        // TODO Implement
-    }
-    project(p) {
-        // TODO Implement
-    }
-    at(t) {
-        return Point.interpolateList([...this.points, this.points[0]], t);
-    }
-    /** The oriented version of this polygon (vertices in clockwise order). */
-    get oriented() {
-        if (this.signedArea >= 0)
-            return this;
-        const points = [...this.points].reverse();
-        return new this.constructor(...points);
-    }
-    /**
-     * The intersection of this and another polygon, calculated using the
-     * Weiler–Atherton clipping algorithm
-     */
-    intersect(polygon) {
-        // TODO Support intersections with multiple disjoint overlapping areas.
-        // TODO Support segments intersecting at their endpoints
-        const points = [toLinkedList(this.oriented.points),
-            toLinkedList(polygon.oriented.points)];
-        const max = this.points.length + polygon.points.length;
-        const result = [];
-        let which = 0;
-        let active = points[which].find(p => polygon.contains(p.val));
-        if (!active)
-            return null; // No intersection
-        while (active.val !== result[0] && result.length < max) {
-            result.push(active.val);
-            const nextEdge = new Segment(active.val, active.next.val);
-            active = active.next;
-            for (let p of points[1 - which]) {
-                const testEdge = new Segment(p.val, p.next.val);
-                const intersect = intersections(nextEdge, testEdge)[0];
-                if (intersect) {
-                    which = 1 - which; // Switch active polygon
-                    active = { val: intersect, next: p.next };
-                    break;
-                }
-            }
-        }
-        return new Polygon(...result);
-    }
-    /** Checks if two polygons p1 and p2 collide. */
-    static collision(p1, p2) {
-        // Check if any of the edges overlap.
-        for (let e1 of p1.edges) {
-            for (let e2 of p2.edges) {
-                if (Segment.intersect(e1, e2))
-                    return true;
-            }
-        }
-        // Check if one of the vertices is in one of the the polygons.
-        for (let v of p1.points)
-            if (p2.contains(v))
-                return true;
-        for (let v of p2.points)
-            if (p1.contains(v))
-                return true;
-        return false;
-    }
-    /** Creates a regular polygon. */
-    static regular(n, radius = 1) {
-        const da = 2 * Math.PI / n;
-        const a0 = Math.PI / 2 - da / 2;
-        const points = tabulate((i) => Point.fromPolar(a0 + da * i, radius), n);
-        return new Polygon(...points);
-    }
-    /** Interpolates the points of two polygons */
-    static interpolate(p1, p2, t = 0.5) {
-        // TODO support interpolating polygons with different numbers of points
-        const points = p1.points.map((p, i) => Point.interpolate(p, p2.points[i], t));
-        return new Polygon(...points);
-    }
-}
-// -----------------------------------------------------------------------------
-// Rectangles and Squares
-/** A rectangle, defined by its top left vertex, width and height. */
-class Rectangle {
-    constructor(p, w = 1, h = w) {
-        this.p = p;
-        this.w = w;
-        this.h = h;
-        this.type = 'rectangle';
-    }
-    static aroundPoints(...points) {
-        const xs = points.map(p => p.x);
-        const ys = points.map(p => p.y);
-        const x = Math.min(...xs);
-        const w = Math.max(...xs) - x;
-        const y = Math.min(...ys);
-        const h = Math.max(...ys) - y;
-        return new Rectangle(new Point(x, y), w, h);
-    }
-    get center() {
-        return new Point(this.p.x + this.w / 2, this.p.y + this.h / 2);
-    }
-    get circumference() {
-        return 2 * Math.abs(this.w) + 2 * Math.abs(this.h);
-    }
-    get area() {
-        return Math.abs(this.w * this.h);
-    }
-    /** @returns {Segment[]} */
-    get edges() {
-        return this.polygon.edges;
-    }
-    /** @returns {Point[]} */
-    get points() {
-        return this.polygon.points;
-    }
-    /**
-     * A polygon class representing this rectangle.
-     * @returns {Polygon}
-     */
-    get polygon() {
-        let b = new Point(this.p.x + this.w, this.p.y);
-        let c = new Point(this.p.x + this.w, this.p.y + this.h);
-        let d = new Point(this.p.x, this.p.y + this.h);
-        return new Polygon(this.p, b, c, d);
-    }
-    transform(m) {
-        return this.polygon.transform(m);
-    }
-    rotate(a, c = ORIGIN) {
-        return this.polygon.rotate(a, c);
-    }
-    reflect(l) {
-        return this.polygon.reflect(l);
-    }
-    scale(sx, sy = sx) {
-        return new Rectangle(this.p.scale(sx, sy), this.w * sx, this.h * sy);
-    }
-    shift(x, y = x) {
-        return new Rectangle(this.p.shift(x, y), this.w, this.h);
-    }
-    translate(p) {
-        return this.shift(p.x, p.y);
-    }
-    contains(p) {
-        return isBetween(p.x, this.p.x, this.p.x + this.w) &&
-            isBetween(p.y, this.p.y, this.p.y + this.h);
-    }
-    equals(other) {
-        // TODO Implement
-    }
-    project(p) {
-        // TODO Use the generic intersections() function
-        // bottom right corner of rect
-        let rect1 = { x: this.p.x + this.w, y: this.p.y + this.h };
-        let center = { x: this.p.x + this.w / 2, y: this.p.y + this.h / 2 };
-        let m = (center.y - p.y) / (center.x - p.x);
-        if (p.x <= center.x) { // check left side
-            let y = m * (this.p.x - p.x) + p.y;
-            if (this.p.y < y && y < rect1.y)
-                return new Point(this.p.x, y);
-        }
-        if (p.x >= center.x) { // check right side
-            let y = m * (rect1.x - p.x) + p.y;
-            if (this.p.y < y && y < rect1.y)
-                return new Point(rect1.x, y);
-        }
-        if (p.y <= center.y) { // check top side
-            let x = (this.p.y - p.y) / m + p.x;
-            if (this.p.x < x && x < rect1.x)
-                return new Point(x, this.p.y);
-        }
-        if (p.y >= center.y) { // check bottom side
-            let x = (rect1.y - p.y) / m + p.x;
-            if (this.p.x < x && x < rect1.x)
-                return new Point(x, rect1.y);
-        }
-    }
-    at(t) {
-        // TODO Implement
-    }
-}
+// Intersections
 function liesOnSegment(s, p) {
     if (nearlyEquals(s.p1.x, s.p2.x))
         return isBetween(p.y, s.p1.y, s.p2.y);
@@ -1165,6 +753,15 @@ function lineCircleIntersection(l, c) {
     const yb = Math.abs(dy) * Math.sqrt(disc) / dr2;
     return [c.c.shift(xa + xb, ya + yb), c.c.shift(xa - xb, ya - yb)];
 }
+function isPolygonLike(shape) {
+    return isOneOf$1(shape.type, 'polygon', 'polyline', 'rectangle');
+}
+function isLineLike(shape) {
+    return isOneOf$1(shape.type, 'line', 'ray', 'segment');
+}
+function isCircle(shape) {
+    return shape.type === 'circle';
+}
 /** Returns the intersection of two or more geometry objects. */
 function intersections(...elements) {
     if (elements.length < 2)
@@ -1172,39 +769,39 @@ function intersections(...elements) {
     if (elements.length > 2)
         return flatten(subsets(elements, 2).map(e => intersections(...e)));
     let [a, b] = elements;
-    // TODO Fix these type annotations!
-    if (b instanceof Polygon || b instanceof Rectangle)
+    if (isPolygonLike(b))
         [a, b] = [b, a];
-    if (a instanceof Polygon || a instanceof Rectangle) {
+    if (isPolygonLike(a)) {
         // This hack is necessary to capture intersections between a line and a
         // vertex of a polygon. There are more edge cases to consider!
-        const vertices = (b instanceof Line) ? a.points.filter(p => b.contains(p)) :
-            [];
+        const vertices = isLineLike(b) ?
+            a.points.filter(p => b.contains(p)) : [];
         return [...vertices, ...intersections(b, ...a.edges)];
     }
+    // TODO Handle arcs, sectors and angles!
     return simpleIntersection(a, b);
 }
 /** Finds the intersection of two lines or circles. */
 function simpleIntersection(a, b) {
     let results = [];
     // TODO Handle Arcs and Rays
-    if (a instanceof Line && b instanceof Line) {
+    if (isLineLike(a) && isLineLike(b)) {
         results = lineLineIntersection(a, b);
     }
-    else if (a instanceof Line && b instanceof Circle) {
+    else if (isLineLike(a) && isCircle(b)) {
         results = lineCircleIntersection(a, b);
     }
-    else if (a instanceof Circle && b instanceof Line) {
+    else if (isCircle(a) && isLineLike(b)) {
         results = lineCircleIntersection(b, a);
     }
-    else if (a instanceof Circle && b instanceof Circle) {
+    else if (isCircle(a) && isCircle(b)) {
         results = circleCircleIntersection(a, b);
     }
     for (const x of [a, b]) {
-        if (x instanceof Segment)
+        if (x.type === 'segment')
             results =
                 results.filter(i => liesOnSegment(x, i));
-        if (x instanceof Ray)
+        if (x.type === 'ray')
             results = results.filter(i => liesOnRay(x, i));
     }
     return results;
@@ -1407,7 +1004,7 @@ var Random;
     Random.intArray = intArray;
     /** Chooses a random index value from weights [2, 5, 3] */
     function weighted(weights) {
-        const x = Math.random() * total(weights);
+        const x = Math.random() * total$1(weights);
         let cum = 0;
         return weights.findIndex((w) => (cum += w) >= x);
     }
@@ -1423,7 +1020,7 @@ var Random;
         if (!id)
             id = uid();
         if (!SMART_RANDOM_CACHE.has(id))
-            SMART_RANDOM_CACHE.set(id, repeat(1, n));
+            SMART_RANDOM_CACHE.set(id, repeat$1(1, n));
         const cache = SMART_RANDOM_CACHE.get(id);
         const x = weighted(cache.map(x => x * x));
         cache[x] -= 1;
@@ -1883,7 +1480,8 @@ function hover($el, options) {
         timeout = delay(() => {
             if (active)
                 return;
-            options.enter();
+            if (options.enter)
+                options.enter();
             wasTriggeredByMouse = true;
             active = true;
         }, options.delay);
@@ -1908,7 +1506,8 @@ function hover($el, options) {
             active = false;
         }
         else if (!active) {
-            options.enter();
+            if (options.enter)
+                options.enter();
             wasTriggeredByMouse = false;
             active = true;
         }
@@ -2354,15 +1953,15 @@ function observable(state = {}) {
 // -----------------------------------------------------------------------------
 // Model Binding and Templating
 /**
- * Converts an expression string into an executable JS function. If `expr` is
- * false, it will replace all `${x}` type expressions within the string and
+ * Converts an expression string into an executable JS function. If `isString`
+ * is true, it will replace all `${x}` type expressions within the string and
  * return a concatenated string. If `expr` is true, it will directly return
  * the result of the expression.
  */
-function parse(string, expr = false) {
+function parse(expr, isString = true) {
     // TODO Use native expressions instead of eval().
-    let fn = string.replace(/×/g, '*');
-    if (!expr) {
+    let fn = expr.replace(/×/g, '*');
+    if (isString) {
         fn = fn.replace(/"/g, '\"')
             .replace(/\${([^}]+)}/g, (x, y) => `" + (${y}) + "`);
         fn = '"' + fn + '"';
@@ -2376,16 +1975,16 @@ function parse(string, expr = false) {
     }`);
     }
     catch (e) {
-        console.warn('WHILE PARSING: ', string, '\n', e);
-        return () => '';
+        console.warn('WHILE PARSING: ', expr, '\n', e);
+        return () => undefined;
     }
 }
 function makeTemplate(model, property, fromObj, toObj = fromObj) {
     if (fromObj[property].indexOf('${') < 0)
         return;
     const fn = parse(fromObj[property]);
-    model.watch(() => toObj[property] = fn(model));
-    toObj[property] = fn(model);
+    model.watch(() => toObj[property] = fn(model) || '');
+    toObj[property] = fn(model) || '';
 }
 /**
  * Binds an observable to a DOM element, and parses all attributes as well as
@@ -3224,11 +2823,11 @@ const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
  */
 function $(query, context) {
     if (!query)
-        return null;
+        return undefined;
     const c = context ? context._el : document.documentElement;
     const el = (typeof query === 'string') ? c.querySelector(query) : query;
     if (!el)
-        return null;
+        return undefined;
     if (el._view)
         return el._view;
     const tagName = (el.tagName || '').toLowerCase();
@@ -3266,6 +2865,8 @@ function $N(tag, attributes = {}, parent) {
     const el = !SVG_TAGS.includes(tag) ? document.createElement(tag) :
         document.createElementNS('http://www.w3.org/2000/svg', tag);
     for (const [key, value] of Object.entries(attributes)) {
+        if (!value)
+            continue;
         if (key === 'id') {
             el.id = value;
         }

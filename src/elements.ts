@@ -22,6 +22,12 @@ declare global {
   }
 }
 
+// Override Typescript defaults
+interface EventListenerOptions {
+  capture?: boolean;
+  passive?: boolean;
+}
+
 
 // -----------------------------------------------------------------------------
 // Base Element Class
@@ -231,7 +237,7 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Sets the CSS transform on this element. */
-  setTransform(posn: SimplePoint, angle = 0, scale = 1) {
+  setTransform(posn?: SimplePoint, angle = 0, scale = 1) {
     let t = '';
     if (posn) t +=
         `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)}px)`;
@@ -340,10 +346,10 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** The first child element matching a given selector. */
-  $(selector: string): ElementView|null { return $(selector, this); }
+  $(selector: string) { return $(selector, this); }
 
   /** All child elements matching a given selector. */
-  $$(selector: string): ElementView[] { return $$(selector, this); }
+  $$(selector: string) { return $$(selector, this); }
 
   /** Returns this element's parent, or null. */
   get parent() {
@@ -673,10 +679,10 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
       matrix[1][2] -= transform[1][2];
     }
 
-    return matrix;
+    return matrix as [[number, number, number], [number, number, number]];
   }
 
-  setTransform(posn: SimplePoint|null, angle = 0, scale = 1) {
+  setTransform(posn?: SimplePoint, angle = 0, scale = 1) {
     const t1 = posn ?
                `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` :
                '';
@@ -994,13 +1000,13 @@ const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
  * Element wrapper around a native HTMLElement instance.
  */
 export function $(query?: string|Element|null,
-                  context?: ElementView): ElementView|null {
-  if (!query) return null;
+                  context?: ElementView): ElementView|undefined {
+  if (!query) return undefined;
 
   const c = context ? context._el : document.documentElement;
   const el = (typeof query === 'string') ? c.querySelector(query) : query;
 
-  if (!el) return null;
+  if (!el) return undefined;
   if (el._view) return el._view;
 
   const tagName = (el.tagName || '').toLowerCase();
@@ -1039,6 +1045,7 @@ export function $N(tag: string, attributes: Obj<any> = {},
              document.createElementNS('http://www.w3.org/2000/svg', tag);
 
   for (const [key, value] of Object.entries(attributes)) {
+    if (!value) continue;
     if (key === 'id') {
       el.id = value;
     } else if (key === 'html') {

@@ -238,8 +238,8 @@ function makeScrollEvents($el: ElementView) {
 // Hover Events
 
 interface HoverEventOptions {
-  enter: () => void;
-  exit: () => void;
+  enter?: () => void;
+  exit?: () => void;
   preventMouseover?: () => boolean;
   delay?: number;
   exitDelay?: number;
@@ -256,7 +256,7 @@ export function hover($el: ElementView, options: HoverEventOptions) {
     clearTimeout(timeout);
     timeout = delay(() => {
       if (active) return;
-      options.enter();
+      if (options.enter) options.enter();
       wasTriggeredByMouse = true;
       active = true;
     }, options.delay);
@@ -278,7 +278,7 @@ export function hover($el: ElementView, options: HoverEventOptions) {
       if (options.exit) options.exit();
       active = false;
     } else if (!active) {
-      options.enter();
+      if (options.enter) options.enter();
       wasTriggeredByMouse = false;
       active = true;
     }
