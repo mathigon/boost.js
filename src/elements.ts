@@ -110,9 +110,15 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   set html(h: string) { this._el.innerHTML = h; }
 
-  get text() { return this._el.textContent || ''; }
+  // Required because TS doesn't allow getters and setters with different types.
+  set htmlStr(t: any) { this._el.textContent = '' + t; }
+
+  get text(): string { return this._el.textContent || ''; }
 
   set text(t: string) { this._el.textContent = t; }
+
+  // Required because TS doesn't allow getters and setters with different types.
+  set textStr(t: any) { this._el.textContent = '' + t; }
 
   /** Blurs this DOM element. */
   blur() { this._el.blur(); }
@@ -346,10 +352,10 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** The first child element matching a given selector. */
-  $(selector: string) { return $(selector, this); }
+  $(selector: string): ElementView|undefined { return $(selector, this); }
 
   /** All child elements matching a given selector. */
-  $$(selector: string) { return $$(selector, this); }
+  $$(selector: string): ElementView[] { return $$(selector, this); }
 
   /** Returns this element's parent, or null. */
   get parent() {
