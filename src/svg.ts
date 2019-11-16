@@ -11,9 +11,8 @@ import {Point, clamp, Angle, intersections, Line, Ray, Segment, Circle, Arc, Sec
 export type GeoShape = Angle|Line|Ray|Segment|Circle|Arc|Sector|Polygon|Polyline
                        |Rectangle;
 
-export enum LineMark {BAR, BAR2, ARROW, ARROW2}
-
-export enum LineArrow {START, END, BOTH}
+export type LineMark = 'bar'|'bar2'|'arrow'|'arrow2';
+export type LineArrow = 'start'|'end'|'both';
 
 export interface SVGDrawingOptions {
   round?: boolean;
@@ -81,19 +80,20 @@ function drawLineMark(x: Line, type: LineMark) {
   const m = x.midpoint;
 
   switch (type) {
-    case LineMark.BAR:
+    case 'bar':
       return drawPath(m.add(p), m.add(p.inverse));
-    case LineMark.BAR2:
+    case 'bar2':
       return drawPath(m.add(n).add(p), m.add(n).add(p.inverse)) +
              drawPath(m.add(n.inverse).add(p), m.add(n.inverse).add(p.inverse));
-    case LineMark.ARROW:
+    case 'arrow':
       return drawPath(m.add(n.inverse).add(p), m.add(n),
                       m.add(n.inverse).add(p.inverse));
-    case LineMark.ARROW2:
+    case 'arrow2':
       return drawPath(m.add(n.scale(-2)).add(p), m,
                       m.add(n.scale(-2)).add(p.inverse)) +
              drawPath(m.add(p), m.add(n.scale(2)), m.add(p.inverse));
   }
+  return '';
 }
 
 function arrowPath(start: Point, normal: Point) {
@@ -106,10 +106,10 @@ function arrowPath(start: Point, normal: Point) {
 
 function drawLineArrows(x: Line, type: LineArrow) {
   let path = '';
-  if (isOneOf(type, LineArrow.START, LineArrow.BOTH)) {
+  if (isOneOf(type, 'start', 'both')) {
     path += arrowPath(x.p1, x.unitVector);
   }
-  if (isOneOf(type, LineArrow.END, LineArrow.BOTH)) {
+  if (isOneOf(type, 'end', 'both')) {
     path += arrowPath(x.p2, x.unitVector.inverse);
   }
   return path;
@@ -118,12 +118,12 @@ function drawLineArrows(x: Line, type: LineArrow) {
 function drawArcArrows(x: Arc, type: LineArrow) {
   let path = '';
 
-  if (isOneOf(type, LineArrow.START, LineArrow.BOTH)) {
+  if (isOneOf(type, 'start', 'both')) {
     const normal = new Line(x.c, x.start).perpendicularVector.inverse;
     path += arrowPath(x.start, normal);
   }
 
-  if (isOneOf(type, LineArrow.END, LineArrow.BOTH)) {
+  if (isOneOf(type, 'end', 'both')) {
     const normal = new Line(x.c, x.end).perpendicularVector;
     path += arrowPath(x.end, normal);
   }

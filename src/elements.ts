@@ -35,6 +35,7 @@ interface EventListenerOptions {
 abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<any> = {};
   readonly _events: Obj<any> = {};
+  readonly type: string = 'default';
   model: Observable|null = null;
 
   constructor(readonly _el: T) {
@@ -640,6 +641,7 @@ export type HTMLView = HTMLBaseView<HTMLElement>;
 // SVG Elements
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
+  readonly type = 'svg';
 
   /** Returns the owner `<svg>` which this element is a child of. */
   get $ownerSVG() {
@@ -656,20 +658,14 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   // position of the individual element. This doesn't work for absolutely
   // positioned SVG elements, and some other edge cases.
 
-  get positionLeft(): number {
-    if (this.$ownerSVG) {
-      const svgLeft = this._el.getBBox().x + this._el.getCTM()!.e;
-      return this.$ownerSVG.positionLeft + svgLeft;
-    }
-    return parseInt(this.css('margin-left')!) + this.parent!.positionLeft;
+  get positionLeft() {
+    const svgLeft = this._el.getBBox().x + this._el.getCTM()!.e;
+    return this.$ownerSVG.positionLeft + svgLeft;
   }
 
-  get positionTop(): number {
-    if (this.$ownerSVG) {
-      const svgTop = this._el.getBBox().y + this._el.getCTM()!.f;
-      return this.$ownerSVG.positionTop + svgTop;
-    }
-    return parseInt(this.css('margin-top')!) + this.parent!.positionTop;
+  get positionTop() {
+    const svgTop = this._el.getBBox().y + this._el.getCTM()!.f;
+    return this.$ownerSVG.positionTop + svgTop;
   }
 
   get inverseTransformMatrix() {
@@ -798,6 +794,14 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     return this;
   }
 
+  get positionLeft() {
+    return parseInt(this.css('margin-left')!) + this.parent!.positionLeft;
+  }
+
+  get positionTop() {
+    return parseInt(this.css('margin-top')!) + this.parent!.positionTop;
+  }
+
   /** Returns the intrinsic width of this `<svg>` element. */
   get svgWidth() {
     return this.viewBox.width || this.width;
@@ -841,6 +845,7 @@ export type SVGView = SVGBaseView<SVGGraphicsElement>;
 // Window Element (<html> and <body>)
 
 export class WindowView extends HTMLBaseView<HTMLHtmlElement|HTMLBodyElement> {
+  readonly type = 'window';
 
   get width() { return window.innerWidth; }
 
@@ -880,6 +885,7 @@ export class WindowView extends HTMLBaseView<HTMLHtmlElement|HTMLBodyElement> {
 type InputOrSelectElement = HTMLInputElement|HTMLSelectElement;
 
 export class FormView extends HTMLBaseView<HTMLFormElement> {
+  readonly type = 'form';
 
   get action() { return this._el.action; }
 
@@ -899,6 +905,7 @@ export class FormView extends HTMLBaseView<HTMLFormElement> {
 }
 
 export class InputView extends HTMLBaseView<InputOrSelectElement> {
+  readonly type = 'input';
 
   get checked() {
     return this._el instanceof HTMLInputElement ? this._el.checked : false;
@@ -937,6 +944,7 @@ export class InputView extends HTMLBaseView<InputOrSelectElement> {
 
 export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
   private _ctx: CanvasRenderingContext2D|null = null;
+  readonly type = 'canvas';
 
   /** Returns the drawing context for a `<canvas>` element. */
   getContext(c = '2d', options: WebGLContextAttributes = {}) {

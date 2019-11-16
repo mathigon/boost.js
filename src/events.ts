@@ -6,7 +6,7 @@
 
 import {delay, Obj, words} from '@mathigon/core';
 import {Point} from '@mathigon/fermat';
-import {SVGParentView, $, $body, ElementView, CanvasView, SVGBaseView, WindowView, InputView} from './elements';
+import {SVGParentView, $, $body, ElementView, CanvasView, SVGBaseView, WindowView, InputView, SVGView} from './elements';
 import {Browser} from './browser';
 
 
@@ -131,10 +131,10 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   let isAnimating = false;
 
   let posn = pointerPosition;
-  if ($el instanceof SVGBaseView) {
-    posn = (e) => svgPointerPosn(e, $el.$ownerSVG);
-  } else if ($el instanceof CanvasView) {
-    posn = (e) => canvasPointerPosition(e, $el);
+  if ($el.type === 'svg') {
+    posn = (e) => svgPointerPosn(e, ($el as SVGView).$ownerSVG);
+  } else if ($el.type === 'canvas') {
+    posn = (e) => canvasPointerPosition(e, $el as CanvasView);
   }
 
   const $parent = fns.justInside ? $el : $body;
@@ -214,7 +214,7 @@ function makeScrollEvents($el: ElementView) {
   }
 
   // Mouse Events
-  const target = $el instanceof WindowView ? window : $el._el;
+  const target = $el.type === 'window' ? window : $el._el;
   target.addEventListener('scroll', scroll);
 
   // Touch Events
@@ -389,11 +389,11 @@ function makeKeyEvent($el: ElementView) {
     $el.trigger('key', {code: e.keyCode, key});
   });
 
-  if (Browser.isAndroid && $el instanceof InputView) {
+  if (Browser.isAndroid && $el.type === 'input') {
     $el.on('input', (e) => {
       const key = e.data[e.data.length - 1].toLowerCase();
       $el.trigger('key', {code: null, key});
-      $el.value = '';
+      ($el as InputView).value = '';
     });
   }
 }

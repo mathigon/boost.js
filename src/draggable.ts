@@ -74,9 +74,9 @@ export class Draggable extends EventTarget {
   }
 
   private setDimensions($parent: ElementView) {
-    if ($parent instanceof SVGParentView) {
-      this.width = this.options.width || $parent.svgWidth;
-      this.height = this.options.height || $parent.svgHeight;
+    if ($parent.type === 'svg') {
+      this.width = this.options.width || ($parent as SVGParentView).svgWidth;
+      this.height = this.options.height || ($parent as SVGParentView).svgHeight;
     } else {
       this.width = this.options.width || $parent.width;
       this.height = this.options.height || $parent.height;

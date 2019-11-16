@@ -147,7 +147,7 @@ function makeTemplate(model: Observable, property: string, fromObj: any,
 export function bindObservable($el: ElementView, observable: Observable,
                                recursive = true) {
   for (const a of $el.attributes) {
-    // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
+    // We have to prefix x-path attributes, to avoid SVG errors on load.
     const to = a.name.startsWith('x-') ?
                document.createAttribute(a.name.slice(2)) : a;
     makeTemplate(observable, 'value', a, to);
@@ -157,7 +157,7 @@ export function bindObservable($el: ElementView, observable: Observable,
   if ($el.children.length) {
     for (const $c of $el.childNodes) {
       if ($c instanceof Text) {
-        makeTemplate(observable, 'text', $c);
+        makeTemplate(observable, 'textContent', $c);
       } else if (recursive) {
         bindObservable($c, observable);
       }
