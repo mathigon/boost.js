@@ -36,7 +36,7 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<any> = {};
   readonly _events: Obj<any> = {};
   readonly type: string = 'default';
-  model: Observable|null = null;
+  model?: Observable;
 
   constructor(readonly _el: T) {
     // Store a reference to this element within the native browser DOM.
@@ -307,8 +307,8 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Finds the index of an elements, in the list of its siblings. */
   index() {
     let i = 0;
-    let child: Node|null = this._el;
-    while ((child = child.previousSibling) !== null) ++i;
+    let child: Node|undefined = this._el;
+    while ((child = (child.previousSibling ||undefined)) !== undefined) ++i;
     return i;
   }
 
@@ -342,14 +342,14 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
-  /** Returns this element's next sibling, or null. */
+  /** Returns this element's next sibling, or undefined. */
   get next() {
-    return $(this._el.nextSibling as Element|null);
+    return $(this._el.nextSibling as Element|undefined);
   }
 
-  /** Returns this element's previous sibling, or null. */
+  /** Returns this element's previous sibling, or undefined. */
   get prev() {
-    return $(this._el.previousSibling as Element|null);
+    return $(this._el.previousSibling as Element|undefined);
   }
 
   /** The first child element matching a given selector. */
@@ -358,10 +358,10 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** All child elements matching a given selector. */
   $$(selector: string): ElementView[] { return $$(selector, this); }
 
-  /** Returns this element's parent, or null. */
+  /** Returns this element's parent, or undefined. */
   get parent() {
     // Note: parentNode breaks on document.matches.
-    return $(this._el.parentElement);
+    return $(this._el.parentElement || undefined);
   }
 
   /** Finds all parent elements that match a specific selector. */
@@ -404,7 +404,7 @@ abstract class BaseView<T extends HTMLElement|SVGElement> {
       this._el.parentNode.removeChild(this._el);
     }
     // TODO More cleanup: remove event listeners, clean children, etc.
-    // this._el = this._data = this._events = null;
+    // this._el = this._data = this._events = undefined;
   }
 
   /** Removes all children of this element. */
@@ -550,7 +550,7 @@ export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
 
   get offsetLeft() { return this._el.offsetLeft; }
 
-  get offsetParent() { return $(this._el.offsetParent); }
+  get offsetParent() { return $(this._el.offsetParent || undefined); }
 
   /** Returns this element's width, including border and padding. */
   get width() { return this._el.offsetWidth; }
@@ -588,12 +588,12 @@ export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
 
   /** @returns {number} */
   get positionTop() {
-    let el: HTMLElement|null = this._el;
+    let el: HTMLElement|undefined = this._el;
     let offset = 0;
 
     while (el) {
       offset += el.offsetTop;
-      el = el.offsetParent as HTMLElement|null;
+      el = el.offsetParent as HTMLElement|undefined;
     }
 
     return offset;
@@ -601,12 +601,12 @@ export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
 
   /** @returns {number} */
   get positionLeft() {
-    let el: HTMLElement|null = this._el;
+    let el: HTMLElement|undefined = this._el;
     let offset = 0;
 
     while (el) {
       offset += el.offsetLeft;
-      el = el.offsetParent as HTMLElement|null;
+      el = el.offsetParent as HTMLElement|undefined;
     }
 
     return offset;
@@ -645,7 +645,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
 
   /** Returns the owner `<svg>` which this element is a child of. */
   get $ownerSVG() {
-    return $(this._el.ownerSVGElement) as SVGParentView;
+    return $(this._el.ownerSVGElement || undefined) as SVGParentView;
   }
 
   // See https://www.chromestatus.com/features/5724912467574784
@@ -776,7 +776,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
     const attributes = {
       mark: this.attr('mark'),
       arrows: this.attr('arrows'),
-      size: (+this.attr('size')) || null,
+      size: (+this.attr('size')) || undefined,
       fill: this.hasClass('fill'),
       round: this.hasAttr('round')
     };
@@ -943,7 +943,7 @@ export class InputView extends HTMLBaseView<InputOrSelectElement> {
 // Canvas Elements (<canvas>)
 
 export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
-  private _ctx: CanvasRenderingContext2D|null = null;
+  private _ctx?: CanvasRenderingContext2D;
   readonly type = 'canvas';
 
   /** Returns the drawing context for a `<canvas>` element. */
@@ -1013,7 +1013,7 @@ const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
  * Finds the Element that matches a specific CSS selector, or creates a new
  * Element wrapper around a native HTMLElement instance.
  */
-export function $(query?: string|Element|null,
+export function $(query?: string|Element,
                   context?: ElementView): ElementView|undefined {
   if (!query) return undefined;
 

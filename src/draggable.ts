@@ -45,7 +45,7 @@ export class Draggable extends EventTarget {
     this.options = applyDefaults(options, {moveX: true, moveY: true});
     this.setDimensions($parent);
 
-    let startPosn: Point|null = null;
+    let startPosn: Point;
     slide($el, {
       start: () => {
         if (this.disabled) return;

@@ -25,7 +25,7 @@ export function toQueryString(data: PostData) {
   for (let key of Object.keys(data)) {
     let value = data[key];
     key = encodeURIComponent(key);
-    if (value == null) {
+    if (value == undefined) {
       pairs.push(key);
       continue;
     }

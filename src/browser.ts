@@ -166,7 +166,7 @@ export namespace Browser {
 
   export function getCookie(name: string) {
     const v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
-    return v ? v[2] : null;
+    return v ? v[2] : undefined;
   }
 
   export function setCookie(name: string, value: any,
@@ -186,11 +186,11 @@ export namespace Browser {
 
   export function setStorage(key: string, value: any) {
     const keys = (key || '').split('.');
-    const storage = safeToJSON(window.localStorage.getItem(STORAGE_KEY));
+    const storage = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
     let path = storage;
 
     for (let i = 0; i < keys.length - 1; ++i) {
-      if (path[keys[i]] == null) path[keys[i]] = {};
+      if (path[keys[i]] == undefined) path[keys[i]] = {};
       path = path[keys[i]];
     }
 
@@ -199,14 +199,14 @@ export namespace Browser {
   }
 
   export function getStorage(key: string) {
-    let path = safeToJSON(window.localStorage.getItem(STORAGE_KEY));
+    let path = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
     if (!key) return path;
 
     const keys = (key || '').split('.');
     const lastKey = keys.pop()!;
 
     for (const k of keys) {
-      if (!(k in path)) return null;
+      if (!(k in path)) return undefined;
       path = path[k];
     }
     return path[lastKey];
@@ -214,7 +214,7 @@ export namespace Browser {
 
   export function deleteStorage(key: string) {
     if (key) {
-      setStorage(key, null);
+      setStorage(key, undefined);
     } else {
       window.localStorage.setItem(STORAGE_KEY, '');
     }

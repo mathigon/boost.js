@@ -40,7 +40,7 @@ interface View extends ViewOptions {
   params: string[];
 }
 
-function getViewParams(url: string, view: View): ViewParams|null {
+function getViewParams(url: string, view: View): ViewParams|undefined {
   const match = view.regex.exec(url);
   if (match) {
     match.shift();
@@ -48,7 +48,7 @@ function getViewParams(url: string, view: View): ViewParams|null {
     for (const [i, p] of view.params.entries()) params[p] = match[i];
     return params;
   } else {
-    return null;
+    return undefined;
   }
 }
 

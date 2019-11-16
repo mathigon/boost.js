@@ -80,7 +80,7 @@ export function getEventTarget(event: ScreenEvent) {
   }
 
   const posn = pointerPosition(event);
-  return $(document.elementFromPoint(posn.x, posn.y));
+  return $(document.elementFromPoint(posn.x, posn.y) || undefined);
 }
 
 
@@ -91,7 +91,7 @@ function makeTapEvent($el: ElementView) {
   if ($el._data['tapEvent']) return;
   $el._data['tapEvent'] = true;
 
-  let start: Point|null = null;
+  let start: Point|undefined = undefined;
 
   $el.on('pointerdown', (e: ScreenEvent) => start = pointerPosition(e));
 
@@ -99,10 +99,10 @@ function makeTapEvent($el: ElementView) {
     if (!start) return;
     const end = pointerPosition(e);
     if (Point.distance(start, end) < 6) $el.trigger('tap', e);
-    start = null;
+    start = undefined;
   });
 
-  $el.on('pointercancel', () => start = null);
+  $el.on('pointercancel', () => start = undefined);
 }
 
 function makeClickOutsideEvent($el: ElementView) {
@@ -139,8 +139,8 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
 
   const $parent = fns.justInside ? $el : $body;
 
-  let startPosn: Point|null = null;
-  let lastPosn: Point|null = null;
+  let startPosn: Point|undefined = undefined;
+  let lastPosn: Point|undefined = undefined;
 
   if ($el.css('touch-action') === 'auto') $el.css('touch-action', 'none');
 
@@ -193,7 +193,7 @@ function makeScrollEvents($el: ElementView) {
   $el._data['scrollEvents'] = true;
 
   let ticking = false;
-  let top: number|null = null;
+  let top: number|undefined = undefined;
 
   function tick() {
     const newTop = $el.scrollTop;
@@ -337,15 +337,15 @@ function makePointerPositionEvents($el: ElementView) {
   $el._data['pointerPositionEvents'] = true;
 
   const parent = $el.parent!;
-  let isInside: boolean|null = null;
+  let isInside: boolean|undefined = undefined;
 
-  parent.on('pointerend', () => isInside = null);
+  parent.on('pointerend', () => isInside = undefined);
 
   parent.on('pointermove', (e: ScreenEvent) => {
     const wasInside = isInside;
     const target = getEventTarget(e)!;
     isInside = target.equals($el) || target.hasParent($el);
-    if (wasInside != null && isInside && !wasInside) $el.trigger('pointerenter', e);
+    if (wasInside != undefined && isInside && !wasInside) $el.trigger('pointerenter', e);
     if (!isInside && wasInside) $el.trigger('pointerleave', e);
   });
 }
@@ -392,7 +392,7 @@ function makeKeyEvent($el: ElementView) {
   if (Browser.isAndroid && $el.type === 'input') {
     $el.on('input', (e) => {
       const key = e.data[e.data.length - 1].toLowerCase();
-      $el.trigger('key', {code: null, key});
+      $el.trigger('key', {code: undefined, key});
       ($el as InputView).value = '';
     });
   }
@@ -422,9 +422,9 @@ const customEvents: Obj<($el: ElementView) => void> = {
   clickOutside: makeClickOutsideEvent,
   key: makeKeyEvent,
 
-  mousedown: makeMouseEvent.bind(null, 'mousedown'),
-  mousemove: makeMouseEvent.bind(null, 'mousemove'),
-  mouseup: makeMouseEvent.bind(null, 'mouseup'),
+  mousedown: makeMouseEvent.bind(undefined, 'mousedown'),
+  mousemove: makeMouseEvent.bind(undefined, 'mousemove'),
+  mouseup: makeMouseEvent.bind(undefined, 'mouseup'),
 
   pointerenter: makePointerPositionEvents,
   pointerleave: makePointerPositionEvents,

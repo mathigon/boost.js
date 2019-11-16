@@ -35,7 +35,7 @@ function applyTemplate(el: CustomHTMLElement, options: CustomElementOptions) {
   const defaultSlot = el.querySelector('slot:not([name])');
 
   for (const child of children) {
-    const name = child.getAttribute ? child.getAttribute('slot') : null;
+    const name = child.getAttribute ? child.getAttribute('slot') : undefined;
     const slot = name ? el.querySelector(`slot[name="${name}"]`) : defaultSlot;
     if (slot) slot.parentNode!.insertBefore(child, slot);
   }
