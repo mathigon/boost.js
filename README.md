@@ -1,6 +1,6 @@
-# Boost.js
+# Boost.ts
 
-Bost.js is a library that makes working with browsers easier: everything from
+Bost.ts is a library that makes working with browsers easier: everything from
 DOM manipulation to web components, event handling, animations, routing,
 multi-threading and AJAX requests. It was developed for
 [Mathigon.org](https://mathigon.org), an award-winning mathematics education
@@ -14,12 +14,10 @@ project.
 
 * AJAX utilities
 * Advanced animations and transitions
-* Audio and Speech Recognition utilities
 * Browser load and resize events, Cookies and Local Storage, Keyboard events
-* Colour utilities, gradients and interpolation
 * Draggable elements
 * DOM Element Utilities: classes, dimensions, scrolling, styling,
-  DOM manipulation, events, animations, cursors, SVG and Canvas tools
+  DOM manipulation, events, animations, SVG and Canvas tools
 * Events: click, slide, scroll, hover, intersection, pointer and mouse events
 * Router for single-page sites
 * Template and expression parsing
@@ -29,23 +27,19 @@ project.
 
 ## Usage
 
-First, install boost.js from [NPM](https://www.npmjs.com/package/@mathigon/boost)
+First, install Boost.ts from [NPM](https://www.npmjs.com/package/@mathigon/boost)
 using
 
-```npm install @mathigon/boost --save```
+```npm install @mathigon/boost```
 
-Boost.js uses [ES6 imports](http://2ality.com/2014/09/es6-modules-final.html).
-While some browsers and platforms now support this feature, we recommend using
-a transpiler such as [Babel](http://babeljs.io/) or [Rollup](https://rollupjs.org/). 
-Make sure that you configure your compiler to correctly resolve these imports.
-For Rollup, we recommend using the
-[rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve)
+We recommend using Boost.ts together with [Rollup](https://rollupjs.org/), using
+using the [rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve)
 plugin.
 
 Now, simply import all functions and classes you need, using
 
 ```js
-import { $, CustomElement, Browser } from '@mathigon/boost'
+import {$, CustomElement, Browser} from '@mathigon/boost'
 ```
 
 
