@@ -33,8 +33,8 @@ const pointerSupport = ('onpointerdown' in window);
 
 
 /** Gets the pointer position from an event. */
-export function pointerPosition(e: ScreenEvent) {
-  if (e instanceof TouchEvent) {
+export function pointerPosition(e: any) {
+  if (e.touches) {
     const touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
     return new Point(touches[0].clientX, touches[0].clientY);
   } else {
@@ -42,8 +42,8 @@ export function pointerPosition(e: ScreenEvent) {
   }
 }
 
-function getTouches(e: ScreenEvent) {
-  return (e instanceof TouchEvent) ? e.touches : [];
+function getTouches(e: any) {
+  return e.touches || [];
 }
 
 /**
