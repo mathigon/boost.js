@@ -87,13 +87,14 @@ function drawLineMark(x: Line, type: LineMark) {
              drawPath(m.add(n.inverse).add(p), m.add(n.inverse).add(p.inverse));
     case 'arrow':
       return drawPath(m.add(n.inverse).add(p), m.add(n),
-                      m.add(n.inverse).add(p.inverse));
+          m.add(n.inverse).add(p.inverse));
     case 'arrow2':
       return drawPath(m.add(n.scale(-2)).add(p), m,
-                      m.add(n.scale(-2)).add(p.inverse)) +
+          m.add(n.scale(-2)).add(p.inverse)) +
              drawPath(m.add(p), m.add(n.scale(2)), m.add(p.inverse));
+    default:
+      return '';
   }
-  return '';
 }
 
 function arrowPath(start: Point, normal: Point) {

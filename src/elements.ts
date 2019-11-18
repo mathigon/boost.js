@@ -1059,7 +1059,7 @@ export function $N(tag: string, attributes: Obj<any> = {},
              document.createElementNS('http://www.w3.org/2000/svg', tag);
 
   for (const [key, value] of Object.entries(attributes)) {
-    if (!value) continue;
+    if (value === undefined) continue;
     if (key === 'id') {
       el.id = value;
     } else if (key === 'html') {
