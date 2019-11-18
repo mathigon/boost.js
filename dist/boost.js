@@ -180,7 +180,7 @@ function toQueryString(data) {
     for (let key of Object.keys(data)) {
         let value = data[key];
         key = encodeURIComponent(key);
-        if (value == null) {
+        if (value == undefined) {
             pairs.push(key);
             continue;
         }
@@ -510,6 +510,9 @@ class Point {
     shift(x, y = x) {
         return new Point(this.x + x, this.y + y);
     }
+    translate(p) {
+        return this.shift(p.x, p.y); // Alias for .add()
+    }
     changeCoordinates(originCoords, targetCoords) {
         const x = targetCoords.xMin + (this.x - originCoords.xMin) /
             (originCoords.dx) * (targetCoords.dx);
@@ -523,8 +526,8 @@ class Point {
     subtract(p) {
         return Point.difference(this, p);
     }
-    equals(p) {
-        return Point.equals(this, p);
+    equals(other) {
+        return nearlyEquals(this.x, other.x) && nearlyEquals(this.y, other.y);
     }
     round(inc = 1) {
         return new Point(roundTo(this.x, inc), roundTo(this.y, inc));
@@ -572,10 +575,6 @@ class Point {
         const a = Math.floor(clamp(t, 0, 1) * n);
         return Point.interpolate(points[a], points[a + 1], n * t - a);
     }
-    /** Checks if two points p1 and p2 are equal. */
-    static equals(p1, p2) {
-        return nearlyEquals(p1.x, p2.x) && nearlyEquals(p1.y, p2.y);
-    }
     /** Creates a point from polar coordinates. */
     static fromPolar(angle, r = 1) {
         return new Point(r * Math.cos(angle), r * Math.sin(angle));
@@ -621,13 +620,13 @@ class Line {
     get angle() {
         return rad(this.p2, this.p1);
     }
-    /** The point representing the normal vector of this line. */
+    /** The point representing a unit vector along this line. */
     get unitVector() {
         return this.p2.subtract(this.p1).unitVector;
     }
     /** The point representing the perpendicular vector of this line. */
     get perpendicularVector() {
-        return new Point(this.p2.y - this.p1.y, this.p1.x - this.p2.x).perpendicular;
+        return new Point(this.p2.y - this.p1.y, this.p1.x - this.p2.x).unitVector;
     }
     /** Finds the line parallel to this one, going though point p. */
     parallel(p) {
@@ -678,11 +677,7 @@ class Line {
         return this.shift(p.x, p.y);
     }
     equals(other) {
-        return Line.equals(this, other);
-    }
-    /** Checks if two lines l1 and l2 are equal. */
-    static equals(l1, l2) {
-        return l1.contains(l2.p1) && l1.contains(l2.p2);
+        return this.contains(other.p1) && this.contains(other.p2);
     }
 }
 // -----------------------------------------------------------------------------
@@ -1077,7 +1072,7 @@ var Random;
     /** Generates a geometric random variable. */
     function geometric(p = 0.5) {
         if (p <= 0 || p > 1)
-            return null;
+            return undefined;
         return Math.floor(Math.log(Math.random()) / Math.log(1 - p));
     }
     Random.geometric = geometric;
@@ -1121,9 +1116,7 @@ var Random;
         let t = z + G + 0.5;
         return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
     }
-    /**
-     * Riemann-integrates a function from xMin to xMax, with an interval size dx.
-     */
+    /** Riemann-integrates fn(x) from xMin to xMax with an interval size dx. */
     function integrate(fn, xMin, xMax, dx = 1) {
         let result = 0;
         for (let x = xMin; x < xMax; x += dx) {
@@ -1132,12 +1125,7 @@ var Random;
         return result;
     }
     Random.integrate = integrate;
-    /**
-     * The chi CDF function.
-     * @param {number} chi
-     * @param {number} deg
-     * @returns {number}
-     */
+    /** The chi CDF function. */
     function chiCDF(chi, deg) {
         let int = integrate(t => Math.pow(t, (deg - 2) / 2) * Math.exp(-t / 2), 0, chi);
         return 1 - int / Math.pow(2, deg / 2) / gamma(deg / 2);
@@ -1284,13 +1272,13 @@ var Regression;
         if (data.length > 1) {
             for (const t of types) {
                 const params = t.regression(data);
-                const fn = t.fn.bind(null, params);
+                const fn = t.fn.bind(undefined, params);
                 const coeff = coefficient(data, fn);
                 if (coeff > threshold)
                     return { type: t.name, fn, params, coeff };
             }
         }
-        return { type: null, fn: () => { }, params: [], coeff: null };
+        return { type: undefined, fn: () => { }, params: [], coeff: undefined };
     }
     Regression.find = find;
 })(Regression || (Regression = {}));
@@ -1341,7 +1329,7 @@ function getEventTarget(event) {
         return $(event.target);
     }
     const posn = pointerPosition(event);
-    return $(document.elementFromPoint(posn.x, posn.y));
+    return $(document.elementFromPoint(posn.x, posn.y) || undefined);
 }
 // -----------------------------------------------------------------------------
 // Click Events
@@ -1349,7 +1337,7 @@ function makeTapEvent($el) {
     if ($el._data['tapEvent'])
         return;
     $el._data['tapEvent'] = true;
-    let start = null;
+    let start = undefined;
     $el.on('pointerdown', (e) => start = pointerPosition(e));
     $el.on('pointerup', (e) => {
         if (!start)
@@ -1357,9 +1345,9 @@ function makeTapEvent($el) {
         const end = pointerPosition(e);
         if (Point.distance(start, end) < 6)
             $el.trigger('tap', e);
-        start = null;
+        start = undefined;
     });
-    $el.on('pointercancel', () => start = null);
+    $el.on('pointercancel', () => start = undefined);
 }
 function makeClickOutsideEvent($el) {
     if ($el._data['clickOutsideEvent'])
@@ -1375,15 +1363,15 @@ function makeClickOutsideEvent($el) {
 function slide($el, fns) {
     let isAnimating = false;
     let posn = pointerPosition;
-    if ($el instanceof SVGBaseView) {
+    if ($el.type === 'svg') {
         posn = (e) => svgPointerPosn(e, $el.$ownerSVG);
     }
-    else if ($el instanceof CanvasView) {
+    else if ($el.type === 'canvas') {
         posn = (e) => canvasPointerPosition(e, $el);
     }
     const $parent = fns.justInside ? $el : $body;
-    let startPosn = null;
-    let lastPosn = null;
+    let startPosn = undefined;
+    let lastPosn = undefined;
     if ($el.css('touch-action') === 'auto')
         $el.css('touch-action', 'none');
     function start(e) {
@@ -1435,7 +1423,7 @@ function makeScrollEvents($el) {
         return;
     $el._data['scrollEvents'] = true;
     let ticking = false;
-    let top = null;
+    let top = undefined;
     function tick() {
         const newTop = $el.scrollTop;
         if (newTop === top) {
@@ -1453,7 +1441,7 @@ function makeScrollEvents($el) {
         ticking = true;
     }
     // Mouse Events
-    const target = $el instanceof WindowView ? window : $el._el;
+    const target = $el.type === 'window' ? window : $el._el;
     target.addEventListener('scroll', scroll);
     // Touch Events
     function touchStart() {
@@ -1560,13 +1548,13 @@ function makePointerPositionEvents($el) {
         return;
     $el._data['pointerPositionEvents'] = true;
     const parent = $el.parent;
-    let isInside = null;
-    parent.on('pointerend', () => isInside = null);
+    let isInside = undefined;
+    parent.on('pointerend', () => isInside = undefined);
     parent.on('pointermove', (e) => {
         const wasInside = isInside;
         const target = getEventTarget(e);
         isInside = target.equals($el) || target.hasParent($el);
-        if (wasInside != null && isInside && !wasInside)
+        if (wasInside != undefined && isInside && !wasInside)
             $el.trigger('pointerenter', e);
         if (!isInside && wasInside)
             $el.trigger('pointerleave', e);
@@ -1606,10 +1594,10 @@ function makeKeyEvent($el) {
         const key = (e.key || String.fromCharCode(e.which)).toLowerCase();
         $el.trigger('key', { code: e.keyCode, key });
     });
-    if (exports.Browser.isAndroid && $el instanceof InputView) {
+    if (exports.Browser.isAndroid && $el.type === 'input') {
         $el.on('input', (e) => {
             const key = e.data[e.data.length - 1].toLowerCase();
-            $el.trigger('key', { code: null, key });
+            $el.trigger('key', { code: undefined, key });
             $el.value = '';
         });
     }
@@ -1634,9 +1622,9 @@ const customEvents = {
     tap: makeTapEvent,
     clickOutside: makeClickOutsideEvent,
     key: makeKeyEvent,
-    mousedown: makeMouseEvent.bind(null, 'mousedown'),
-    mousemove: makeMouseEvent.bind(null, 'mousemove'),
-    mouseup: makeMouseEvent.bind(null, 'mouseup'),
+    mousedown: makeMouseEvent.bind(undefined, 'mousedown'),
+    mousemove: makeMouseEvent.bind(undefined, 'mousemove'),
+    mouseup: makeMouseEvent.bind(undefined, 'mouseup'),
     pointerenter: makePointerPositionEvents,
     pointerleave: makePointerPositionEvents,
     enterViewport: makeIntersectionEvents,
@@ -1669,17 +1657,6 @@ function unbindEvent($el, event, fn) {
 }
 
 // =============================================================================
-(function (LineMark) {
-    LineMark[LineMark["BAR"] = 0] = "BAR";
-    LineMark[LineMark["BAR2"] = 1] = "BAR2";
-    LineMark[LineMark["ARROW"] = 2] = "ARROW";
-    LineMark[LineMark["ARROW2"] = 3] = "ARROW2";
-})(exports.LineMark || (exports.LineMark = {}));
-(function (LineArrow) {
-    LineArrow[LineArrow["START"] = 0] = "START";
-    LineArrow[LineArrow["END"] = 1] = "END";
-    LineArrow[LineArrow["BOTH"] = 2] = "BOTH";
-})(exports.LineArrow || (exports.LineArrow = {}));
 // -----------------------------------------------------------------------------
 // Utility Functions
 /** Draws an arc from a to c, with center b. */
@@ -1725,16 +1702,18 @@ function drawLineMark(x, type) {
     const n = x.unitVector.scale(3);
     const m = x.midpoint;
     switch (type) {
-        case exports.LineMark.BAR:
+        case 'bar':
             return drawPath(m.add(p), m.add(p.inverse));
-        case exports.LineMark.BAR2:
+        case 'bar2':
             return drawPath(m.add(n).add(p), m.add(n).add(p.inverse)) +
                 drawPath(m.add(n.inverse).add(p), m.add(n.inverse).add(p.inverse));
-        case exports.LineMark.ARROW:
+        case 'arrow':
             return drawPath(m.add(n.inverse).add(p), m.add(n), m.add(n.inverse).add(p.inverse));
-        case exports.LineMark.ARROW2:
+        case 'arrow2':
             return drawPath(m.add(n.scale(-2)).add(p), m, m.add(n.scale(-2)).add(p.inverse)) +
                 drawPath(m.add(p), m.add(n.scale(2)), m.add(p.inverse));
+        default:
+            return '';
     }
 }
 function arrowPath(start, normal) {
@@ -1747,21 +1726,21 @@ function arrowPath(start, normal) {
 }
 function drawLineArrows(x, type) {
     let path = '';
-    if (isOneOf(type, exports.LineArrow.START, exports.LineArrow.BOTH)) {
+    if (isOneOf(type, 'start', 'both')) {
         path += arrowPath(x.p1, x.unitVector);
     }
-    if (isOneOf(type, exports.LineArrow.END, exports.LineArrow.BOTH)) {
+    if (isOneOf(type, 'end', 'both')) {
         path += arrowPath(x.p2, x.unitVector.inverse);
     }
     return path;
 }
 function drawArcArrows(x, type) {
     let path = '';
-    if (isOneOf(type, exports.LineArrow.START, exports.LineArrow.BOTH)) {
+    if (isOneOf(type, 'start', 'both')) {
         const normal = new Line(x.c, x.start).perpendicularVector.inverse;
         path += arrowPath(x.start, normal);
     }
-    if (isOneOf(type, exports.LineArrow.END, exports.LineArrow.BOTH)) {
+    if (isOneOf(type, 'end', 'both')) {
         const normal = new Line(x.c, x.end).perpendicularVector;
         path += arrowPath(x.end, normal);
     }
@@ -1993,7 +1972,7 @@ function makeTemplate(model, property, fromObj, toObj = fromObj) {
  */
 function bindObservable($el, observable, recursive = true) {
     for (const a of $el.attributes) {
-        // NOTE: We have to convert x-path attributes, because SVG errors are thrown on load
+        // We have to prefix x-path attributes, to avoid SVG errors on load.
         const to = a.name.startsWith('x-') ?
             document.createAttribute(a.name.slice(2)) : a;
         makeTemplate(observable, 'value', a, to);
@@ -2003,7 +1982,7 @@ function bindObservable($el, observable, recursive = true) {
     if ($el.children.length) {
         for (const $c of $el.childNodes) {
             if ($c instanceof Text) {
-                makeTemplate(observable, 'text', $c);
+                makeTemplate(observable, 'textContent', $c);
             }
             else if (recursive) {
                 bindObservable($c, observable);
@@ -2023,7 +2002,7 @@ class BaseView {
         this._el = _el;
         this._data = {};
         this._events = {};
-        this.model = null;
+        this.type = 'default';
         // Store a reference to this element within the native browser DOM.
         _el._view = this;
     }
@@ -2080,8 +2059,12 @@ class BaseView {
     }
     get html() { return this._el.innerHTML || ''; }
     set html(h) { this._el.innerHTML = h; }
+    // Required because TS doesn't allow getters and setters with different types.
+    set htmlStr(t) { this._el.textContent = '' + t; }
     get text() { return this._el.textContent || ''; }
     set text(t) { this._el.textContent = t; }
+    // Required because TS doesn't allow getters and setters with different types.
+    set textStr(t) { this._el.textContent = '' + t; }
     /** Blurs this DOM element. */
     blur() { this._el.blur(); }
     /** Focuses this DOM element. */
@@ -2244,7 +2227,7 @@ class BaseView {
     index() {
         let i = 0;
         let child = this._el;
-        while ((child = child.previousSibling) !== null)
+        while ((child = (child.previousSibling || undefined)) !== undefined)
             ++i;
         return i;
     }
@@ -2276,11 +2259,11 @@ class BaseView {
             this.parent._el.appendChild(newChild._el);
         }
     }
-    /** Returns this element's next sibling, or null. */
+    /** Returns this element's next sibling, or undefined. */
     get next() {
         return $(this._el.nextSibling);
     }
-    /** Returns this element's previous sibling, or null. */
+    /** Returns this element's previous sibling, or undefined. */
     get prev() {
         return $(this._el.previousSibling);
     }
@@ -2288,10 +2271,10 @@ class BaseView {
     $(selector) { return $(selector, this); }
     /** All child elements matching a given selector. */
     $$(selector) { return $$(selector, this); }
-    /** Returns this element's parent, or null. */
+    /** Returns this element's parent, or undefined. */
     get parent() {
         // Note: parentNode breaks on document.matches.
-        return $(this._el.parentElement);
+        return $(this._el.parentElement || undefined);
     }
     /** Finds all parent elements that match a specific selector. */
     parents(selector) {
@@ -2331,7 +2314,7 @@ class BaseView {
             this._el.parentNode.removeChild(this._el);
         }
         // TODO More cleanup: remove event listeners, clean children, etc.
-        // this._el = this._data = this._events = null;
+        // this._el = this._data = this._events = undefined;
     }
     /** Removes all children of this element. */
     removeChildren() {
@@ -2456,7 +2439,7 @@ class BaseView {
 class HTMLBaseView extends BaseView {
     get offsetTop() { return this._el.offsetTop; }
     get offsetLeft() { return this._el.offsetLeft; }
-    get offsetParent() { return $(this._el.offsetParent); }
+    get offsetParent() { return $(this._el.offsetParent || undefined); }
     /** Returns this element's width, including border and padding. */
     get width() { return this._el.offsetWidth; }
     /** Returns this element's height, including border and padding. */
@@ -2529,9 +2512,13 @@ class HTMLBaseView extends BaseView {
 // -----------------------------------------------------------------------------
 // SVG Elements
 class SVGBaseView extends BaseView {
+    constructor() {
+        super(...arguments);
+        this.type = 'svg';
+    }
     /** Returns the owner `<svg>` which this element is a child of. */
     get $ownerSVG() {
-        return $(this._el.ownerSVGElement);
+        return $(this._el.ownerSVGElement || undefined);
     }
     // See https://www.chromestatus.com/features/5724912467574784
     get width() { return this.bounds.width; }
@@ -2541,18 +2528,12 @@ class SVGBaseView extends BaseView {
     // position of the individual element. This doesn't work for absolutely
     // positioned SVG elements, and some other edge cases.
     get positionLeft() {
-        if (this.$ownerSVG) {
-            const svgLeft = this._el.getBBox().x + this._el.getCTM().e;
-            return this.$ownerSVG.positionLeft + svgLeft;
-        }
-        return parseInt(this.css('margin-left')) + this.parent.positionLeft;
+        const svgLeft = this._el.getBBox().x + this._el.getCTM().e;
+        return this.$ownerSVG.positionLeft + svgLeft;
     }
     get positionTop() {
-        if (this.$ownerSVG) {
-            const svgTop = this._el.getBBox().y + this._el.getCTM().f;
-            return this.$ownerSVG.positionTop + svgTop;
-        }
-        return parseInt(this.css('margin-top')) + this.parent.positionTop;
+        const svgTop = this._el.getBBox().y + this._el.getCTM().f;
+        return this.$ownerSVG.positionTop + svgTop;
     }
     get inverseTransformMatrix() {
         const m = this._el.getScreenCTM().inverse();
@@ -2651,7 +2632,7 @@ class SVGBaseView extends BaseView {
         const attributes = {
             mark: this.attr('mark'),
             arrows: this.attr('arrows'),
-            size: (+this.attr('size')) || null,
+            size: (+this.attr('size')) || undefined,
             fill: this.hasClass('fill'),
             round: this.hasAttr('round')
         };
@@ -2665,6 +2646,12 @@ class SVGParentView extends SVGBaseView {
     }
     get $ownerSVG() {
         return this;
+    }
+    get positionLeft() {
+        return parseInt(this.css('margin-left')) + this.parent.positionLeft;
+    }
+    get positionTop() {
+        return parseInt(this.css('margin-top')) + this.parent.positionTop;
     }
     /** Returns the intrinsic width of this `<svg>` element. */
     get svgWidth() {
@@ -2700,6 +2687,10 @@ class SVGParentView extends SVGBaseView {
 // -----------------------------------------------------------------------------
 // Window Element (<html> and <body>)
 class WindowView extends HTMLBaseView {
+    constructor() {
+        super(...arguments);
+        this.type = 'window';
+    }
     get width() { return window.innerWidth; }
     get height() { return window.innerHeight; }
     get innerWidth() { return window.innerWidth; }
@@ -2720,6 +2711,10 @@ class WindowView extends HTMLBaseView {
     }
 }
 class FormView extends HTMLBaseView {
+    constructor() {
+        super(...arguments);
+        this.type = 'form';
+    }
     get action() { return this._el.action; }
     /** Summarises the data for an HTML <form> element in an JSON Object. */
     get formData() {
@@ -2736,6 +2731,10 @@ class FormView extends HTMLBaseView {
     }
 }
 class InputView extends HTMLBaseView {
+    constructor() {
+        super(...arguments);
+        this.type = 'input';
+    }
     get checked() {
         return this._el instanceof HTMLInputElement ? this._el.checked : false;
     }
@@ -2766,7 +2765,7 @@ class InputView extends HTMLBaseView {
 class CanvasView extends HTMLBaseView {
     constructor() {
         super(...arguments);
-        this._ctx = null;
+        this.type = 'canvas';
     }
     /** Returns the drawing context for a `<canvas>` element. */
     getContext(c = '2d', options = {}) {
@@ -2865,7 +2864,7 @@ function $N(tag, attributes = {}, parent) {
     const el = !SVG_TAGS.includes(tag) ? document.createElement(tag) :
         document.createElementNS('http://www.w3.org/2000/svg', tag);
     for (const [key, value] of Object.entries(attributes)) {
-        if (!value)
+        if (value === undefined)
             continue;
         if (key === 'id') {
             el.id = value;
@@ -3018,7 +3017,7 @@ const KEY_CODES = {
     Browser.getCookies = getCookies;
     function getCookie(name) {
         const v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
-        return v ? v[2] : null;
+        return v ? v[2] : undefined;
     }
     Browser.getCookie = getCookie;
     function setCookie(name, value, maxAge = 60 * 60 * 24 * 365) {
@@ -3034,10 +3033,10 @@ const KEY_CODES = {
     const STORAGE_KEY = '_M';
     function setStorage(key, value) {
         const keys = (key || '').split('.');
-        const storage = safeToJSON(window.localStorage.getItem(STORAGE_KEY));
+        const storage = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
         let path = storage;
         for (let i = 0; i < keys.length - 1; ++i) {
-            if (path[keys[i]] == null)
+            if (path[keys[i]] == undefined)
                 path[keys[i]] = {};
             path = path[keys[i]];
         }
@@ -3046,14 +3045,14 @@ const KEY_CODES = {
     }
     Browser.setStorage = setStorage;
     function getStorage(key) {
-        let path = safeToJSON(window.localStorage.getItem(STORAGE_KEY));
+        let path = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
         if (!key)
             return path;
         const keys = (key || '').split('.');
         const lastKey = keys.pop();
         for (const k of keys) {
             if (!(k in path))
-                return null;
+                return undefined;
             path = path[k];
         }
         return path[lastKey];
@@ -3061,7 +3060,7 @@ const KEY_CODES = {
     Browser.getStorage = getStorage;
     function deleteStorage(key) {
         if (key) {
-            setStorage(key, null);
+            setStorage(key, undefined);
         }
         else {
             window.localStorage.setItem(STORAGE_KEY, '');
@@ -3424,7 +3423,7 @@ class Draggable extends EventTarget {
         this.height = 0;
         this.options = applyDefaults(options, { moveX: true, moveY: true });
         this.setDimensions($parent);
-        let startPosn = null;
+        let startPosn;
         slide($el, {
             start: () => {
                 if (this.disabled)
@@ -3452,7 +3451,7 @@ class Draggable extends EventTarget {
         });
     }
     setDimensions($parent) {
-        if ($parent instanceof SVGParentView) {
+        if ($parent.type === 'svg') {
             this.width = this.options.width || $parent.svgWidth;
             this.height = this.options.height || $parent.svgHeight;
         }
@@ -3496,7 +3495,7 @@ function getViewParams(url, view) {
         return params;
     }
     else {
-        return null;
+        return undefined;
     }
 }
 function getTemplate(view, params, url) {
@@ -3705,39 +3704,40 @@ const RouterInstance = new Router();
 
 // =============================================================================
 /**
- * Executes a function in a separate thread, for improved performance. Note that
- * `fn` has to be a single function with no external references or bindings, so
- * that it can be stringified using .toString(). Similarly, `args` has to be a
- * single number or string, or an array or numbers and strings
+ * Converts a function into a WebWorker URL object that can be passed into
+ * thread(). Note that `fn` has to be a single function with no external
+ * references or bindings, so that it can be stringified using .toString().
  */
-function thread(fn, args, timeout = 5000) {
-    if (!Array.isArray(args))
-        args = [args];
-    if (!window.Worker || !window.Blob) {
-        return Promise.resolve({ data: fn(...args), time: 0 });
-    }
-    const deferred = defer();
-    const start = Date.now();
-    const content = 'onmessage = function(e){return postMessage(eval(e.data[0]));}';
+function functionToWorker(fn) {
+    const content = `onmessage = e => postMessage((${fn.toString()})(e.data))`;
     const blob = new Blob([content], { type: 'application/javascript' });
-    const w = new Worker(URL.createObjectURL(blob));
-    const t = setTimeout(function () {
-        w.terminate();
-        deferred.reject('Timeout!');
+    return URL.createObjectURL(blob);
+}
+/**
+ * Creates a new web worker, posts it a serializable data object, and returns
+ * when the worker responds (or after a fixed timeout).
+ */
+function thread(url, data, timeout = 5000) {
+    const deferred = defer();
+    const worker = new Worker(url);
+    const t = setTimeout(() => {
+        worker.terminate();
+        console.error('WebWorker timeout!');
+        deferred.reject();
     }, timeout);
-    w.onmessage = (e) => {
+    worker.onmessage = (e) => {
         clearTimeout(t);
-        w.terminate();
-        deferred.resolve({ data: e.data, time: Date.now() - start });
+        worker.terminate();
+        console.log(e);
+        deferred.resolve(e.data);
     };
-    w.onerror = (e) => {
+    worker.onerror = (e) => {
         clearTimeout(t);
-        console.error('WebWorker error', e);
-        w.terminate();
+        console.error('WebWorker error!', e);
+        worker.terminate();
         deferred.reject(e);
     };
-    // TODO Find a solution that works without function stringification.
-    w.postMessage(['(' + fn.toString() + ')(' + args.join(',') + ')']);
+    worker.postMessage(data);
     return deferred.promise;
 }
 
@@ -3764,7 +3764,7 @@ function applyTemplate(el, options) {
         return;
     const defaultSlot = el.querySelector('slot:not([name])');
     for (const child of children) {
-        const name = child.getAttribute ? child.getAttribute('slot') : null;
+        const name = child.getAttribute ? child.getAttribute('slot') : undefined;
         const slot = name ? el.querySelector(`slot[name="${name}"]`) : defaultSlot;
         if (slot)
             slot.parentNode.insertBefore(child, slot);
@@ -3885,6 +3885,7 @@ exports.ease = ease;
 exports.enter = enter;
 exports.exit = exit;
 exports.fromQueryString = fromQueryString;
+exports.functionToWorker = functionToWorker;
 exports.getEventTarget = getEventTarget;
 exports.hover = hover;
 exports.loadImage = loadImage;
