@@ -268,6 +268,8 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
   } else if (effect.startsWith('slide')) {
     const rules = {opacity: [0, 1], transform: ['translateY(50px)', 'none']};
     if (effect.includes('down')) rules.transform[0] = 'translateY(-50px)';
+    if (effect.includes('right')) rules.transform[0] = 'translateX(-50px)';
+    if (effect.includes('left')) rules.transform[0] = 'translateX(50px)';
     return transition($el, rules, duration, _delay);
 
   } else if (effect.startsWith('reveal')) {
