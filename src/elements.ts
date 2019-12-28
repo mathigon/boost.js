@@ -32,7 +32,7 @@ interface EventListenerOptions {
 // -----------------------------------------------------------------------------
 // Base Element Class
 
-abstract class BaseView<T extends HTMLElement|SVGElement> {
+export abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<any> = {};
   readonly _events: Obj<any> = {};
   readonly type: string = 'default';
@@ -1007,7 +1007,7 @@ export class MediaView extends HTMLBaseView<HTMLMediaElement> {
 // Element Selectors and Constructors
 
 const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
-  'g', 'defs', 'marker', 'line', 'text', 'pattern', 'mask', 'svg'];
+  'g', 'defs', 'marker', 'line', 'text', 'pattern', 'mask', 'svg', 'foreignObject'];
 
 /**
  * Finds the Element that matches a specific CSS selector, or creates a new
