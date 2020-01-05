@@ -696,8 +696,8 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
     const t1 = posn ?
                `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` :
                '';
-    const t2 = angle ? `rotate(${angle * 180 / Math.PI})` : '';
-    const t3 = scale ? `scale(${scale})` : '';
+    const t2 = nearlyEquals(angle, 0) ? '' : `rotate(${angle * 180 / Math.PI})`;
+    const t3 = nearlyEquals(scale, 1) ? '' : `scale(${scale})`;
     this.setAttr('transform', [t1, t2, t3].join(' '));
   }
 
