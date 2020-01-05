@@ -6,13 +6,14 @@
 
 import {delay, Obj, words} from '@mathigon/core';
 import {Point} from '@mathigon/fermat';
-import {SVGParentView, $, $body, ElementView, CanvasView, SVGBaseView, WindowView, InputView, SVGView} from './elements';
+import {SVGParentView, $, $body, ElementView, CanvasView, InputView, SVGView} from './elements';
 import {Browser} from './browser';
 
 
 declare global {
   interface Window {
     IntersectionObserver?: IntersectionObserver;
+    ResizeObserver: any;
   }
 
   interface Event {
@@ -88,6 +89,8 @@ export function getEventTarget(event: ScreenEvent) {
 // Click Events
 
 function makeTapEvent($el: ElementView) {
+  // TODO Support removing events.
+
   if ($el._data['tapEvent']) return;
   $el._data['tapEvent'] = true;
 
@@ -106,6 +109,8 @@ function makeTapEvent($el: ElementView) {
 }
 
 function makeClickOutsideEvent($el: ElementView) {
+  // TODO Support removing events.
+
   if ($el._data['clickOutsideEvent']) return;
   $el._data['clickOutsideEvent'] = true;
 
@@ -189,6 +194,8 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
 // Scroll Events
 
 function makeScrollEvents($el: ElementView) {
+  // TODO Support removing events.
+
   if ($el._data['scrollEvents']) return;
   $el._data['scrollEvents'] = true;
 
@@ -305,6 +312,8 @@ function intersectionCallback(entries: IntersectionObserverEntry[]) {
 }
 
 function makeIntersectionEvents($el: ElementView) {
+  // TODO Support removing events.
+
   if ($el._data['intersectionEvents']) return;
   $el._data['intersectionEvents'] = true;
 
@@ -330,9 +339,35 @@ function makeIntersectionEvents($el: ElementView) {
 
 
 // -----------------------------------------------------------------------------
+// Resize Events
+
+function makeResizeEvents($el: ElementView, remove = false) {
+  if (remove) {
+    if ($el._data['resizeObserver']) $el._data['resizeObserver'].disconnect();
+    $el._data['resizeObserver'] = undefined;
+  }
+
+  if ($el._data['resizeObserver']) return;
+
+  if (window.ResizeObserver) {
+    const observer = new window.ResizeObserver(() => $el.trigger('resize'));
+    observer.observe($el._el);
+    $el._data['resizeObserver'] = observer;
+
+  } else if (window.MutationObserver) {
+    const observer = new MutationObserver(() => $el.trigger('resize'));
+    observer.observe($el._el, {attributes: true, childList: true, characterData: true, subtree: true});
+    $el._data['resizeObserver'] = observer;
+  }
+}
+
+
+// -----------------------------------------------------------------------------
 // Pointer Events
 
 function makePointerPositionEvents($el: ElementView) {
+  // TODO Support removing events.
+
   if ($el._data['pointerPositionEvents']) return;
   $el._data['pointerPositionEvents'] = true;
 
@@ -356,8 +391,10 @@ function makePointerPositionEvents($el: ElementView) {
 // On touch devices, mouse events are emulated. We don't want that!
 
 function makeMouseEvent(eventName: string, $el: ElementView) {
-  if ($el._events['_' + eventName]) return;
-  $el._events['_' + eventName] = true;
+  // TODO Support removing events.
+
+  if ($el._data['_' + eventName]) return;
+  $el._data['_' + eventName] = true;
 
   if (pointerSupport) {
     $el.on(eventName.replace('mouse', 'pointer'), (e) => {
@@ -416,7 +453,7 @@ const aliases: Obj<string> = {
                touchSupport ? 'touchend touchcancel' : 'mouseup'
 };
 
-const customEvents: Obj<($el: ElementView) => void> = {
+const customEvents: Obj<($el: ElementView, remove: boolean) => void> = {
   scroll: makeScrollEvents,
   tap: makeTapEvent,
   clickOutside: makeClickOutsideEvent,
@@ -430,31 +467,35 @@ const customEvents: Obj<($el: ElementView) => void> = {
   pointerleave: makePointerPositionEvents,
 
   enterViewport: makeIntersectionEvents,
-  exitViewport: makeIntersectionEvents
+  exitViewport: makeIntersectionEvents,
+  resize: makeResizeEvents
 };
 
 export function bindEvent($el: ElementView, event: string, fn: EventCallback,
                           options?: EventListenerOptions) {
-  if (event in aliases) {
+  if (event in customEvents) {
+    customEvents[event]($el, false);
+  } else if (event in aliases) {
     const events = words(aliases[event]);
     // Note that the mouse event aliases don't pass through makeMouseEvent()!
     for (const e of events) $el._el.addEventListener(e, fn, options);
-  } else if (event in customEvents) {
-    customEvents[event]($el);
   } else {
     $el._el.addEventListener(event, fn, options);
   }
 }
 
 export function unbindEvent($el: ElementView, event: string,
-                            fn: EventCallback) {
+                            fn?: EventCallback) {
 
-  if (event in aliases) {
+  if (event in customEvents) {
+    if (!$el._events[event] || !$el._events[event].length) {
+      // Remove custom events only when there are no more listeners.
+      customEvents[event]($el, true);
+    }
+  } else if (fn && event in aliases) {
     const events = words(aliases[event]);
     for (const e of events) $el._el.removeEventListener(e, fn);
-  } else if (event in customEvents) {
-    // TODO Remove custom events.
-  } else {
+  } else if (fn) {
     $el._el.removeEventListener(event, fn);
   }
 }

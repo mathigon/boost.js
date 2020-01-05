@@ -5,7 +5,7 @@
 
 
 import {isOneOf, words, applyDefaults, last, Obj} from '@mathigon/core';
-import {roundTo, Point, isBetween, Rectangle, SimplePoint} from '@mathigon/fermat';
+import {roundTo, Point, isBetween, Rectangle, SimplePoint, nearlyEquals} from '@mathigon/fermat';
 import {loadImage} from './ajax';
 
 import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
@@ -34,7 +34,7 @@ interface EventListenerOptions {
 
 export abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<any> = {};
-  readonly _events: Obj<any> = {};
+  readonly _events: Obj<EventCallback[]> = {};
   readonly type: string = 'default';
   model?: Observable;
 
@@ -437,12 +437,14 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     this.on(events, callbackWrap, options);
   }
 
-  /** Removes an event listener on this element. */
-  off(events: string, callback: EventCallback) {
+  /**
+   * Removes an event listener on this element. If callback is undefined, it
+   * removes all event listeners for this event.
+   */
+  off(events: string, callback?: EventCallback) {
     for (const e of words(events)) {
       if (e in this._events) {
-        this._events[e] =
-            this._events[e].filter((fn: EventCallback) => fn !== callback);
+        this._events[e] = callback ? this._events[e].filter(fn => fn !== callback) : [];
       }
       unbindEvent(this, e, callback);
     }
