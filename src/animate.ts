@@ -149,7 +149,7 @@ export type AnimationProperties = Obj<AnimationValue|AnimationValue[]>;
 
 export function transition($el: ElementView, properties: AnimationProperties,
                            duration = 400, _delay = 0,
-                           easing = 'ease'): AnimationResponse {
+                           easing = 'ease-in-out'): AnimationResponse {
 
   // Don't play animations while the page is loading.
   if (!isReady) {
