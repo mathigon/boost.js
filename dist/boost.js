@@ -5,11 +5,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 // =============================================================================
 /** Checks if x is strictly equal to any one of the following arguments. */
 function isOneOf(x, ...values) {
-    for (let v of values) {
-        if (x === v)
-            return true;
-    }
-    return false;
+    return values.includes(x);
 }
 /** Applies default keys to an object. */
 function applyDefaults(obj, defaults) {
@@ -148,7 +144,7 @@ class EventTarget {
     /** Adds a one-time event listener to one or more events. */
     one(events, fn) {
         const callback = (e) => {
-            this.off(events, fn);
+            this.off(events, callback);
             fn(e);
         };
         this.on(events, callback);
@@ -371,11 +367,7 @@ function uid(n = 10) {
 }
 /** Checks if x is strictly equal to any one of the following arguments. */
 function isOneOf$1(x, ...values) {
-    for (let v of values) {
-        if (x === v)
-            return true;
-    }
-    return false;
+    return values.includes(x);
 }
 
 // =============================================================================
@@ -989,14 +981,6 @@ var Random;
         return start + Math.floor(length * Math.random());
     }
     Random.integer = integer;
-    /** Generates an array of the integers from 0 to n in random order. */
-    function intArray(n) {
-        let a = [];
-        for (let i = 0; i < n; ++i)
-            a.push(i);
-        return shuffle(a);
-    }
-    Random.intArray = intArray;
     /** Chooses a random index value from weights [2, 5, 3] */
     function weighted(weights) {
         const x = Math.random() * total$1(weights);
@@ -1288,7 +1272,7 @@ const touchSupport = ('ontouchstart' in window);
 const pointerSupport = ('onpointerdown' in window);
 /** Gets the pointer position from an event. */
 function pointerPosition(e) {
-    if (e instanceof TouchEvent) {
+    if (e.touches) {
         const touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
         return new Point(touches[0].clientX, touches[0].clientY);
     }
@@ -1297,7 +1281,7 @@ function pointerPosition(e) {
     }
 }
 function getTouches(e) {
-    return (e instanceof TouchEvent) ? e.touches : [];
+    return e.touches || [];
 }
 /**
  * Gets the pointer position from an event triggered on an `<svg>` element, in
@@ -1334,6 +1318,7 @@ function getEventTarget(event) {
 // -----------------------------------------------------------------------------
 // Click Events
 function makeTapEvent($el) {
+    // TODO Support removing events.
     if ($el._data['tapEvent'])
         return;
     $el._data['tapEvent'] = true;
@@ -1350,6 +1335,7 @@ function makeTapEvent($el) {
     $el.on('pointercancel', () => start = undefined);
 }
 function makeClickOutsideEvent($el) {
+    // TODO Support removing events.
     if ($el._data['clickOutsideEvent'])
         return;
     $el._data['clickOutsideEvent'] = true;
@@ -1419,6 +1405,7 @@ function slide($el, fns) {
 // -----------------------------------------------------------------------------
 // Scroll Events
 function makeScrollEvents($el) {
+    // TODO Support removing events.
     if ($el._data['scrollEvents'])
         return;
     $el._data['scrollEvents'] = true;
@@ -1518,6 +1505,7 @@ function intersectionCallback(entries) {
     }
 }
 function makeIntersectionEvents($el) {
+    // TODO Support removing events.
     if ($el._data['intersectionEvents'])
         return;
     $el._data['intersectionEvents'] = true;
@@ -1542,8 +1530,30 @@ function makeIntersectionEvents($el) {
     observer.observe($el._el);
 }
 // -----------------------------------------------------------------------------
+// Resize Events
+function makeResizeEvents($el, remove = false) {
+    if (remove) {
+        if ($el._data['resizeObserver'])
+            $el._data['resizeObserver'].disconnect();
+        $el._data['resizeObserver'] = undefined;
+    }
+    if ($el._data['resizeObserver'])
+        return;
+    if (window.ResizeObserver) {
+        const observer = new window.ResizeObserver(() => $el.trigger('resize'));
+        observer.observe($el._el);
+        $el._data['resizeObserver'] = observer;
+    }
+    else if (window.MutationObserver) {
+        const observer = new MutationObserver(() => $el.trigger('resize'));
+        observer.observe($el._el, { attributes: true, childList: true, characterData: true, subtree: true });
+        $el._data['resizeObserver'] = observer;
+    }
+}
+// -----------------------------------------------------------------------------
 // Pointer Events
 function makePointerPositionEvents($el) {
+    // TODO Support removing events.
     if ($el._data['pointerPositionEvents'])
         return;
     $el._data['pointerPositionEvents'] = true;
@@ -1564,9 +1574,10 @@ function makePointerPositionEvents($el) {
 // Mouse Events
 // On touch devices, mouse events are emulated. We don't want that!
 function makeMouseEvent(eventName, $el) {
-    if ($el._events['_' + eventName])
+    // TODO Support removing events.
+    if ($el._data['_' + eventName])
         return;
-    $el._events['_' + eventName] = true;
+    $el._data['_' + eventName] = true;
     if (pointerSupport) {
         $el.on(eventName.replace('mouse', 'pointer'), (e) => {
             if (e.pointerType === 'mouse')
@@ -1628,30 +1639,36 @@ const customEvents = {
     pointerenter: makePointerPositionEvents,
     pointerleave: makePointerPositionEvents,
     enterViewport: makeIntersectionEvents,
-    exitViewport: makeIntersectionEvents
+    exitViewport: makeIntersectionEvents,
+    resize: makeResizeEvents
 };
 function bindEvent($el, event, fn, options) {
-    if (event in aliases) {
+    if (event in customEvents) {
+        customEvents[event]($el, false);
+    }
+    else if (event in aliases) {
         const events = words(aliases[event]);
         // Note that the mouse event aliases don't pass through makeMouseEvent()!
         for (const e of events)
             $el._el.addEventListener(e, fn, options);
-    }
-    else if (event in customEvents) {
-        customEvents[event]($el);
     }
     else {
         $el._el.addEventListener(event, fn, options);
     }
 }
 function unbindEvent($el, event, fn) {
-    if (event in aliases) {
+    if (event in customEvents) {
+        if (!$el._events[event] || !$el._events[event].length) {
+            // Remove custom events only when there are no more listeners.
+            customEvents[event]($el, true);
+        }
+    }
+    else if (fn && event in aliases) {
         const events = words(aliases[event]);
         for (const e of events)
             $el._el.removeEventListener(e, fn);
     }
-    else if (event in customEvents) ;
-    else {
+    else if (fn) {
         $el._el.removeEventListener(event, fn);
     }
 }
@@ -2344,12 +2361,14 @@ class BaseView {
         };
         this.on(events, callbackWrap, options);
     }
-    /** Removes an event listener on this element. */
+    /**
+     * Removes an event listener on this element. If callback is undefined, it
+     * removes all event listeners for this event.
+     */
     off(events, callback) {
         for (const e of words(events)) {
             if (e in this._events) {
-                this._events[e] =
-                    this._events[e].filter((fn) => fn !== callback);
+                this._events[e] = callback ? this._events[e].filter(fn => fn !== callback) : [];
             }
             unbindEvent(this, e, callback);
         }
@@ -2373,6 +2392,12 @@ class BaseView {
             if (keylist.indexOf(e.keyCode) >= 0)
                 callback(e);
         });
+    }
+    /** Returns a promise that is resolved when an event is triggered. */
+    onPromise(event, resolveImmediately = false) {
+        if (resolveImmediately)
+            return Promise.resolve();
+        return new Promise((resolve) => this.one('solve', () => resolve()));
     }
     // -------------------------------------------------------------------------
     // Animations
@@ -2552,8 +2577,8 @@ class SVGBaseView extends BaseView {
         const t1 = posn ?
             `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` :
             '';
-        const t2 = angle ? `rotate(${angle * 180 / Math.PI})` : '';
-        const t3 = scale ? `scale(${scale})` : '';
+        const t2 = nearlyEquals(angle, 0) ? '' : `rotate(${angle * 180 / Math.PI})`;
+        const t3 = nearlyEquals(scale, 1) ? '' : `scale(${scale})`;
         this.setAttr('transform', [t1, t2, t3].join(' '));
     }
     /**
@@ -2815,7 +2840,7 @@ class MediaView extends HTMLBaseView {
 // -----------------------------------------------------------------------------
 // Element Selectors and Constructors
 const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
-    'g', 'defs', 'marker', 'line', 'text', 'pattern', 'mask', 'svg'];
+    'g', 'defs', 'marker', 'line', 'text', 'pattern', 'mask', 'svg', 'foreignObject'];
 /**
  * Finds the Element that matches a specific CSS selector, or creates a new
  * Element wrapper around a native HTMLElement instance.
@@ -3342,6 +3367,10 @@ function enter($el, effect = 'fade', duration = 500, _delay = 0) {
         const rules = { opacity: [0, 1], transform: ['translateY(50px)', 'none'] };
         if (effect.includes('down'))
             rules.transform[0] = 'translateY(-50px)';
+        if (effect.includes('right'))
+            rules.transform[0] = 'translateX(-50px)';
+        if (effect.includes('left'))
+            rules.transform[0] = 'translateX(50px)';
         return transition($el, rules, duration, _delay);
     }
     else if (effect.startsWith('reveal')) {
@@ -3861,6 +3890,7 @@ exports.$$ = $$;
 exports.$N = $N;
 exports.$body = $body;
 exports.$html = $html;
+exports.BaseView = BaseView;
 exports.CanvasView = CanvasView;
 exports.CustomElementView = CustomElementView;
 exports.Draggable = Draggable;
