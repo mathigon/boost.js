@@ -584,14 +584,14 @@ export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
   get outerWidth() {
     const left = parseFloat(this.css('margin-left')!);
     const right = parseFloat(this.css('margin-right')!);
-    return this.width + left + right;
+    return (this.width + left + right) || 0;
   }
 
   /** Returns this element's height, including margins. */
   get outerHeight() {
     const bottom = parseFloat(this.css('margin-bottom')!);
     const top = parseFloat(this.css('margin-top')!);
-    return this.height + bottom + top;
+    return (this.height + bottom + top) || 0;
   }
 
   /** @returns {number} */
