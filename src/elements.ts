@@ -11,9 +11,10 @@ import {loadImage} from './ajax';
 import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
 import {Browser, KEY_CODES} from './browser';
 import {bindEvent, EventCallback, unbindEvent} from './events';
+import {Observable} from './observable';
 import {drawSVG, GeoShape, SVGDrawingOptions} from './svg';
 import {CanvasDrawingOptions, drawCanvas} from './canvas';
-import {bindObservable, observable, Observable} from './templates';
+import {bindModel} from './templates';
 
 
 declare global {
@@ -36,7 +37,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<any> = {};
   readonly _events: Obj<EventCallback[]> = {};
   readonly type: string = 'default';
-  model?: Observable;
+  model?: Observable<any>;
 
   constructor(readonly _el: T) {
     // Store a reference to this element within the native browser DOM.
@@ -55,15 +56,14 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el === el._el;
   }
 
-  getModel(): Observable {
+  getParentModel(): Observable<any>|undefined {
     const parent = this.parent;
-    return parent ? (parent.model || parent.getModel()) : observable();
+    return parent ? (parent.model || parent.getParentModel()) : undefined;
   }
 
-  bindObservable(model: Observable, recursive = true) {
-    bindObservable(this, model, recursive);
+  bindModel(model: Observable<Obj<any>>, recursive = false) {
     this.model = model;
-    return model;
+    bindModel(this, this.model, recursive);
   }
 
   /** Adds one or more space-separated classes to this element. */
