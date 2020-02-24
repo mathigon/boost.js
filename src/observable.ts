@@ -15,11 +15,12 @@ interface ObservableOptions<T> {
   watchAll: (fn: Callback<T>) => void;
   unwatch: (fn: Callback<T>) => void;
   setComputed: (key: string, expr: (state: T) => any) => void;
+  forceUpdate: () => void;
   assign: (obj: any) => void;
   getKey: () => string;
 }
 
-export type Observable<T> = T&ObservableOptions<T>;
+export type Observable<T = any> = T&ObservableOptions<T>;
 
 
 export function observe<T = any>(state: T) {
@@ -69,13 +70,20 @@ export function observe<T = any>(state: T) {
     for (const callback of watchAllCallbacks) callback(state);
   }
 
+  function forceUpdate() {
+    for (const callbacks of callbackMap.values()) {
+      for (const callback of callbacks) callback(state);
+    }
+    for (const callback of watchAllCallbacks) callback(state);
+  }
+
   function assign(changes: Obj<string>) {
     Object.assign(state, changes);
   }
 
   function getKey() {
     lastKey += 1;
-    return 'x' + lastKey;
+    return '_x' + lastKey;
 
   }
 
@@ -85,6 +93,7 @@ export function observe<T = any>(state: T) {
       if (key === 'watchAll') return watchAll;
       if (key === 'unwatch') return unwatch;
       if (key === 'setComputed') return setComputed;
+      if (key === 'forceUpdate') return forceUpdate;
       if (key === 'assign') return assign;
       if (key === 'getKey') return getKey;
       if (key === '_internal') return [state, callbackMap];
@@ -109,6 +118,13 @@ export function observe<T = any>(state: T) {
       }
 
       triggerCallbacks(key);
+      return true;
+    },
+
+    deleteProperty(_: T, p: string) {
+      delete (state as any)[p];
+      callbackMap.delete(p);
+      computedKeys.delete(p);
       return true;
     }
   });

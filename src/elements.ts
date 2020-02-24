@@ -37,7 +37,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<any> = {};
   readonly _events: Obj<EventCallback[]> = {};
   readonly type: string = 'default';
-  model?: Observable<any>;
+  model?: Observable;
 
   constructor(readonly _el: T) {
     // Store a reference to this element within the native browser DOM.
@@ -56,12 +56,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el === el._el;
   }
 
-  getParentModel(): Observable<any>|undefined {
+  getParentModel(): Observable|undefined {
     const parent = this.parent;
     return parent ? (parent.model || parent.getParentModel()) : undefined;
   }
 
-  bindModel(model: Observable<Obj<any>>, recursive = false) {
+  bindModel(model: Observable, recursive = false) {
     this.model = model;
     bindModel(this, this.model, recursive);
   }

@@ -39,7 +39,7 @@ export function parse<T = string>(
   }
 }
 
-function makeTemplate(model: Observable<any>, property: string, fromObj: any,
+function makeTemplate(model: Observable, property: string, fromObj: any,
                       toObj = fromObj) {
   if (fromObj[property].indexOf('${') < 0) return;
   const fn = parse(fromObj[property]);
@@ -52,7 +52,7 @@ function makeTemplate(model: Observable<any>, property: string, fromObj: any,
  * the text content. Use `recursive = true` to also bind the observable to all
  * child elements.
  */
-export function bindModel($el: ElementView, observable: Observable<any>,
+export function bindModel($el: ElementView, observable: Observable,
                           recursive = true) {
   for (const a of $el.attributes) {
     // We have to prefix x-path attributes, to avoid SVG errors on load.
