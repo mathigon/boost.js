@@ -21,14 +21,15 @@ tape('simple observe', (test) => {
 
   test.equal(model.a, 1);
   model.watch((s) => callbacks += s.a);
+  test.equal(callbacks, 1);
 
   model.a = 2;
   test.equal(model.a, 2);
-  test.equal(callbacks, 1);
+  test.equal(callbacks, 3);
 
   // It doesn't change if we set a value to the same as before.
   model.a = 2;
-  test.equal(callbacks, 1);
+  test.equal(callbacks, 3);
 
   test.end();
 });
