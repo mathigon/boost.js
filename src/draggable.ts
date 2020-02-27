@@ -5,8 +5,8 @@
 
 
 import {EventTarget, applyDefaults} from '@mathigon/core';
-import {Point} from '@mathigon/fermat';
-import {SVGParentView, ElementView} from './elements';
+import {Bounds, Point} from '@mathigon/fermat';
+import {SVGParentView, ElementView, $html} from './elements';
 import {Browser} from './browser';
 import {slide} from './events';
 
@@ -51,6 +51,7 @@ export class Draggable extends EventTarget {
         if (this.disabled) return;
         startPosn = this.position;
         this.trigger('start');
+        $html.addClass('grabbing');
       },
       move: (posn, start) => {
         if (this.disabled) return;
@@ -61,6 +62,7 @@ export class Draggable extends EventTarget {
       end: (last, start) => {
         if (this.disabled) return;
         this.trigger(last.equals(start) ? 'click' : 'end');
+        $html.removeClass('grabbing');
       }
     });
 
@@ -88,7 +90,7 @@ export class Draggable extends EventTarget {
     const m = this.options.margin || 0;
 
     let p = new Point(this.options.moveX ? x : 0, this.options.moveY ? y : 0)
-        .clamp(m, this.width - m, m, this.height - m)
+        .clamp(new Bounds(0, this.width, 0, this.height), m)
         .round(this.options.snap || 1);
 
     if (this.options.round) p = this.options.round(p);
