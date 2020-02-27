@@ -12,7 +12,6 @@ type Expr<T> = (state: T) => void;
 
 interface ObservableOptions<T> {
   watch: (fn: Callback<T>) => void;
-  watchAll: (fn: Callback<T>) => void;
   unwatch: (fn: Callback<T>) => void;
   setComputed: (key: string, expr: (state: T) => any) => void;
   forceUpdate: () => void;
@@ -26,7 +25,6 @@ export type Observable<T = any> = T&ObservableOptions<T>;
 export function observe<T = any>(state: T) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
-  const watchAllCallbacks = new Set<Callback<T>>();
   let pendingCallback: Callback<T>|undefined = undefined;
   let lastKey = 0;
 
@@ -37,16 +35,10 @@ export function observe<T = any>(state: T) {
     return result;
   }
 
-  function watchAll(callback: Callback<T>) {
-    watchAllCallbacks.add(callback);
-    callback(state);
-  }
-
   function unwatch(callback: Callback<T>) {
     for (const callbacks of callbackMap.values()) {
       if (callbacks.has(callback)) callbacks.delete(callback);
     }
-    watchAllCallbacks.delete(callback);
   }
 
   function setComputed(key: string, expr: Expr<T>) {
@@ -67,30 +59,27 @@ export function observe<T = any>(state: T) {
     if (callbacks) {
       for (const callback of callbacks) callback(state);
     }
-    for (const callback of watchAllCallbacks) callback(state);
   }
 
   function forceUpdate() {
     for (const callbacks of callbackMap.values()) {
       for (const callback of callbacks) callback(state);
     }
-    for (const callback of watchAllCallbacks) callback(state);
   }
 
   function assign(changes: Obj<string>) {
     Object.assign(state, changes);
+    forceUpdate();
   }
 
   function getKey() {
     lastKey += 1;
     return '_x' + lastKey;
-
   }
 
   const proxy = new Proxy(state as any, {
     get(_: T, key: string) {
       if (key === 'watch') return watch;
-      if (key === 'watchAll') return watchAll;
       if (key === 'unwatch') return unwatch;
       if (key === 'setComputed') return setComputed;
       if (key === 'forceUpdate') return forceUpdate;
@@ -130,22 +119,4 @@ export function observe<T = any>(state: T) {
   });
 
   return proxy as Observable<T>;
-}
-
-
-// -----------------------------------------------------------------------------
-// Batch Functions
-
-let timeout: number|undefined = undefined;
-const queue = new Set<() => void>();
-
-function process() {
-  for (const callback of queue) callback();
-  queue.clear();
-  timeout = undefined;
-}
-
-function enqueue(callback: () => void) {
-  if (!timeout) timeout = window.setTimeout(process, 0);
-  queue.add(callback);
 }
