@@ -10,11 +10,11 @@ import {loadImage} from './ajax';
 
 import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
 import {Browser, KEY_CODES} from './browser';
+import {compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
 import {Observable} from './observable';
 import {drawSVG, GeoShape, SVGDrawingOptions} from './svg';
 import {CanvasDrawingOptions, drawCanvas} from './canvas';
-import {bindModel} from './templates';
 
 
 declare global {
@@ -54,16 +54,6 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   equals(el: ElementView) {
     return this._el === el._el;
-  }
-
-  getParentModel(): Observable|undefined {
-    const parent = this.parent;
-    return parent ? (parent.model || parent.getParentModel()) : undefined;
-  }
-
-  bindModel(model: Observable, recursive = false) {
-    this.model = model;
-    bindModel(this, this.model, recursive);
   }
 
   /** Adds one or more space-separated classes to this element. */
@@ -111,9 +101,6 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   set html(h: string) { this._el.innerHTML = h; }
 
-  // Required because TS doesn't allow getters and setters with different types.
-  set htmlStr(t: any) { this._el.textContent = '' + t; }
-
   get text(): string { return this._el.textContent || ''; }
 
   set text(t: string) { this._el.textContent = t; }
@@ -126,6 +113,42 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   /** Focuses this DOM element. */
   focus() { this._el.focus(); }
+
+  // -------------------------------------------------------------------------
+  // Model Binding
+
+  getParentModel(): Observable|undefined {
+    const parent = this.parent;
+    return parent ? (parent.model || parent.getParentModel()) : undefined;
+  }
+
+  bindModel(model: Observable, recursive = false) {
+    // TODO Make this work more like Angular, e.g. `[html]="..."`.
+    this.model = model;
+
+    for (const {name, value} of this.attributes) {
+      if (!value.includes('${')) continue;
+      const expr = compileString(value);
+      model.watch(() => this.setAttr(name, expr(model) || ''));
+    }
+
+    if (this.children.length) {
+      for (const $c of this.childNodes) {
+        if ($c instanceof Text) {
+          if ($c.textContent?.includes('${')) {
+            const expr = compileString($c.textContent);
+            model.watch(() => $c.textContent = expr(model) || '');
+          }
+        } else if (recursive) {
+          $c.bindModel(model);
+        }
+      }
+    } else if (this.text.includes('${')) {
+      // Single child: treat as HTML content.
+      const expr = compileString(this.text);
+      model.watch(() => this.html = expr(model) || '');
+    }
+  }
 
   // -------------------------------------------------------------------------
   // Scrolling and Dimensions
