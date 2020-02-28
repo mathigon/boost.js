@@ -78,6 +78,7 @@ type AnyNode = ArrayNode|BinaryNode|CallNode|ConditionalNode|IdentifierNode
 // Constants
 
 const BINARY_OPS: Obj<(a: any, b: any) => any> = {
+  // TODO Operator overloading (e.g. add vectors or complex numbers)
   '===': (a: any, b: any) => a === b,
   '!==': (a: any, b: any) => a !== b,
   '||': (a: any, b: any) => a || b,
@@ -127,7 +128,7 @@ const IDENTIFIER_PART = /[a-zA-Z0-9$_]/;
 // -----------------------------------------------------------------------------
 // Expression Parser
 
-export function parseSyntaxTree(expr: string) {
+function parseSyntaxTree(expr: string) {
   const length = expr.length;
   let index = 0;  // Current cursor position
 
@@ -405,45 +406,46 @@ export function parseSyntaxTree(expr: string) {
 // -----------------------------------------------------------------------------
 // Evaluations
 
-function evaluate(node: AnyNode, context: any): any {
+/** Returns [value, this]. */
+function evaluate(node: AnyNode, context: any): [any, any] {
   switch (node.type) {
-
     case NODE_TYPE.Array:
-      return node.elements.map((n) => evaluate(n, context));
+      const v1 = node.elements.map((n) => evaluate(n, context)[0]);
+      return [v1, undefined];
 
     case NODE_TYPE.BinaryOp:
-      return BINARY_OPS[node.operator](evaluate(node.left, context),
-          evaluate(node.right, context));
+      const left = evaluate(node.left, context)[0];
+      const right = evaluate(node.right, context)[0];
+      return [BINARY_OPS[node.operator](left, right), undefined];
 
     case NODE_TYPE.Call:
       // Note: we evaluate arguments even if fn is undefined.
-      const fn = evaluate(node.callee, context);
-      const args = node.args.map((n) => evaluate(n, context));
-      return (typeof fn === 'function') ? fn(...args) : undefined;
+      const [fn, self] = evaluate(node.callee, context);
+      const args = node.args.map((n) => evaluate(n, context)[0]);
+      const v2 = (typeof fn === 'function') ? fn.apply(self, args) : undefined;
+      return [v2, undefined];
 
     case NODE_TYPE.Conditional:
       // Note: we evaluate all possible options of the unary operator.
       const consequent = evaluate(node.consequent, context);
       const alternate = evaluate(node.alternate, context);
-      return evaluate(node.test, context) ? consequent : alternate;
+      return evaluate(node.test, context)[0] ? consequent : alternate;
 
     case NODE_TYPE.Identifier:
-      return context[node.name];
+      return [context[node.name], undefined];
 
     case NODE_TYPE.Literal:
-      return node.value;
+      return [node.value, undefined];
 
     case NODE_TYPE.Member:
-      const object = evaluate(node.object, context);
-      const property = node.computed ? evaluate(node.property, context) :
+      const object = evaluate(node.object, context)[0];
+      const property = node.computed ? evaluate(node.property, context)[0] :
                        (node.property as IdentifierNode).name;
-      return object ? object[property] : undefined;
+      return object ? [object[property], object] : [undefined, undefined];
 
     case NODE_TYPE.UnaryOp:
-      return UNARY_OPS[node.operator](evaluate(node.argument, context));
-
-    default:
-      return undefined;
+      const v3 = UNARY_OPS[node.operator](evaluate(node.argument, context)[0]);
+      return [v3, undefined];
   }
 }
 
@@ -453,7 +455,7 @@ function evaluate(node: AnyNode, context: any): any {
 export function compile<T = any>(expr: string) {
   const node = parseSyntaxTree(expr);
   if (!node) return (context: any = {}) => undefined;
-  return (context: any = {}): T|undefined => evaluate(node, context);
+  return (context: any = {}): T|undefined => evaluate(node, context)[0];
 }
 
 
