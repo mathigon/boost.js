@@ -476,6 +476,11 @@ export function compileString(expr: string): (vars: any) => string {
   const fns = parts.map((p, i) => (i % 2) ? compile(p) : undefined);
 
   return (context: any) => {
-    return parts.map((p, i) => (i % 2) ? (fns[i]!(context) || '') : p).join('');
+    return parts.map((p, i) => {
+      if (!(i % 2)) return p;
+      const value = fns[i]!(context);
+      // Special formatting for negative numbers.
+      return (typeof value === 'number' && value < 0) ? '–' + (-value) : value;
+    }).join('');
   };
 }
