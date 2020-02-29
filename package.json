@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
   "keywords": [
     "browser",
@@ -26,8 +26,8 @@
     "build": "rollup --config"
   },
   "dependencies": {
-    "@mathigon/fermat": "^0.3.4",
-    "@mathigon/core": "^0.3.4"
+    "@mathigon/fermat": "^0.3.5",
+    "@mathigon/core": "^0.3.5"
   },
   "devDependencies": {
     "@types/tape": "^4.2.33",

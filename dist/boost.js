@@ -56,27 +56,29 @@ function defer() {
 /**
  * Function wrapper that prevents a function from being executed more than once
  * every t ms. This is particularly useful for optimising callbacks for
- * continues events like scroll, resize or slider move.
- *
- * @param {Function} fn
- * @param {?number} t
- * @returns {Function}
+ * continues events like scroll, resize or slider move. Setting `forceDelay`
+ * to `true` means that even the first function call is after the minimum
+ * timout, rather than instantly.
  */
-function throttle(fn, t = 0) {
+function throttle(fn, t = 0, forceDelay = false) {
     let delay = false;
     let repeat = false;
-    return function (...args) {
+    return (...args) => {
         if (delay) {
             repeat = true;
         }
         else {
-            fn(...args);
+            if (forceDelay) {
+                repeat = true;
+            }
+            else {
+                fn(...args);
+            }
             delay = true;
-            setTimeout(function () {
+            setTimeout(() => {
                 if (repeat)
                     fn(...args);
-                delay = false;
-                repeat = false;
+                delay = repeat = false;
             }, t);
         }
     };
@@ -94,13 +96,6 @@ function safeToJSON(str, fallback = {}) {
 }
 
 // =============================================================================
-// Core.ts | Array Functions
-// (c) Mathigon
-// =============================================================================
-/** Creates an array of size `n`, containing `value` at every entry. */
-function repeat(value, n) {
-    return new Array(n).fill(value);
-}
 /** Returns the last item in an array, or the ith item from the end. */
 function last(array, i = 0) {
     return array[array.length - 1 - i];
@@ -375,14 +370,22 @@ function isOneOf$1(x, ...values) {
 // (c) Mathigon
 // =============================================================================
 /** Creates an array of size `n`, containing `value` at every entry. */
-function repeat$1(value, n) {
+function repeat(value, n) {
     return new Array(n).fill(value);
 }
 /** Creates a matrix of size `x` by `y`, containing `value` at every entry. */
 function repeat2D(value, x, y) {
     const result = [];
     for (let i = 0; i < x; ++i) {
-        result.push(repeat$1(value, y));
+        result.push(repeat(value, y));
+    }
+    return result;
+}
+/** Creates an array of size `n`, with the result of `fn(i)` at position i. */
+function tabulate(fn, n) {
+    const result = [];
+    for (let i = 0; i < n; ++i) {
+        result.push(fn(i));
     }
     return result;
 }
@@ -430,6 +433,16 @@ function total$1(array) {
 function flatten(array) {
     return array.reduce((a, b) => a.concat(Array.isArray(b) ? flatten(b) : b), []);
 }
+/** Converts an array to a linked list data structure. */
+function toLinkedList(array) {
+    const result = array.map(a => ({ val: a, next: undefined }));
+    const n = result.length;
+    for (let i = 0; i < n - 1; ++i) {
+        result[i].next = result[i + 1];
+    }
+    result[n - 1].next = result[0];
+    return result;
+}
 
 // =============================================================================
 // -----------------------------------------------------------------------------
@@ -465,9 +478,11 @@ class Point {
     distanceFromLine(l) {
         return Point.distance(this, l.project(this));
     }
-    /** Clamps this point between given x and y values. */
-    clamp(xMin, xMax, yMin, yMax) {
-        return new Point(clamp(this.x, xMin, xMax), clamp(this.y, yMin, yMax));
+    /** Clamps this point to specific bounds. */
+    clamp(bounds, padding = 0) {
+        const x = clamp(this.x, bounds.xMin + padding, bounds.xMax - padding);
+        const y = clamp(this.y, bounds.yMin + padding, bounds.yMax - padding);
+        return new Point(x, y);
     }
     /** Transforms this point using a 2x3 matrix m. */
     transform(m) {
@@ -574,6 +589,31 @@ class Point {
 }
 const ORIGIN = new Point(0, 0);
 // -----------------------------------------------------------------------------
+// Bounds
+class Bounds {
+    constructor(xMin, xMax, yMin, yMax) {
+        this.xMin = xMin;
+        this.xMax = xMax;
+        this.yMin = yMin;
+        this.yMax = yMax;
+    }
+    get dx() {
+        return this.xMax - this.xMin;
+    }
+    get dy() {
+        return this.yMax - this.yMin;
+    }
+    get xRange() {
+        return [this.xMin, this.xMax];
+    }
+    get yRange() {
+        return [this.yMin, this.yMax];
+    }
+    get rect() {
+        return new Rectangle(new Point(this.xMin, this.xMin), this.dx, this.dy);
+    }
+}
+// -----------------------------------------------------------------------------
 // Angles
 const TWO_PI = 2 * Math.PI;
 function rad(p, c = ORIGIN) {
@@ -672,6 +712,343 @@ class Line {
         return this.contains(other.p1) && this.contains(other.p2);
     }
 }
+/** A finite line segment defined by its two endpoints. */
+class Segment extends Line {
+    constructor() {
+        super(...arguments);
+        this.type = 'segment';
+    }
+    contains(p) {
+        if (!Line.prototype.contains.call(this, p))
+            return false;
+        if (nearlyEquals(this.p1.x, this.p2.x)) {
+            return isBetween(p.y, this.p1.y, this.p2.y);
+        }
+        else {
+            return isBetween(p.x, this.p1.x, this.p2.x);
+        }
+    }
+    make(p1, p2) {
+        return new Segment(p1, p2);
+    }
+    project(p) {
+        const a = Point.difference(this.p2, this.p1);
+        const b = Point.difference(p, this.p1);
+        const q = clamp(Point.dot(a, b) / square(this.length), 0, 1);
+        return Point.sum(this.p1, a.scale(q));
+    }
+    /** Contracts (or expands) a line by a specific ratio. */
+    contract(x) {
+        return new Segment(this.at(x), this.at(1 - x));
+    }
+    equals(other, oriented = false) {
+        if (other.type !== 'segment')
+            return false;
+        return (this.p1.equals(other.p1) && this.p2.equals(other.p2)) ||
+            (!oriented && this.p1.equals(other.p2) && this.p2.equals(other.p1));
+    }
+    /** Finds the intersection of two line segments l1 and l2 (or undefined). */
+    static intersect(s1, s2) {
+        return simpleIntersection(s1, s2)[0] || undefined;
+    }
+}
+// -----------------------------------------------------------------------------
+// Polygons
+/** A polygon defined by its vertex points. */
+class Polygon {
+    constructor(...points) {
+        this.type = 'polygon';
+        this.points = points;
+    }
+    get circumference() {
+        let C = 0;
+        for (let i = 1; i < this.points.length; ++i) {
+            C += Point.distance(this.points[i - 1], this.points[i]);
+        }
+        return C;
+    }
+    /**
+     * The (signed) area of this polygon. The result is positive if the vertices
+     * are ordered clockwise, and negative otherwise.
+     */
+    get signedArea() {
+        let p = this.points;
+        let n = p.length;
+        let A = p[n - 1].x * p[0].y - p[0].x * p[n - 1].y;
+        for (let i = 1; i < n; ++i) {
+            A += p[i - 1].x * p[i].y - p[i].x * p[i - 1].y;
+        }
+        return A / 2;
+    }
+    get area() {
+        return Math.abs(this.signedArea);
+    }
+    get centroid() {
+        let p = this.points;
+        let n = p.length;
+        let Cx = 0;
+        for (let i = 0; i < n; ++i)
+            Cx += p[i].x;
+        let Cy = 0;
+        for (let i = 0; i < n; ++i)
+            Cy += p[i].y;
+        return new Point(Cx / n, Cy / n);
+    }
+    get edges() {
+        let p = this.points;
+        let n = p.length;
+        let edges = [];
+        for (let i = 0; i < n; ++i)
+            edges.push(new Segment(p[i], p[(i + 1) % n]));
+        return edges;
+    }
+    get radius() {
+        const c = this.centroid;
+        const radii = this.points.map(p => Point.distance(p, c));
+        return Math.max(...radii);
+    }
+    transform(m) {
+        return new this.constructor(...this.points.map(p => p.transform(m)));
+    }
+    rotate(a, center = ORIGIN) {
+        const points = this.points.map(p => p.rotate(a, center));
+        return new this.constructor(...points);
+    }
+    reflect(line) {
+        const points = this.points.map(p => p.reflect(line));
+        return new this.constructor(...points);
+    }
+    scale(sx, sy = sx) {
+        const points = this.points.map(p => p.scale(sx, sy));
+        return new this.constructor(...points);
+    }
+    shift(x, y = x) {
+        const points = this.points.map(p => p.shift(x, y));
+        return new this.constructor(...points);
+    }
+    translate(p) {
+        return this.shift(p.x, p.y);
+    }
+    /** Checks if a point p lies inside this polygon. */
+    contains(p) {
+        let n = this.points.length;
+        let inside = false;
+        for (let i = 0; i < n; ++i) {
+            const q1 = this.points[i];
+            const q2 = this.points[(i + 1) % n];
+            const x = (q1.y > p.y) !== (q2.y > p.y);
+            const y = p.x < (q2.x - q1.x) * (p.y - q1.y) / (q2.y - q1.y) + q1.x;
+            if (x && y)
+                inside = !inside;
+        }
+        return inside;
+    }
+    equals(other) {
+        // TODO Implement
+        return false;
+    }
+    project(p) {
+        let q = undefined;
+        let d = Infinity;
+        for (const e of this.edges) {
+            const q1 = e.project(p);
+            const d1 = Point.distance(p, q1);
+            if (d1 < d) {
+                q = q1;
+                d = d1;
+            }
+        }
+        return q || this.points[0];
+    }
+    at(t) {
+        return Point.interpolateList([...this.points, this.points[0]], t);
+    }
+    /** The oriented version of this polygon (vertices in clockwise order). */
+    get oriented() {
+        if (this.signedArea >= 0)
+            return this;
+        const points = [...this.points].reverse();
+        return new this.constructor(...points);
+    }
+    /**
+     * The intersection of this and another polygon, calculated using the
+     * Weiler–Atherton clipping algorithm
+     */
+    intersect(polygon) {
+        // TODO Support intersections with multiple disjoint overlapping areas.
+        // TODO Support segments intersecting at their endpoints
+        const points = [toLinkedList(this.oriented.points),
+            toLinkedList(polygon.oriented.points)];
+        const max = this.points.length + polygon.points.length;
+        const result = [];
+        let which = 0;
+        let active = points[which].find(p => polygon.contains(p.val));
+        if (!active)
+            return undefined; // No intersection
+        while (active.val !== result[0] && result.length < max) {
+            result.push(active.val);
+            const nextEdge = new Segment(active.val, active.next.val);
+            active = active.next;
+            for (let p of points[1 - which]) {
+                const testEdge = new Segment(p.val, p.next.val);
+                const intersect = intersections(nextEdge, testEdge)[0];
+                if (intersect) {
+                    which = 1 - which; // Switch active polygon
+                    active = { val: intersect, next: p.next };
+                    break;
+                }
+            }
+        }
+        return new Polygon(...result);
+    }
+    /** Checks if two polygons p1 and p2 collide. */
+    static collision(p1, p2) {
+        // Check if any of the edges overlap.
+        for (let e1 of p1.edges) {
+            for (let e2 of p2.edges) {
+                if (Segment.intersect(e1, e2))
+                    return true;
+            }
+        }
+        // Check if one of the vertices is in one of the polygons.
+        for (let v of p1.points)
+            if (p2.contains(v))
+                return true;
+        for (let v of p2.points)
+            if (p1.contains(v))
+                return true;
+        return false;
+    }
+    /** Creates a regular polygon. */
+    static regular(n, radius = 1) {
+        const da = 2 * Math.PI / n;
+        const a0 = Math.PI / 2 - da / 2;
+        const points = tabulate((i) => Point.fromPolar(a0 + da * i, radius), n);
+        return new Polygon(...points);
+    }
+    /** Interpolates the points of two polygons */
+    static interpolate(p1, p2, t = 0.5) {
+        // TODO support interpolating polygons with different numbers of points
+        const points = p1.points.map((p, i) => Point.interpolate(p, p2.points[i], t));
+        return new Polygon(...points);
+    }
+}
+// -----------------------------------------------------------------------------
+// Rectangles and Squares
+/** A rectangle, defined by its top left vertex, width and height. */
+class Rectangle {
+    constructor(p, w = 1, h = w) {
+        this.p = p;
+        this.w = w;
+        this.h = h;
+        this.type = 'rectangle';
+    }
+    static aroundPoints(...points) {
+        const xs = points.map(p => p.x);
+        const ys = points.map(p => p.y);
+        const x = Math.min(...xs);
+        const w = Math.max(...xs) - x;
+        const y = Math.min(...ys);
+        const h = Math.max(...ys) - y;
+        return new Rectangle(new Point(x, y), w, h);
+    }
+    get center() {
+        return new Point(this.p.x + this.w / 2, this.p.y + this.h / 2);
+    }
+    get centroid() {
+        return this.center;
+    }
+    get circumference() {
+        return 2 * Math.abs(this.w) + 2 * Math.abs(this.h);
+    }
+    get area() {
+        return Math.abs(this.w * this.h);
+    }
+    /** @returns {Segment[]} */
+    get edges() {
+        return this.polygon.edges;
+    }
+    /** @returns {Point[]} */
+    get points() {
+        return this.polygon.points;
+    }
+    /**
+     * A polygon class representing this rectangle.
+     * @returns {Polygon}
+     */
+    get polygon() {
+        let b = new Point(this.p.x + this.w, this.p.y);
+        let c = new Point(this.p.x + this.w, this.p.y + this.h);
+        let d = new Point(this.p.x, this.p.y + this.h);
+        return new Polygon(this.p, b, c, d);
+    }
+    transform(m) {
+        return this.polygon.transform(m);
+    }
+    rotate(a, c = ORIGIN) {
+        return this.polygon.rotate(a, c);
+    }
+    reflect(l) {
+        return this.polygon.reflect(l);
+    }
+    scale(sx, sy = sx) {
+        return new Rectangle(this.p.scale(sx, sy), this.w * sx, this.h * sy);
+    }
+    shift(x, y = x) {
+        return new Rectangle(this.p.shift(x, y), this.w, this.h);
+    }
+    translate(p) {
+        return this.shift(p.x, p.y);
+    }
+    contains(p) {
+        return isBetween(p.x, this.p.x, this.p.x + this.w) &&
+            isBetween(p.y, this.p.y, this.p.y + this.h);
+    }
+    equals(other) {
+        // TODO Implement
+        return false;
+    }
+    project(p) {
+        // TODO Use the generic intersections() function
+        // bottom right corner of rect
+        let rect1 = { x: this.p.x + this.w, y: this.p.y + this.h };
+        let center = { x: this.p.x + this.w / 2, y: this.p.y + this.h / 2 };
+        let m = (center.y - p.y) / (center.x - p.x);
+        if (p.x <= center.x) { // check left side
+            let y = m * (this.p.x - p.x) + p.y;
+            if (this.p.y < y && y < rect1.y)
+                return new Point(this.p.x, y);
+        }
+        if (p.x >= center.x) { // check right side
+            let y = m * (rect1.x - p.x) + p.y;
+            if (this.p.y < y && y < rect1.y)
+                return new Point(rect1.x, y);
+        }
+        if (p.y <= center.y) { // check top side
+            let x = (this.p.y - p.y) / m + p.x;
+            if (this.p.x < x && x < rect1.x)
+                return new Point(x, this.p.y);
+        }
+        if (p.y >= center.y) { // check bottom side
+            let x = (rect1.y - p.y) / m + p.x;
+            if (this.p.x < x && x < rect1.x)
+                return new Point(x, rect1.y);
+        }
+        return this.p;
+    }
+    at(t) {
+        // TODO Implement
+    }
+}
+function isPolygonLike(shape) {
+    return isOneOf$1(shape.type, 'polygon', 'polyline', 'rectangle');
+}
+function isLineLike(shape) {
+    return isOneOf$1(shape.type, 'line', 'ray', 'segment');
+}
+function isCircle(shape) {
+    return shape.type === 'circle';
+}
 // -----------------------------------------------------------------------------
 // Intersections
 function liesOnSegment(s, p) {
@@ -739,15 +1116,6 @@ function lineCircleIntersection(l, c) {
     const xb = dx * (dy < 0 ? -1 : 1) * Math.sqrt(disc) / dr2;
     const yb = Math.abs(dy) * Math.sqrt(disc) / dr2;
     return [c.c.shift(xa + xb, ya + yb), c.c.shift(xa - xb, ya - yb)];
-}
-function isPolygonLike(shape) {
-    return isOneOf$1(shape.type, 'polygon', 'polyline', 'rectangle');
-}
-function isLineLike(shape) {
-    return isOneOf$1(shape.type, 'line', 'ray', 'segment');
-}
-function isCircle(shape) {
-    return shape.type === 'circle';
 }
 /** Returns the intersection of two or more geometry objects. */
 function intersections(...elements) {
@@ -999,7 +1367,7 @@ var Random;
         if (!id)
             id = uid();
         if (!SMART_RANDOM_CACHE.has(id))
-            SMART_RANDOM_CACHE.set(id, repeat$1(1, n));
+            SMART_RANDOM_CACHE.set(id, repeat(1, n));
         const cache = SMART_RANDOM_CACHE.get(id);
         const x = weighted(cache.map(x => x * x));
         cache[x] -= 1;
@@ -1266,6 +1634,421 @@ var Regression;
     }
     Regression.find = find;
 })(Regression || (Regression = {}));
+
+// =============================================================================
+// Boost.js | Expression Parsing
+// Based on http://jsep.from.so
+// (c) Mathigon
+// =============================================================================
+// -----------------------------------------------------------------------------
+// Interfaces
+var NODE_TYPE;
+(function (NODE_TYPE) {
+    NODE_TYPE[NODE_TYPE["Array"] = 0] = "Array";
+    NODE_TYPE[NODE_TYPE["BinaryOp"] = 1] = "BinaryOp";
+    NODE_TYPE[NODE_TYPE["Call"] = 2] = "Call";
+    NODE_TYPE[NODE_TYPE["Conditional"] = 3] = "Conditional";
+    NODE_TYPE[NODE_TYPE["Identifier"] = 4] = "Identifier";
+    NODE_TYPE[NODE_TYPE["Literal"] = 5] = "Literal";
+    NODE_TYPE[NODE_TYPE["Member"] = 6] = "Member";
+    NODE_TYPE[NODE_TYPE["UnaryOp"] = 7] = "UnaryOp";
+})(NODE_TYPE || (NODE_TYPE = {}));
+// -----------------------------------------------------------------------------
+// Constants
+const BINARY_OPS = {
+    // TODO Operator overloading (e.g. add vectors or complex numbers)
+    '===': (a, b) => a === b,
+    '!==': (a, b) => a !== b,
+    '||': (a, b) => a || b,
+    '&&': (a, b) => a && b,
+    '==': (a, b) => a == b,
+    '!=': (a, b) => a != b,
+    '<=': (a, b) => a <= b,
+    '>=': (a, b) => a >= b,
+    '**': (a, b) => Math.pow(a, b),
+    '<': (a, b) => a < b,
+    '>': (a, b) => a > b,
+    '+': (a, b) => a + b,
+    '-': (a, b) => a - b,
+    '*': (a, b) => a * b,
+    '/': (a, b) => a / b,
+    '%': (a, b) => a % b
+};
+const UNARY_OPS = {
+    '-': (a) => -a,
+    '+': (a) => +a,
+    '!': (a) => !a
+};
+// Binary operations with their precedence
+const BINARY_PRECEDENCE = {
+    '||': 1, '&&': 2,
+    '==': 3, '!=': 3, '===': 3, '!==': 3,
+    '<': 4, '>': 4, '<=': 4, '>=': 4,
+    '+': 5, '-': 5,
+    '*': 6, '/': 6, '%': 6,
+    '**': 7 // TODO Exponentiation should be right-to-left.
+};
+const LITERALS = {
+    'true': true,
+    'false': false,
+    'undefined': undefined
+};
+const SPACE = /\s/;
+const DIGIT = /[0-9]/;
+const IDENTIFIER_START = /[a-zA-Zα-ωΑ-Ω$_]/; // Variables cannot start with a number.
+const IDENTIFIER_PART = /[0-9a-zA-Zα-ωΑ-Ω$_]/;
+// -----------------------------------------------------------------------------
+// Expression Parser
+function parseSyntaxTree(expr) {
+    const length = expr.length;
+    let index = 0; // Current cursor position
+    function throwError(message) {
+        throw new Error(`${message} at character ${index} of "${expr}"`);
+    }
+    function gobbleSpaces() {
+        while (SPACE.test(expr[index]))
+            index += 1;
+    }
+    // Gobble a simple numeric literals (e.g. `12`, `3.4`, `.5`).
+    function gobbleNumericLiteral() {
+        let number = '';
+        while (DIGIT.test(expr[index]))
+            number += expr[index++];
+        if (expr[index] === '.') {
+            number += expr[index++];
+            while (DIGIT.test(expr[index]))
+                number += expr[index++];
+        }
+        const char = expr[index];
+        if (char && IDENTIFIER_START.test(char)) {
+            const name = number + expr[index];
+            throwError(`Variable names cannot start with a number (${name})`);
+        }
+        else if (char === '.') {
+            throwError('Unexpected period');
+        }
+        return { type: NODE_TYPE.Literal, value: parseFloat(number) };
+    }
+    // Gobble a string literal, staring with single or double quotes.
+    function gobbleStringLiteral() {
+        const quote = expr[index];
+        index += 1;
+        let closed = false;
+        let string = '';
+        while (index < length) {
+            let char = expr[index++];
+            if (char === quote) {
+                closed = true;
+                break;
+            }
+            string += char;
+        }
+        if (!closed)
+            throwError(`Unclosed quote after "${string}"`);
+        return { type: NODE_TYPE.Literal, value: string };
+    }
+    // Gobbles identifiers and literals (e.g. `foo`, `_value`, `$x1`, `true`).
+    function gobbleIdentifier() {
+        let name = expr[index];
+        if (!IDENTIFIER_START.test(expr[index]))
+            throwError('Unexpected ' + name);
+        index += 1;
+        while (index < length) {
+            if (IDENTIFIER_PART.test(expr[index])) {
+                name += expr[index++];
+            }
+            else {
+                break;
+            }
+        }
+        if (name in LITERALS) {
+            return { type: NODE_TYPE.Literal, value: LITERALS[name] };
+        }
+        else {
+            return { type: NODE_TYPE.Identifier, name };
+        }
+    }
+    // Gobbles a list of arguments within a function call or array literal. It
+    // assumes that the opening character has already been gobbled (e.g.
+    // `foo(bar, baz)`, `my_func()`, or `[bar, baz]`).
+    function gobbleArguments(termination) {
+        const args = [];
+        let closed = false;
+        let lastArg = undefined;
+        while (index < length) {
+            if (expr[index] === termination) {
+                if (lastArg)
+                    args.push(lastArg);
+                closed = true;
+                index += 1;
+                break;
+            }
+            else if (expr[index] === ',') {
+                args.push(lastArg || { type: NODE_TYPE.Literal, value: undefined });
+                index += 1;
+            }
+            else {
+                lastArg = gobbleExpression();
+            }
+        }
+        if (!closed)
+            throwError('Expected ' + termination);
+        return args;
+    }
+    // Parse a non-literal variable name. It name may include properties (`foo`,
+    // `bar.baz`, `foo['bar'].baz`) or function calls (`Math.acos(obj.angle)`).
+    function gobbleVariable() {
+        let node;
+        if (expr[index] === '(') {
+            index += 1;
+            node = gobbleExpression();
+            gobbleSpaces();
+            if (expr[index] === ')') {
+                index += 1;
+                return node;
+            }
+            else {
+                throwError('Unclosed (');
+            }
+        }
+        else {
+            node = gobbleIdentifier();
+        }
+        gobbleSpaces();
+        while ('.[('.includes(expr[index])) {
+            if (expr[index] === '.') {
+                // Object property accessors.
+                index++;
+                gobbleSpaces();
+                node = {
+                    type: NODE_TYPE.Member,
+                    object: node,
+                    computed: false,
+                    property: gobbleIdentifier()
+                };
+            }
+            else if (expr[index] === '[') {
+                // Array index accessors.
+                index++;
+                node = {
+                    type: NODE_TYPE.Member,
+                    object: node,
+                    computed: true,
+                    property: gobbleExpression()
+                };
+                gobbleSpaces();
+                if (expr[index] !== ']')
+                    throwError('Unclosed [');
+                index++;
+            }
+            else if (expr[index] === '(') {
+                // A function call is being made; gobble all the arguments
+                index++;
+                node = {
+                    type: NODE_TYPE.Call,
+                    args: gobbleArguments(')'),
+                    callee: node
+                };
+            }
+            gobbleSpaces();
+        }
+        return node;
+    }
+    // Search for the operation portion of the string (e.g. `+`, `===`)
+    function gobbleBinaryOp() {
+        gobbleSpaces();
+        for (const length of [3, 2, 1]) { // Different possible operator lengths
+            const substr = expr.substr(index, length);
+            if (substr in BINARY_OPS) {
+                index += length;
+                return substr;
+            }
+        }
+    }
+    // Parse an individual part of a binary expression (e.g. `foo.bar(baz)`, `1`,
+    // `"abc"` or `(a % 2)` because it is in parenthesis).
+    // TODO Support expressions like `[a, b][c]` or `([a, b])[c]`.
+    function gobbleToken() {
+        gobbleSpaces();
+        let operator = expr[index];
+        if (DIGIT.test(operator) || operator === '.') {
+            return gobbleNumericLiteral();
+        }
+        else if (operator === '\'' || operator === '"') {
+            // Single or double quotes
+            return gobbleStringLiteral();
+        }
+        else if (operator === '[') {
+            index += 1;
+            return { type: NODE_TYPE.Array, elements: gobbleArguments(']') };
+        }
+        else if (operator in UNARY_OPS) {
+            index += 1;
+            return { type: NODE_TYPE.UnaryOp, operator, argument: gobbleToken() };
+        }
+        else if (IDENTIFIER_START.test(operator) || operator === '(') {
+            // `foo`, `bar.baz`
+            return gobbleVariable();
+        }
+        throwError('Expression parsing error');
+    }
+    // Parse individual expressions (e.g. `1`, `1+2`, `a+(b*2)-Math.sqrt(2)`)
+    function gobbleBinaryExpression() {
+        let left = gobbleToken();
+        let biop = gobbleBinaryOp();
+        if (!biop)
+            return left;
+        let right = gobbleToken();
+        if (!right)
+            throwError('Expected expression after ' + biop);
+        // If there are multiple binary operators, we have to stack them in the
+        // correct order using recursive descent.
+        let node;
+        let stack = [left, biop, right];
+        while ((biop = gobbleBinaryOp())) {
+            let prec = BINARY_PRECEDENCE[biop];
+            let cur_biop = biop;
+            while (stack.length > 2 && prec <=
+                BINARY_PRECEDENCE[stack[stack.length - 2]]) {
+                right = stack.pop();
+                biop = stack.pop();
+                left = stack.pop();
+                node = { type: NODE_TYPE.BinaryOp, operator: biop, left, right };
+                stack.push(node);
+            }
+            node = gobbleToken();
+            if (!node)
+                throwError('Expected expression after ' + cur_biop);
+            stack.push(cur_biop, node);
+        }
+        let i = stack.length - 1;
+        node = stack[i];
+        while (i > 1) {
+            node = {
+                type: NODE_TYPE.BinaryOp, operator: stack[i - 1],
+                left: stack[i - 2], right: node
+            };
+            i -= 2;
+        }
+        return node;
+    }
+    // Parse ternary expressions (e.g. `a ? b : c`).
+    function gobbleExpression() {
+        const test = gobbleBinaryExpression();
+        gobbleSpaces();
+        if (test && expr[index] === '?') {
+            // Ternary expression: test ? consequent : alternate
+            index += 1;
+            const consequent = gobbleExpression();
+            if (!consequent)
+                throwError('Expected expression');
+            gobbleSpaces();
+            if (expr[index] === ':') {
+                index++;
+                let alternate = gobbleExpression();
+                if (!alternate)
+                    throwError('Expected expression');
+                return { type: NODE_TYPE.Conditional, test, consequent, alternate };
+            }
+            else {
+                throwError('Expected :');
+            }
+        }
+        else {
+            return test;
+        }
+    }
+    const node = gobbleExpression();
+    if (index < expr.length)
+        throwError(`Unexpected "${expr[index]}"`);
+    return node;
+}
+// -----------------------------------------------------------------------------
+// Evaluations
+const EMPTY = [undefined, undefined];
+/**
+ * Returns [value, this]. We need to keep track of the `this` value so that
+ * we can correctly set the context for object member method calls. Unlike
+ * normal JavaScript,
+ * (1) We evaluate all arguments or logical/ternary operators, so that we can
+ *     correctly track dependencies in an Observable() context.
+ * (2) All operations are "safe", i.e. when one of the arguments is undefined,
+ *     we return undefined, rather than throwing an error.
+ */
+function evaluate(node, context) {
+    switch (node.type) {
+        case NODE_TYPE.Array:
+            const v1 = node.elements.map((n) => evaluate(n, context)[0]);
+            if (v1.some(v => v === undefined))
+                return EMPTY;
+            return [v1, undefined];
+        case NODE_TYPE.BinaryOp:
+            const left = evaluate(node.left, context)[0];
+            const right = evaluate(node.right, context)[0];
+            if ('+-**/%'.includes(node.operator) && (left === undefined || right === undefined))
+                return EMPTY;
+            return [BINARY_OPS[node.operator](left, right), undefined];
+        case NODE_TYPE.Call:
+            // Note: we evaluate arguments even if fn is undefined.
+            const [fn, self] = evaluate(node.callee, context);
+            const args = node.args.map((n) => evaluate(n, context)[0]);
+            if (args.some(v => v === undefined) || typeof fn !== 'function')
+                return EMPTY;
+            return [fn.apply(self, args), undefined];
+        case NODE_TYPE.Conditional:
+            // Note: we evaluate all possible options of the unary operator.
+            const consequent = evaluate(node.consequent, context);
+            const alternate = evaluate(node.alternate, context);
+            return evaluate(node.test, context)[0] ? consequent : alternate;
+        case NODE_TYPE.Identifier:
+            return [context[node.name], undefined];
+        case NODE_TYPE.Literal:
+            return [node.value, undefined];
+        case NODE_TYPE.Member:
+            const object = evaluate(node.object, context)[0];
+            const property = node.computed ? evaluate(node.property, context)[0] :
+                node.property.name;
+            return object ? [object[property], object] : [undefined, undefined];
+        case NODE_TYPE.UnaryOp:
+            const arg = evaluate(node.argument, context)[0];
+            if (arg === undefined)
+                return EMPTY;
+            return [UNARY_OPS[node.operator](arg), undefined];
+    }
+}
+/**
+ * Compiles a JS expression into a function that can be evaluated with context.
+ */
+function compile(expr) {
+    const node = parseSyntaxTree(expr);
+    if (!node)
+        return (context = {}) => undefined;
+    return (context = {}) => evaluate(node, context)[0];
+}
+// -----------------------------------------------------------------------------
+// Template Strings
+const TEMPLATE = /\${([^}]+)}/g;
+/**
+ * Converts an expression string into an executable JS function. It will replace
+ * all `${x}` type expressions and evaluate them based on a context.
+ */
+function compileString(expr) {
+    expr = expr.replace(/×/g, '*');
+    // This array contains the alternating static and variable parts of the expr.
+    // For example, the input expression `Here ${is} some ${text}` would give
+    // parts = ['Here ', 'is', ' some ', 'text', ''].
+    const parts = expr.split(TEMPLATE);
+    const fns = parts.map((p, i) => (i % 2) ? compile(p) : undefined);
+    return (context) => {
+        return parts.map((p, i) => {
+            if (!(i % 2))
+                return p;
+            const value = fns[i](context);
+            // Special formatting for negative numbers.
+            return (typeof value === 'number' && value < 0) ? '–' + (-value) : value;
+        }).join('');
+    };
+}
 
 // =============================================================================
 const touchSupport = ('ontouchstart' in window);
@@ -1880,139 +2663,6 @@ function drawCanvas(ctx, obj, options = {}) {
 
 // =============================================================================
 // -----------------------------------------------------------------------------
-// Object Observables
-const ALPHABETH = 'zyxwvutsrqponmlkjihgfedcba';
-/** Creates a new observable. */
-function observable(state = {}) {
-    // TODO Add stronger typings.
-    // TODO Use Proxies rather than .set(0 and .get().
-    // TODO Only run callbacks that depend on properties that have changes.
-    const changes = [];
-    const values = {};
-    let n = 1;
-    let names = ALPHABETH.split('').map(x => '_' + x);
-    function setProperty(key, value) {
-        values[key] = value;
-        if (key in state)
-            return;
-        Object.defineProperty(state, key, {
-            get: () => values[key],
-            set(val) {
-                values[key] = val;
-                state.update();
-            }
-        });
-    }
-    for (const key of Object.keys(state))
-        setProperty(key, state[key]);
-    // ---------------------------------------------------------------------------
-    /** Re-evaluates all functions in this observable. */
-    state.update = () => {
-        for (const fn of changes)
-            fn(values);
-    };
-    /**
-     * Adds a change listener to this observable. If `silent` is false, the
-     * listener will also be executed once, immediately.
-     */
-    state.watch = (fn, silent) => {
-        changes.push(fn);
-        if (!silent)
-            fn(values);
-    };
-    /** Sets the value of a property of the observable, and triggers an update. */
-    state.set = (key, value) => {
-        if (values[key] === value)
-            return;
-        setProperty(key, value);
-        state.update();
-    };
-    /**
-     * Assigns one or more properties of a JSON object to this observable, and
-     * triggers an update.
-     */
-    state.assign = (obj) => {
-        for (const key of Object.keys(obj))
-            setProperty(key, obj[key]);
-        state.update();
-    };
-    /** Generates a new, unique property name for this observable. */
-    state.name = () => {
-        if (!names.length) {
-            n += 1;
-            names = ALPHABETH.split('').map(x => repeat('_', n) + x);
-        }
-        return names.pop();
-    };
-    return state;
-}
-// -----------------------------------------------------------------------------
-// Model Binding and Templating
-/**
- * Converts an expression string into an executable JS function. If `isString`
- * is true, it will replace all `${x}` type expressions within the string and
- * return a concatenated string. If `expr` is true, it will directly return
- * the result of the expression.
- */
-function parse(expr, isString = true) {
-    // TODO Use native expressions instead of eval().
-    let fn = expr.replace(/×/g, '*');
-    if (isString) {
-        fn = fn.replace(/"/g, '\"')
-            .replace(/\${([^}]+)}/g, (x, y) => `" + (${y}) + "`);
-        fn = '"' + fn + '"';
-    }
-    try {
-        return new Function('_vars', `try {
-      with(_vars) { return ${fn} }
-    } catch(_error) {
-      if (!(_error instanceof ReferenceError)) console.warn(_error);
-      return "";
-    }`);
-    }
-    catch (e) {
-        console.warn('WHILE PARSING: ', expr, '\n', e);
-        return () => undefined;
-    }
-}
-function makeTemplate(model, property, fromObj, toObj = fromObj) {
-    if (fromObj[property].indexOf('${') < 0)
-        return;
-    const fn = parse(fromObj[property]);
-    model.watch(() => toObj[property] = fn(model) || '');
-    toObj[property] = fn(model) || '';
-}
-/**
- * Binds an observable to a DOM element, and parses all attributes as well as
- * the text content. Use `recursive = true` to also bind the observable to all
- * child elements.
- */
-function bindObservable($el, observable, recursive = true) {
-    for (const a of $el.attributes) {
-        // We have to prefix x-path attributes, to avoid SVG errors on load.
-        const to = a.name.startsWith('x-') ?
-            document.createAttribute(a.name.slice(2)) : a;
-        makeTemplate(observable, 'value', a, to);
-        if (to !== a)
-            $el._el.setAttributeNode(to);
-    }
-    if ($el.children.length) {
-        for (const $c of $el.childNodes) {
-            if ($c instanceof Text) {
-                makeTemplate(observable, 'textContent', $c);
-            }
-            else if (recursive) {
-                bindObservable($c, observable);
-            }
-        }
-    }
-    else if ($el.html.trim()) {
-        makeTemplate(observable, 'html', $el);
-    }
-}
-
-// =============================================================================
-// -----------------------------------------------------------------------------
 // Base Element Class
 class BaseView {
     constructor(_el) {
@@ -2030,15 +2680,6 @@ class BaseView {
     }
     equals(el) {
         return this._el === el._el;
-    }
-    getModel() {
-        const parent = this.parent;
-        return parent ? (parent.model || parent.getModel()) : observable();
-    }
-    bindObservable(model, recursive = true) {
-        bindObservable(this, model, recursive);
-        this.model = model;
-        return model;
     }
     /** Adds one or more space-separated classes to this element. */
     addClass(className) {
@@ -2076,8 +2717,6 @@ class BaseView {
     }
     get html() { return this._el.innerHTML || ''; }
     set html(h) { this._el.innerHTML = h; }
-    // Required because TS doesn't allow getters and setters with different types.
-    set htmlStr(t) { this._el.textContent = '' + t; }
     get text() { return this._el.textContent || ''; }
     set text(t) { this._el.textContent = t; }
     // Required because TS doesn't allow getters and setters with different types.
@@ -2086,6 +2725,41 @@ class BaseView {
     blur() { this._el.blur(); }
     /** Focuses this DOM element. */
     focus() { this._el.focus(); }
+    // -------------------------------------------------------------------------
+    // Model Binding
+    getParentModel() {
+        const parent = this.parent;
+        return parent ? (parent.model || parent.getParentModel()) : undefined;
+    }
+    bindModel(model, recursive = true) {
+        var _a;
+        // TODO Make this work more like Angular, e.g. `[html]="..."`.
+        this.model = model;
+        for (const { name, value } of this.attributes) {
+            if (!value.includes('${'))
+                continue;
+            const expr = compileString(value);
+            model.watch(() => this.setAttr(name, expr(model) || ''));
+        }
+        if (this.children.length) {
+            for (const $c of this.childNodes) {
+                if ($c instanceof Text) {
+                    if ((_a = $c.textContent) === null || _a === void 0 ? void 0 : _a.includes('${')) {
+                        const expr = compileString($c.textContent);
+                        model.watch(() => $c.textContent = expr(model) || '');
+                    }
+                }
+                else if (recursive) {
+                    $c.bindModel(model);
+                }
+            }
+        }
+        else if (this.text.includes('${')) {
+            // Single child: treat as HTML content.
+            const expr = compileString(this.text);
+            model.watch(() => this.html = expr(model) || '');
+        }
+    }
     // -------------------------------------------------------------------------
     // Scrolling and Dimensions
     get bounds() { return this._el.getBoundingClientRect(); }
@@ -2485,13 +3159,13 @@ class HTMLBaseView extends BaseView {
     get outerWidth() {
         const left = parseFloat(this.css('margin-left'));
         const right = parseFloat(this.css('margin-right'));
-        return this.width + left + right;
+        return (this.width + left + right) || 0;
     }
     /** Returns this element's height, including margins. */
     get outerHeight() {
         const bottom = parseFloat(this.css('margin-bottom'));
         const top = parseFloat(this.css('margin-top'));
-        return this.height + bottom + top;
+        return (this.height + bottom + top) || 0;
     }
     /** @returns {number} */
     get positionTop() {
@@ -2706,6 +3380,16 @@ class SVGParentView extends SVGBaseView {
             $canvas.ctx.drawImage(image, 0, 0, width, height);
             return $canvas.pngImage;
             // window.URL.revokeObjectURL(url);
+        });
+    }
+    downloadImage(fileName) {
+        // iOS Doesn't allow navigation calls within an async event.
+        const windowRef = exports.Browser.isIOS ? window.open('', '_blank') : undefined;
+        this.pngImage().then((href) => {
+            if (windowRef)
+                return windowRef.location.href = href;
+            const $a = $N('a', { download: fileName, href, target: '_blank' });
+            $a._el.dispatchEvent(new MouseEvent('click', { view: window, bubbles: false, cancelable: true }));
         });
     }
 }
@@ -3459,6 +4143,7 @@ class Draggable extends EventTarget {
                     return;
                 startPosn = this.position;
                 this.trigger('start');
+                $html.addClass('grabbing');
             },
             move: (posn, start) => {
                 if (this.disabled)
@@ -3470,6 +4155,7 @@ class Draggable extends EventTarget {
                 if (this.disabled)
                     return;
                 this.trigger(last.equals(start) ? 'click' : 'end');
+                $html.removeClass('grabbing');
             }
         });
         exports.Browser.onResize(() => {
@@ -3493,7 +4179,7 @@ class Draggable extends EventTarget {
     setPosition(x, y) {
         const m = this.options.margin || 0;
         let p = new Point(this.options.moveX ? x : 0, this.options.moveY ? y : 0)
-            .clamp(m, this.width - m, m, this.height - m)
+            .clamp(new Bounds(0, this.width, 0, this.height), m)
             .round(this.options.snap || 1);
         if (this.options.round)
             p = this.options.round(p);
@@ -3511,6 +4197,106 @@ class Draggable extends EventTarget {
         }
         this.trigger('move', p);
     }
+}
+
+// =============================================================================
+// Boost.js | Observable
+// (c) Mathigon
+// =============================================================================
+function observe(state) {
+    const callbackMap = new Map();
+    const computedKeys = new Map();
+    let pendingCallback = undefined;
+    let lastKey = 0;
+    function watch(callback) {
+        pendingCallback = callback;
+        const result = callback(proxy);
+        pendingCallback = undefined;
+        return result;
+    }
+    function unwatch(callback) {
+        for (const callbacks of callbackMap.values()) {
+            if (callbacks.has(callback))
+                callbacks.delete(callback);
+        }
+    }
+    function setComputed(key, expr) {
+        if (computedKeys.has(key))
+            unwatch(computedKeys.get(key));
+        const callback = () => {
+            state[key] = expr(proxy);
+            if (pendingCallback === callback)
+                pendingCallback = undefined; // why?
+            triggerCallbacks(key);
+        };
+        computedKeys.set(key, callback);
+        watch(callback);
+    }
+    function triggerCallbacks(key) {
+        const callbacks = callbackMap.get(key);
+        if (callbacks) {
+            for (const callback of callbacks)
+                callback(state);
+        }
+    }
+    function forceUpdate() {
+        for (const callbacks of callbackMap.values()) {
+            for (const callback of callbacks)
+                callback(state);
+        }
+    }
+    function assign(changes) {
+        Object.assign(state, changes);
+        forceUpdate();
+    }
+    function getKey() {
+        lastKey += 1;
+        return '_x' + lastKey;
+    }
+    const proxy = new Proxy(state, {
+        get(_, key) {
+            if (key === 'watch')
+                return watch;
+            if (key === 'unwatch')
+                return unwatch;
+            if (key === 'setComputed')
+                return setComputed;
+            if (key === 'forceUpdate')
+                return forceUpdate;
+            if (key === 'assign')
+                return assign;
+            if (key === 'getKey')
+                return getKey;
+            if (key === '_internal')
+                return [state, callbackMap];
+            // A callback is currently being run. We track its dependencies.
+            if (pendingCallback) {
+                if (!callbackMap.has(key))
+                    callbackMap.set(key, new Set());
+                callbackMap.get(key).add(pendingCallback);
+            }
+            return state[key];
+        },
+        set(_, key, value) {
+            if (state[key] === value)
+                return true;
+            state[key] = value;
+            // Clear a value that was previously computed.
+            if (computedKeys.has(key)) {
+                unwatch(computedKeys.get(key));
+                computedKeys.delete(key);
+            }
+            triggerCallbacks(key);
+            return true;
+        },
+        deleteProperty(_, p) {
+            delete state[p];
+            callbackMap.delete(p);
+            computedKeys.delete(p);
+            return true;
+        }
+    });
+    return proxy;
 }
 
 // =============================================================================
@@ -3907,8 +4693,9 @@ exports.WindowView = WindowView;
 exports.angleSize = angleSize;
 exports.animate = animate;
 exports.bindEvent = bindEvent;
-exports.bindObservable = bindObservable;
 exports.canvasPointerPosition = canvasPointerPosition;
+exports.compile = compile;
+exports.compileString = compileString;
 exports.deferredPost = deferredPost;
 exports.drawSVG = drawSVG;
 exports.ease = ease;
@@ -3920,8 +4707,7 @@ exports.getEventTarget = getEventTarget;
 exports.hover = hover;
 exports.loadImage = loadImage;
 exports.loadScript = loadScript;
-exports.observable = observable;
-exports.parse = parse;
+exports.observe = observe;
 exports.pointerPosition = pointerPosition;
 exports.post = post;
 exports.register = register;
