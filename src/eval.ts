@@ -121,8 +121,8 @@ const LITERALS: Obj<any> = {
 
 const SPACE = /\s/;
 const DIGIT = /[0-9]/;
-const IDENTIFIER_START = /[a-zA-Z$_]/;  // Variables cannot start with a number.
-const IDENTIFIER_PART = /[a-zA-Z0-9$_]/;
+const IDENTIFIER_START = /[a-zA-Zα-ωΑ-Ω$_]/;  // Variables cannot start with a number.
+const IDENTIFIER_PART = /[0-9a-zA-Zα-ωΑ-Ω$_]/;
 
 
 // -----------------------------------------------------------------------------
@@ -406,24 +406,36 @@ function parseSyntaxTree(expr: string) {
 // -----------------------------------------------------------------------------
 // Evaluations
 
-/** Returns [value, this]. */
+const EMPTY: [undefined, undefined] = [undefined, undefined];
+
+/**
+ * Returns [value, this]. We need to keep track of the `this` value so that
+ * we can correctly set the context for object member method calls. Unlike
+ * normal JavaScript,
+ * (1) We evaluate all arguments or logical/ternary operators, so that we can
+ *     correctly track dependencies in an Observable() context.
+ * (2) All operations are "safe", i.e. when one of the arguments is undefined,
+ *     we return undefined, rather than throwing an error.
+ */
 function evaluate(node: AnyNode, context: any): [any, any] {
   switch (node.type) {
     case NODE_TYPE.Array:
       const v1 = node.elements.map((n) => evaluate(n, context)[0]);
+      if (v1.some(v => v === undefined)) return EMPTY;
       return [v1, undefined];
 
     case NODE_TYPE.BinaryOp:
       const left = evaluate(node.left, context)[0];
       const right = evaluate(node.right, context)[0];
+      if ('+-**/%'.includes(node.operator) && (left === undefined || right === undefined)) return EMPTY;
       return [BINARY_OPS[node.operator](left, right), undefined];
 
     case NODE_TYPE.Call:
       // Note: we evaluate arguments even if fn is undefined.
       const [fn, self] = evaluate(node.callee, context);
       const args = node.args.map((n) => evaluate(n, context)[0]);
-      const v2 = (typeof fn === 'function') ? fn.apply(self, args) : undefined;
-      return [v2, undefined];
+      if (args.some(v => v === undefined) || typeof fn !== 'function') return EMPTY;
+      return [fn.apply(self, args), undefined];
 
     case NODE_TYPE.Conditional:
       // Note: we evaluate all possible options of the unary operator.
@@ -444,8 +456,9 @@ function evaluate(node: AnyNode, context: any): [any, any] {
       return object ? [object[property], object] : [undefined, undefined];
 
     case NODE_TYPE.UnaryOp:
-      const v3 = UNARY_OPS[node.operator](evaluate(node.argument, context)[0]);
-      return [v3, undefined];
+      const arg = evaluate(node.argument, context)[0];
+      if (arg === undefined) return EMPTY;
+      return [UNARY_OPS[node.operator](arg), undefined];
   }
 }
 

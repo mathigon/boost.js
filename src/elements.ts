@@ -122,7 +122,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return parent ? (parent.model || parent.getParentModel()) : undefined;
   }
 
-  bindModel(model: Observable, recursive = false) {
+  bindModel(model: Observable, recursive = true) {
     // TODO Make this work more like Angular, e.g. `[html]="..."`.
     this.model = model;
 
