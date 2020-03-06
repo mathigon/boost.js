@@ -242,7 +242,7 @@ export namespace Browser {
       const $active = getActiveInput();
       if ($active && $active.is('input, textarea, [contenteditable]')) return;
 
-      const i = keyCodes.indexOf(e.keyCode);
+      const i = keyCodes.findIndex(k => e.keyCode === k || e.key === k);
       if (i >= 0) fn(e, keyNames[i]);
     });
   }

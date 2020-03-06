@@ -90,7 +90,7 @@ class Router extends EventTarget {
 
   setup(options: RouterOptions = {}) {
     if (options.$viewport) this.$viewport = options.$viewport;
-    if (options.initialise) options.initialise = this.initialise;
+    if (options.initialise) this.initialise = options.initialise;
     if (options.preloaded) this.preloaded = options.preloaded;
     if (options.transition) this.transition = options.transition;
     if (options.noLoad) this.noLoad = options.noLoad;
