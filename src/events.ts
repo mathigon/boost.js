@@ -470,7 +470,6 @@ function makeKeyEvent($el: ElementView) {
 // Event Creation
 
 const aliases: Obj<string> = {
-  change: 'propertychange keyup input paste',
   scrollwheel: 'DOMMouseScroll mousewheel',
   pointerdown: pointerSupport ? 'pointerdown' :
                touchSupport ? 'touchstart' : 'mousedown',

@@ -71,7 +71,8 @@ export function post(url: string, data?: string|PostData) {
     }
   };
 
-  return fetch(url, options).then((r) => r.text());
+  const ext = url.includes('?') ? '&xhr=1' : '?xhr=1';
+  return fetch(url + ext, options).then((r) => r.text());
 }
 
 /** Asynchronously loads and executes a JS script. */

@@ -961,7 +961,7 @@ export class InputView extends HTMLBaseView<InputOrSelectElement> {
   /** Binds a change event listener. */
   change(callback: (val: string) => void) {
     let value = '';
-    this.on('change', () => {
+    this.on('change keyup input paste', () => {
       if (this.value === value) return;
       value = this.value.trim();
       callback(value);
