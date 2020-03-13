@@ -251,7 +251,6 @@ export namespace Browser {
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
       const $active = getActiveInput();
-      console.log('key', $active ? $active._el : undefined);
       if ($active && $active.hasAttr('tabindex')) {
         e.preventDefault();
         $active.trigger('pointerdown', e);
