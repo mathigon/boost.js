@@ -39,7 +39,7 @@ export function pointerPosition(e: any) {
     const touches = e.targetTouches.length ? e.targetTouches : e.changedTouches;
     return new Point(touches[0].clientX, touches[0].clientY);
   } else {
-    return new Point(e.clientX, e.clientY);
+    return new Point(e.clientX || 0, e.clientY || 0);
   }
 }
 
@@ -257,6 +257,7 @@ export function hover($el: ElementView, options: HoverEventOptions) {
   let timeout = 0;
   let active = false;
   let wasTriggeredByMouse = false;
+  let wasTriggeredByFocus = false;
 
   $el.on('mouseover', () => {
     if (options.preventMouseover && options.preventMouseover()) return;
@@ -280,6 +281,35 @@ export function hover($el: ElementView, options: HoverEventOptions) {
   });
 
   const $clickTarget = options.$clickTarget || $el;
+
+  $clickTarget.on('focus', () => {
+    if (active || options.preventMouseover && options.preventMouseover()) return;
+    clearTimeout(timeout);
+    if (options.enter) options.enter();
+    wasTriggeredByFocus = true;
+    active = true;
+  });
+
+  const onBlur = () => {
+    if (!wasTriggeredByFocus || !active) return;
+
+    setTimeout(() => {
+      // Special handling if the blur of the $clickTarget was caused by focussing
+      // another child of $el (e.g. e <button> inside a popup).
+      // Timeout required so that the new element has focussed.
+      const $newActive = Browser.getActiveInput();
+      if ($newActive && $newActive.hasParent($el)) {
+        $newActive.one('blur', onBlur);
+        return;
+      }
+
+      clearTimeout(timeout);
+      if (options.exit) options.exit();
+      active = false;
+    });
+  };
+  $clickTarget.on('blur', onBlur);
+
   $clickTarget.on('click', () => {
     if (active && (!wasTriggeredByMouse)) {
       if (options.exit) options.exit();

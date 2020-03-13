@@ -240,12 +240,27 @@ export namespace Browser {
 
     document.addEventListener(event, function (e) {
       const $active = getActiveInput();
-      if ($active && $active.is('input, textarea, [contenteditable]')) return;
+      if ($active && ($active.is('input, textarea, [contenteditable]') ||
+                      $active.hasAttr('tabindex'))) return;
 
       const i = keyCodes.findIndex(k => e.keyCode === k || e.key === k);
       if (i >= 0) fn(e, keyNames[i]);
     });
   }
+
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
+      const $active = getActiveInput();
+      console.log('key', $active ? $active._el : undefined);
+      if ($active && $active.hasAttr('tabindex')) {
+        e.preventDefault();
+        $active.trigger('pointerdown', e);
+        $active.trigger('pointerstop', e);
+        $body.trigger('pointerstop', e);
+        $active.trigger('click', e);
+      }
+    }
+  });
 }
 
 
