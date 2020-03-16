@@ -10,9 +10,9 @@ import {loadImage} from './ajax';
 
 import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
 import {Browser, KEY_CODES} from './browser';
-import {compileString} from './eval';
+import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
-import {Observable} from './observable';
+import {Observable, observe} from './observable';
 import {drawSVG, GeoShape, SVGDrawingOptions} from './svg';
 import {CanvasDrawingOptions, drawCanvas} from './canvas';
 
@@ -122,14 +122,47 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return parent ? (parent.model || parent.getParentModel()) : undefined;
   }
 
-  bindModel(model: Observable, recursive = true) {
-    // TODO Make this work more like Angular, e.g. `[html]="..."`.
-    this.model = model;
+  bindModel(model?: Observable, recursive = true) {
+    if (this.model) throw new Error('Trying to bind model twice.');
+    this.model = model = model || observe({});
 
     for (const {name, value} of this.attributes) {
-      if (!value.includes('${')) continue;
-      const expr = compileString(value);
-      model.watch(() => this.setAttr(name, expr(model) || ''));
+      if (name.startsWith('@')) {
+        const event = name.slice(1);
+        const expr = compile(value);
+        this.removeAttr(name);
+        this.on(event, (e) =>  {
+          const fn = expr(model);
+          if (typeof fn === 'function') (fn as Function).call(model, e);
+        });
+
+      } else if (name === ':display') {
+        const expr = compile(value);
+        this.removeAttr(name);
+        model.watch(() => this.toggle(!!expr(model)));
+
+      } else if (name === ':value') {
+        this.on('change', () =>  model[value] = (this as any).value);
+        this.removeAttr(name);
+        model.watch(() => (this as any).value = model[value]);
+
+      } else if (name.startsWith(':')) {
+        const expr = compile(value);
+        const attr = name.slice(1);
+        this.removeAttr(name);
+        model.watch(() => {
+          const value = expr(model);
+          if (value === undefined) {
+            this.removeAttr(attr)
+          } else {
+            this.setAttr(attr, value);
+          }
+        });
+
+      } else if (value.includes('${')) {
+        const expr = compileString(value);
+        model.watch(() => this.setAttr(name, expr(model) || ''));
+      }
     }
 
     if (this.children.length) {
