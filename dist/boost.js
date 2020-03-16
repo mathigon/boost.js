@@ -210,7 +210,8 @@ function post(url, data) {
             'X-CSRF-Token': window.csrfToken || ''
         }
     };
-    return fetch(url, options).then((r) => r.text());
+    const ext = url.includes('?') ? '&xhr=1' : '?xhr=1';
+    return fetch(url + ext, options).then((r) => r.text());
 }
 /** Asynchronously loads and executes a JS script. */
 function loadScript(src) {
@@ -2060,7 +2061,7 @@ function pointerPosition(e) {
         return new Point(touches[0].clientX, touches[0].clientY);
     }
     else {
-        return new Point(e.clientX, e.clientY);
+        return new Point(e.clientX || 0, e.clientY || 0);
     }
 }
 function getTouches(e) {
@@ -2231,6 +2232,7 @@ function hover($el, options) {
     let timeout = 0;
     let active = false;
     let wasTriggeredByMouse = false;
+    let wasTriggeredByFocus = false;
     $el.on('mouseover', () => {
         if (options.preventMouseover && options.preventMouseover())
             return;
@@ -2257,6 +2259,34 @@ function hover($el, options) {
         }, options.exitDelay || options.delay);
     });
     const $clickTarget = options.$clickTarget || $el;
+    $clickTarget.on('focus', () => {
+        if (active || options.preventMouseover && options.preventMouseover())
+            return;
+        clearTimeout(timeout);
+        if (options.enter)
+            options.enter();
+        wasTriggeredByFocus = true;
+        active = true;
+    });
+    const onBlur = () => {
+        if (!wasTriggeredByFocus || !active)
+            return;
+        setTimeout(() => {
+            // Special handling if the blur of the $clickTarget was caused by focussing
+            // another child of $el (e.g. e <button> inside a popup).
+            // Timeout required so that the new element has focussed.
+            const $newActive = exports.Browser.getActiveInput();
+            if ($newActive && $newActive.hasParent($el)) {
+                $newActive.one('blur', onBlur);
+                return;
+            }
+            clearTimeout(timeout);
+            if (options.exit)
+                options.exit();
+            active = false;
+        });
+    };
+    $clickTarget.on('blur', onBlur);
     $clickTarget.on('click', () => {
         if (active && (!wasTriggeredByMouse)) {
             if (options.exit)
@@ -2399,7 +2429,6 @@ function makeKeyEvent($el) {
 // -----------------------------------------------------------------------------
 // Event Creation
 const aliases = {
-    change: 'propertychange keyup input paste',
     scrollwheel: 'DOMMouseScroll mousewheel',
     pointerdown: pointerSupport ? 'pointerdown' :
         touchSupport ? 'touchstart' : 'mousedown',
@@ -2708,7 +2737,12 @@ class BaseView {
     attr(attr) { return this._el.getAttribute(attr) || ''; }
     hasAttr(attr) { return this._el.hasAttribute(attr); }
     setAttr(attr, value) {
-        this._el.setAttribute(attr, value.toString());
+        if (value === undefined) {
+            this.removeAttr(attr);
+        }
+        else {
+            this._el.setAttribute(attr, value.toString());
+        }
     }
     removeAttr(attr) { this._el.removeAttribute(attr); }
     get attributes() {
@@ -2733,31 +2767,49 @@ class BaseView {
     }
     bindModel(model, recursive = true) {
         var _a;
-        // TODO Make this work more like Angular, e.g. `[html]="..."`.
         this.model = model;
         for (const { name, value } of this.attributes) {
-            if (!value.includes('${'))
-                continue;
-            const expr = compileString(value);
-            model.watch(() => this.setAttr(name, expr(model) || ''));
-        }
-        if (this.children.length) {
-            for (const $c of this.childNodes) {
-                if ($c instanceof Text) {
-                    if ((_a = $c.textContent) === null || _a === void 0 ? void 0 : _a.includes('${')) {
-                        const expr = compileString($c.textContent);
-                        model.watch(() => $c.textContent = expr(model) || '');
-                    }
-                }
-                else if (recursive) {
-                    $c.bindModel(model);
-                }
+            if (name.startsWith('@')) {
+                const event = name.slice(1);
+                const expr = compile(value);
+                this.removeAttr(name);
+                this.on(event, () => expr(model));
+            }
+            else if (name === ':show') {
+                const expr = compile(value);
+                this.removeAttr(name);
+                model.watch(() => this.toggle(!!expr(model)));
+            }
+            else if (name === ':html') {
+                const expr = compile(value);
+                this.removeAttr(name);
+                model.watch(() => this.html = expr(model) || '');
+            }
+            else if (name === ':draw') {
+                const expr = compile(value);
+                model.watch(() => this.draw(expr(model)));
+            }
+            else if (name.startsWith(':')) {
+                const expr = compile(value);
+                const attr = name.slice(1);
+                this.removeAttr(name);
+                model.watch(() => this.setAttr(attr, expr(model)));
+            }
+            else if (value.includes('${')) {
+                const expr = compileString(value);
+                model.watch(() => this.setAttr(name, expr(model) || ''));
             }
         }
-        else if (this.text.includes('${')) {
-            // Single child: treat as HTML content.
-            const expr = compileString(this.text);
-            model.watch(() => this.html = expr(model) || '');
+        for (const $c of this.childNodes) {
+            if ($c instanceof Text) {
+                if ((_a = $c.textContent) === null || _a === void 0 ? void 0 : _a.includes('${')) {
+                    const expr = compileString($c.textContent);
+                    model.watch(() => $c.textContent = expr(model) || '');
+                }
+            }
+            else if (recursive) {
+                $c.bindModel(model);
+            }
         }
     }
     // -------------------------------------------------------------------------
@@ -3328,6 +3380,8 @@ class SVGBaseView extends BaseView {
     }
     /** Draws a generic geometry object onto an SVG `<path>` element. */
     draw(obj, options = {}) {
+        if (!obj)
+            return this.setAttr('d', '');
         const attributes = {
             mark: this.attr('mark'),
             arrows: this.attr('arrows'),
@@ -3452,7 +3506,7 @@ class InputView extends HTMLBaseView {
     /** Binds a change event listener. */
     change(callback) {
         let value = '';
-        this.on('change', () => {
+        this.on('change keyup input paste', () => {
             if (this.value === value)
                 return;
             value = this.value.trim();
@@ -3791,14 +3845,27 @@ const KEY_CODES = {
         const event = up ? 'keyup' : 'keydown';
         document.addEventListener(event, function (e) {
             const $active = getActiveInput();
-            if ($active && $active.is('input, textarea, [contenteditable]'))
+            if ($active && ($active.is('input, textarea, [contenteditable]') ||
+                $active.hasAttr('tabindex')))
                 return;
-            const i = keyCodes.indexOf(e.keyCode);
+            const i = keyCodes.findIndex(k => e.keyCode === k || e.key === k);
             if (i >= 0)
                 fn(e, keyNames[i]);
         });
     }
     Browser.onKey = onKey;
+    document.addEventListener('keydown', (e) => {
+        if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
+            const $active = getActiveInput();
+            if ($active && $active.hasAttr('tabindex')) {
+                e.preventDefault();
+                $active.trigger('pointerdown', e);
+                $active.trigger('pointerstop', e);
+                $body.trigger('pointerstop', e);
+                $active.trigger('click', e);
+            }
+        }
+    });
 })(exports.Browser || (exports.Browser = {}));
 // -----------------------------------------------------------------------------
 // Polyfill for external SVG imports
@@ -4350,7 +4417,7 @@ class Router extends EventTarget {
         if (options.$viewport)
             this.$viewport = options.$viewport;
         if (options.initialise)
-            options.initialise = this.initialise;
+            this.initialise = options.initialise;
         if (options.preloaded)
             this.preloaded = options.preloaded;
         if (options.transition)
