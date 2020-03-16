@@ -87,7 +87,11 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   hasAttr(attr: string) { return this._el.hasAttribute(attr); }
 
   setAttr(attr: string, value: any) {
-    this._el.setAttribute(attr, value.toString());
+    if (value === undefined) {
+      this.removeAttr(attr);
+    } else {
+      this._el.setAttribute(attr, value.toString());
+    }
   }
 
   removeAttr(attr: string) { this._el.removeAttribute(attr); }
@@ -122,42 +126,30 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return parent ? (parent.model || parent.getParentModel()) : undefined;
   }
 
-  bindModel(model?: Observable, recursive = true) {
-    if (this.model) throw new Error('Trying to bind model twice.');
-    this.model = model = model || observe({});
+  bindModel(model: Observable, recursive = true) {
+    this.model = model;
 
     for (const {name, value} of this.attributes) {
       if (name.startsWith('@')) {
         const event = name.slice(1);
         const expr = compile(value);
         this.removeAttr(name);
-        this.on(event, (e) =>  {
-          const fn = expr(model);
-          if (typeof fn === 'function') (fn as Function).call(model, e);
-        });
+        this.on(event, () =>  expr(model));
 
-      } else if (name === ':display') {
+      } else if (name === ':show') {
         const expr = compile(value);
         this.removeAttr(name);
         model.watch(() => this.toggle(!!expr(model)));
 
-      } else if (name === ':value') {
-        this.on('change', () =>  model[value] = (this as any).value);
-        this.removeAttr(name);
-        model.watch(() => (this as any).value = model[value]);
+      } else if (name === ':draw') {
+        const expr = compile(value);
+        model.watch(() => (this as unknown as SVGView).draw(expr(model)));
 
       } else if (name.startsWith(':')) {
         const expr = compile(value);
         const attr = name.slice(1);
         this.removeAttr(name);
-        model.watch(() => {
-          const value = expr(model);
-          if (value === undefined) {
-            this.removeAttr(attr)
-          } else {
-            this.setAttr(attr, value);
-          }
-        });
+        model.watch(() => this.setAttr(attr, expr(model)));
 
       } else if (value.includes('${')) {
         const expr = compileString(value);
@@ -165,21 +157,15 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       }
     }
 
-    if (this.children.length) {
-      for (const $c of this.childNodes) {
-        if ($c instanceof Text) {
-          if ($c.textContent?.includes('${')) {
-            const expr = compileString($c.textContent);
-            model.watch(() => $c.textContent = expr(model) || '');
-          }
-        } else if (recursive) {
-          $c.bindModel(model);
+    for (const $c of this.childNodes) {
+      if ($c instanceof Text) {
+        if ($c.textContent?.includes('${')) {
+          const expr = compileString($c.textContent);
+          model.watch(() => $c.textContent = expr(model) || '');
         }
+      } else if (recursive) {
+        $c.bindModel(model);
       }
-    } else if (this.text.includes('${')) {
-      // Single child: treat as HTML content.
-      const expr = compileString(this.text);
-      model.watch(() => this.html = expr(model) || '');
     }
   }
 
@@ -836,7 +822,8 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   }
 
   /** Draws a generic geometry object onto an SVG `<path>` element. */
-  draw(obj: GeoShape, options: SVGDrawingOptions = {}) {
+  draw(obj: GeoShape|undefined, options: SVGDrawingOptions = {}) {
+    if (!obj) return this.setAttr('d', '');
     const attributes = {
       mark: this.attr('mark'),
       arrows: this.attr('arrows'),
