@@ -141,6 +141,11 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
         this.removeAttr(name);
         model.watch(() => this.toggle(!!expr(model)));
 
+      } else if (name === ':html') {
+        const expr = compile(value);
+        this.removeAttr(name);
+        model.watch(() => this.html = expr(model) || '');
+
       } else if (name === ':draw') {
         const expr = compile(value);
         model.watch(() => (this as unknown as SVGView).draw(expr(model)));
