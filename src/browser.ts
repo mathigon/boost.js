@@ -251,7 +251,8 @@ export namespace Browser {
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
       const $active = getActiveInput();
-      if ($active && $active.hasAttr('tabindex')) {
+      // The CodeMirror library adds tabindex attributes on their <textarea> fields.
+      if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {
         e.preventDefault();
         $active.trigger('pointerdown', e);
         $active.trigger('pointerstop', e);
