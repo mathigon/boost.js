@@ -762,16 +762,24 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   }
 
   /**
-   * Gets the coordinates of the point at a position `p` along the length of the
-   * stroke of this `<path>` element, where `0 ≤ p ≤ 1`.
+   * Gets the coordinates of the point at a distance `d` along the length of the
+   * stroke of this `<path>` element.
    */
-  getPointAt(p: number) {
+  getPointAtLength(d: number) {
     if (this._el instanceof SVGGeometryElement) {
-      const point = this._el.getPointAtLength(p * this.strokeLength);
+      const point = this._el.getPointAtLength(d);
       return new Point(point.x, point.y);
     } else {
       return new Point(0, 0);
     }
+  }
+
+  /**
+   * Gets the coordinates of the point at a position `p` along the length of the
+   * stroke of this `<path>` element, where `0 ≤ p ≤ 1`.
+   */
+  getPointAt(p: number) {
+    return this.getPointAtLength(p * this.strokeLength);
   }
 
   /** Returns a list of all points along an SVG `<path>` element. */
@@ -1050,6 +1058,24 @@ export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
   /** Clears this canvas. */
   clear() {
     this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+  }
+
+  /** Clears this canvas. */
+  fill(color: string) {
+    this.ctx.save();
+    this.ctx.fillStyle = color;
+    this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+    this.ctx.restore();
+  }
+
+  /** Erase a specific circle of the canvas. */
+  clearCircle(center: Point, radius: number) {
+    this.ctx.save();
+    this.ctx.globalCompositeOperation = 'destination-out';
+    this.ctx.beginPath();
+    this.ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI, false);
+    this.ctx.fill();
+    this.ctx.restore();
   }
 }
 
