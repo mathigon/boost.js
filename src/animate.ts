@@ -236,16 +236,17 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
                       _delay = 0): AnimationResponse {
   $el.show();
   if (!isReady) return ResolvedAnimation;
+  const opacity = $el.css('opacity') || 1;
 
   if (effect === 'fade') {
-    return transition($el, {opacity: [0, 1]}, duration, _delay);
+    return transition($el, {opacity: [0, opacity]}, duration, _delay);
 
   } else if (effect === 'pop') {
     const transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
         .replace(CSS_MATRIX, 'translate($1px,$2px)');
 
     // TODO Merge into one transition.
-    transition($el, {opacity: [0, 1]}, duration, _delay);
+    transition($el, {opacity: [0, opacity]}, duration, _delay);
     return transition($el, {
       transform: [transform + ' scale(0.5)',
         transform + ' scale(1)']
@@ -257,7 +258,8 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
 
   } else if (effect.startsWith('draw')) {
     const l = ($el as SVGView).strokeLength;
-    $el.css({opacity: 1, 'stroke-dasharray': l + 'px'});
+    $el.css('stroke-dasharray', l + 'px');
+    if (!$el.css('opacity')) $el.css('opacity', 1);
     // Note that Safari can't handle negative dash offsets!
     const end = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
     const rules = {'stroke-dashoffset': [l + 'px', end]};
@@ -266,14 +268,14 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
     return animation;
 
   } else if (effect.startsWith('slide')) {
-    const rules = {opacity: [0, 1], transform: ['translateY(50px)', 'none']};
+    const rules = {opacity: [0, opacity], transform: ['translateY(50px)', 'none']};
     if (effect.includes('down')) rules.transform[0] = 'translateY(-50px)';
     if (effect.includes('right')) rules.transform[0] = 'translateX(-50px)';
     if (effect.includes('left')) rules.transform[0] = 'translateX(50px)';
     return transition($el, rules, duration, _delay);
 
   } else if (effect.startsWith('reveal')) {
-    const rules: AnimationProperties = {opacity: [0, 1], height: [0, 'auto']};
+    const rules: AnimationProperties = {opacity: [0, opacity], height: [0, 'auto']};
     if (effect.includes('left')) rules.transform = ['translateX(-50%)', 'none'];
     if (effect.includes('right')) rules.transform = ['translateX(50%)', 'none'];
     return transition($el, rules, duration, _delay);
