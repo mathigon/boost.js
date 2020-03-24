@@ -51,7 +51,7 @@ export namespace Browser {
   export const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
       ua);
   export const isRetina = ((window.devicePixelRatio || 1) > 1);
-  export const isTouch = window.Touch || 'ontouchstart' in window;
+  export const isTouch = (!!window.Touch) || 'ontouchstart' in window;
 
   export const isChrome = !!window.chrome;
   export const isFirefox = ua.indexOf('firefox') >= 0;

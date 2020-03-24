@@ -12,7 +12,7 @@ import {ease, animate, transition, enter, exit, AnimationProperties, AnimationRe
 import {Browser, KEY_CODES} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
-import {Observable, observe} from './observable';
+import {Observable} from './observable';
 import {drawSVG, GeoShape, SVGDrawingOptions} from './svg';
 import {CanvasDrawingOptions, drawCanvas} from './canvas';
 

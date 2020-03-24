@@ -236,7 +236,7 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
                       _delay = 0): AnimationResponse {
   $el.show();
   if (!isReady) return ResolvedAnimation;
-  const opacity = $el.css('opacity') || 1;
+  const opacity = (+$el.css('opacity')!) || 1;
 
   if (effect === 'fade') {
     return transition($el, {opacity: [0, opacity]}, duration, _delay);
