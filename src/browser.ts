@@ -247,20 +247,6 @@ export namespace Browser {
       if (i >= 0) fn(e, keyNames[i]);
     });
   }
-
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
-      const $active = getActiveInput();
-      // The CodeMirror library adds tabindex attributes on their <textarea> fields.
-      if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        $active.trigger('pointerdown', e);
-        $active.trigger('pointerstop', e);
-        $body.trigger('pointerstop', e);
-        $active.trigger('click', e);
-      }
-    }
-  });
 }
 
 
@@ -304,5 +290,25 @@ export function replaceSvgImports() {
       while (clone.childNodes.length) fragment.appendChild(clone.firstChild!);
       svg.appendChild(fragment);
     });
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+// Fake Accessibility Keyboard Events
+
+export function bindAccessibilityEvents() {
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
+      const $active = Browser.getActiveInput();
+      // The CodeMirror library adds tabindex attributes on their <textarea> fields.
+      if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        $active.trigger('pointerdown', e);
+        $active.trigger('pointerstop', e);
+        $body.trigger('pointerstop', e);
+        $active.trigger('click', e);
+      }
+    }
   });
 }
