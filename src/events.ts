@@ -189,6 +189,38 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   if (fns.justInside) $el.on('mouseleave', end);
 }
 
+interface OverEventOptions {
+  enter?: () => void;
+  move?: (p: Point) => void;
+  exit?: () => void;
+}
+
+export function pointerOver($el: ElementView, fns: OverEventOptions) {
+  let posn = pointerPosition;
+  if ($el.type === 'svg') {
+    posn = (e) => svgPointerPosn(e, ($el as SVGView).$ownerSVG);
+  } else if ($el.type === 'canvas') {
+    posn = (e) => canvasPointerPosition(e, $el as CanvasView);
+  }
+
+  let over = false;
+
+  $el.on('touchstart mouseenter', (e: Event) => {
+    if (!over && fns.enter) fns.enter();
+    if (fns.move) fns.move(posn(e));
+    over = true;
+  }, {passive: true});
+
+  $el.on('pointermove', (e: Event) => {
+    if (over && fns.move) fns.move(posn(e));
+  });
+
+  $el.on('touchend mouseexit', (e: Event) => {
+    if (over && fns.exit) fns.exit();
+    over = false;
+  }, {passive: true});
+}
+
 
 // -----------------------------------------------------------------------------
 // Scroll Events
