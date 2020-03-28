@@ -2186,6 +2186,32 @@ function slide($el, fns) {
     if (fns.justInside)
         $el.on('mouseleave', end);
 }
+function pointerOver($el, fns) {
+    let posn = pointerPosition;
+    if ($el.type === 'svg') {
+        posn = (e) => svgPointerPosn(e, $el.$ownerSVG);
+    }
+    else if ($el.type === 'canvas') {
+        posn = (e) => canvasPointerPosition(e, $el);
+    }
+    let over = false;
+    $el.on('touchstart mouseenter', (e) => {
+        if (!over && fns.enter)
+            fns.enter();
+        if (fns.move)
+            fns.move(posn(e));
+        over = true;
+    }, { passive: true });
+    $el.on('pointermove', (e) => {
+        if (over && fns.move)
+            fns.move(posn(e));
+    });
+    $el.on('touchend mouseexit', (e) => {
+        if (over && fns.exit)
+            fns.exit();
+        over = false;
+    }, { passive: true });
+}
 // -----------------------------------------------------------------------------
 // Scroll Events
 function makeScrollEvents($el) {
@@ -2642,6 +2668,30 @@ function drawSVG(obj, options = {}) {
     }
     return '';
 }
+// -----------------------------------------------------------------------------
+// Parsing
+const ITEM_SIZE = { C: 6, S: 4, Q: 4, A: 7 };
+const SEGMENTS = /[MmLlCcSsQqTtAa][0-9,.\-\s]+/g;
+const NUMBERS = /-?([0-9]*\.)?[0-9]+/g;
+function parsePath(d) {
+    if (!d)
+        return [];
+    const segments = d.match(SEGMENTS) || [];
+    const points = [];
+    for (const s of segments) {
+        // Space before - sign is not required!
+        const items = (s.slice(1).match(NUMBERS) || []).map(x => +x);
+        const type = s[0].toUpperCase();
+        const isRelative = (type !== s[0]);
+        const itemLength = ITEM_SIZE[type] || 2;
+        for (let i = 0; i < items.length; i += itemLength) {
+            const x = items[i + itemLength - 2];
+            const y = items[i + itemLength - 1];
+            points.push(isRelative ? last(points).shift(x, y) : new Point(x, y));
+        }
+    }
+    return points;
+}
 
 // =============================================================================
 // Boost.js | Canvas Drawing
@@ -2767,6 +2817,8 @@ class BaseView {
     }
     bindModel(model, recursive = true) {
         var _a;
+        if (this.model)
+            return; // Prevent duplicate binding.
         this.model = model;
         for (const { name, value } of this.attributes) {
             if (name.startsWith('@')) {
@@ -2788,6 +2840,9 @@ class BaseView {
             else if (name === ':draw') {
                 const expr = compile(value);
                 model.watch(() => this.draw(expr(model)));
+            }
+            else if (name === ':bind') {
+                this.bindVariable(model, value);
             }
             else if (name.startsWith(':')) {
                 const expr = compile(value);
@@ -2811,6 +2866,9 @@ class BaseView {
                 $c.bindModel(model);
             }
         }
+    }
+    bindVariable(model, name) {
+        // Can be implemented by child classes.
     }
     // -------------------------------------------------------------------------
     // Scrolling and Dimensions
@@ -3321,27 +3379,28 @@ class SVGBaseView extends BaseView {
         }
     }
     /**
-     * Gets the coordinates of the point at a position `p` along the length of the
-     * stroke of this `<path>` element, where `0 ≤ p ≤ 1`.
+     * Gets the coordinates of the point at a distance `d` along the length of the
+     * stroke of this `<path>` element.
      */
-    getPointAt(p) {
+    getPointAtLength(d) {
         if (this._el instanceof SVGGeometryElement) {
-            const point = this._el.getPointAtLength(p * this.strokeLength);
+            const point = this._el.getPointAtLength(d);
             return new Point(point.x, point.y);
         }
         else {
             return new Point(0, 0);
         }
     }
+    /**
+     * Gets the coordinates of the point at a position `p` along the length of the
+     * stroke of this `<path>` element, where `0 ≤ p ≤ 1`.
+     */
+    getPointAt(p) {
+        return this.getPointAtLength(p * this.strokeLength);
+    }
     /** Returns a list of all points along an SVG `<path>` element. */
     get points() {
-        const points = this.attr('d');
-        if (!points)
-            return [];
-        return points.replace(/[MZ]/g, '').split(/[LA]/).map((x) => {
-            const p = x.split(',');
-            return new Point(+last(p, 1), +last(p));
-        });
+        return parsePath(this.attr('d'));
     }
     /** Sets the list of points for an SVG `<path>` element.c*/
     set points(p) {
@@ -3503,6 +3562,11 @@ class InputView extends HTMLBaseView {
     }
     get value() { return this._el.value; }
     set value(v) { this._el.value = v; }
+    bindVariable(model, name) {
+        model[name] = this.value;
+        this.change((v) => model[name] = v);
+        model.watch(() => this.value = model[name]);
+    }
     /** Binds a change event listener. */
     change(callback) {
         let value = '';
@@ -3561,6 +3625,27 @@ class CanvasView extends HTMLBaseView {
     /** Clears this canvas. */
     clear() {
         this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+    }
+    /** Clears this canvas. */
+    fill(color) {
+        this.ctx.save();
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+        this.ctx.restore();
+    }
+    /** Erase a specific circle of the canvas. */
+    clearCircle(center, radius) {
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = 'destination-out';
+        this.ctx.beginPath();
+        this.ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI, false);
+        this.ctx.fill();
+        this.ctx.restore();
+    }
+    downloadImage(fileName) {
+        const href = this.pngImage;
+        const $a = $N('a', { download: fileName, href, target: '_blank' });
+        $a._el.dispatchEvent(new MouseEvent('click', { view: window, bubbles: false, cancelable: true }));
     }
 }
 // -----------------------------------------------------------------------------
@@ -3680,7 +3765,7 @@ const KEY_CODES = {
     const ua = window.navigator.userAgent.toLowerCase();
     Browser.isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
     Browser.isRetina = ((window.devicePixelRatio || 1) > 1);
-    Browser.isTouch = window.Touch || 'ontouchstart' in window;
+    Browser.isTouch = (!!window.Touch) || 'ontouchstart' in window;
     Browser.isChrome = !!window.chrome;
     Browser.isFirefox = ua.indexOf('firefox') >= 0;
     Browser.isAndroid = ua.indexOf('android') >= 0;
@@ -3854,18 +3939,6 @@ const KEY_CODES = {
         });
     }
     Browser.onKey = onKey;
-    document.addEventListener('keydown', (e) => {
-        if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
-            const $active = getActiveInput();
-            if ($active && $active.hasAttr('tabindex')) {
-                e.preventDefault();
-                $active.trigger('pointerdown', e);
-                $active.trigger('pointerstop', e);
-                $body.trigger('pointerstop', e);
-                $active.trigger('click', e);
-            }
-        }
-    });
 })(exports.Browser || (exports.Browser = {}));
 // -----------------------------------------------------------------------------
 // Polyfill for external SVG imports
@@ -3901,6 +3974,23 @@ function replaceSvgImports() {
                 fragment.appendChild(clone.firstChild);
             svg.appendChild(fragment);
         });
+    });
+}
+// -----------------------------------------------------------------------------
+// Fake Accessibility Keyboard Events
+function bindAccessibilityEvents() {
+    document.addEventListener('keydown', (e) => {
+        if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
+            const $active = exports.Browser.getActiveInput();
+            // The CodeMirror library adds tabindex attributes on their <textarea> fields.
+            if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                $active.trigger('pointerdown', e);
+                $active.trigger('pointerstop', e);
+                $body.trigger('pointerstop', e);
+                $active.trigger('click', e);
+            }
+        }
     });
 }
 
@@ -4087,14 +4177,15 @@ function enter($el, effect = 'fade', duration = 500, _delay = 0) {
     $el.show();
     if (!isReady)
         return ResolvedAnimation;
+    const opacity = (+$el.css('opacity')) || 1;
     if (effect === 'fade') {
-        return transition($el, { opacity: [0, 1] }, duration, _delay);
+        return transition($el, { opacity: [0, opacity] }, duration, _delay);
     }
     else if (effect === 'pop') {
         const transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
             .replace(CSS_MATRIX, 'translate($1px,$2px)');
         // TODO Merge into one transition.
-        transition($el, { opacity: [0, 1] }, duration, _delay);
+        transition($el, { opacity: [0, opacity] }, duration, _delay);
         return transition($el, {
             transform: [transform + ' scale(0.5)',
                 transform + ' scale(1)']
@@ -4106,7 +4197,9 @@ function enter($el, effect = 'fade', duration = 500, _delay = 0) {
     }
     else if (effect.startsWith('draw')) {
         const l = $el.strokeLength;
-        $el.css({ opacity: 1, 'stroke-dasharray': l + 'px' });
+        $el.css('stroke-dasharray', l + 'px');
+        if (!$el.css('opacity'))
+            $el.css('opacity', 1);
         // Note that Safari can't handle negative dash offsets!
         const end = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
         const rules = { 'stroke-dashoffset': [l + 'px', end] };
@@ -4115,7 +4208,7 @@ function enter($el, effect = 'fade', duration = 500, _delay = 0) {
         return animation;
     }
     else if (effect.startsWith('slide')) {
-        const rules = { opacity: [0, 1], transform: ['translateY(50px)', 'none'] };
+        const rules = { opacity: [0, opacity], transform: ['translateY(50px)', 'none'] };
         if (effect.includes('down'))
             rules.transform[0] = 'translateY(-50px)';
         if (effect.includes('right'))
@@ -4125,7 +4218,7 @@ function enter($el, effect = 'fade', duration = 500, _delay = 0) {
         return transition($el, rules, duration, _delay);
     }
     else if (effect.startsWith('reveal')) {
-        const rules = { opacity: [0, 1], height: [0, 'auto'] };
+        const rules = { opacity: [0, opacity], height: [0, 'auto'] };
         if (effect.includes('left'))
             rules.transform = ['translateX(-50%)', 'none'];
         if (effect.includes('right'))
@@ -4759,6 +4852,7 @@ exports.SVGParentView = SVGParentView;
 exports.WindowView = WindowView;
 exports.angleSize = angleSize;
 exports.animate = animate;
+exports.bindAccessibilityEvents = bindAccessibilityEvents;
 exports.bindEvent = bindEvent;
 exports.canvasPointerPosition = canvasPointerPosition;
 exports.compile = compile;
@@ -4775,6 +4869,8 @@ exports.hover = hover;
 exports.loadImage = loadImage;
 exports.loadScript = loadScript;
 exports.observe = observe;
+exports.parsePath = parsePath;
+exports.pointerOver = pointerOver;
 exports.pointerPosition = pointerPosition;
 exports.post = post;
 exports.register = register;
