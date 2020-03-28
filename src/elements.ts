@@ -13,7 +13,7 @@ import {Browser, KEY_CODES} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
 import {Observable} from './observable';
-import {drawSVG, GeoShape, SVGDrawingOptions} from './svg';
+import {drawSVG, GeoShape, parsePath, SVGDrawingOptions} from './svg';
 import {CanvasDrawingOptions, drawCanvas} from './canvas';
 
 
@@ -784,13 +784,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
 
   /** Returns a list of all points along an SVG `<path>` element. */
   get points() {
-    const points = this.attr('d');
-    if (!points) return [];
-
-    return points.replace(/[MZ]/g, '').split(/[LA]/).map((x) => {
-      const p = x.split(',');
-      return new Point(+last(p, 1), +last(p));
-    });
+    return parsePath(this.attr('d'));
   }
 
   /** Sets the list of points for an SVG `<path>` element.c*/
@@ -1076,6 +1070,13 @@ export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
     this.ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI, false);
     this.ctx.fill();
     this.ctx.restore();
+  }
+
+  downloadImage(fileName: string) {
+    const href = this.pngImage;
+    const $a = $N('a', {download: fileName, href, target: '_blank'});
+    $a._el.dispatchEvent(new MouseEvent('click',
+        {view: window, bubbles: false, cancelable: true}));
   }
 }
 
