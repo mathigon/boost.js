@@ -127,6 +127,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   bindModel(model: Observable, recursive = true) {
+    if (this.model) return;  // Prevent duplicate binding.
     this.model = model;
 
     for (const {name, value} of this.attributes) {
@@ -149,6 +150,9 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       } else if (name === ':draw') {
         const expr = compile(value);
         model.watch(() => (this as unknown as SVGView).draw(expr(model)));
+
+      } else if (name === ':bind') {
+        this.bindVariable(model, value);
 
       } else if (name.startsWith(':')) {
         const expr = compile(value);
@@ -173,6 +177,11 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       }
     }
   }
+
+  protected bindVariable(model: Observable, name: string) {
+    // Can be implemented by child classes.
+  }
+
 
   // -------------------------------------------------------------------------
   // Scrolling and Dimensions
@@ -984,6 +993,12 @@ export class InputView extends HTMLBaseView<InputOrSelectElement> {
   get value() { return this._el.value; }
 
   set value(v) { this._el.value = v; }
+
+  protected bindVariable(model: Observable, name: string) {
+    model[name] = this.value;
+    this.change((v: string) => model[name] = v);
+    model.watch(() => this.value = model[name]);
+  }
 
   /** Binds a change event listener. */
   change(callback: (val: string) => void) {
