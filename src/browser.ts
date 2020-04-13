@@ -171,7 +171,9 @@ export namespace Browser {
 
   export function setCookie(name: string, value: any,
                             maxAge = 60 * 60 * 24 * 365) {
-    document.cookie = `${name}=${value};path=/;max-age=${maxAge}`;
+    // Cookies are also set for all subdomains. Remove locale subdomains.
+    const domain = window.location.hostname.replace(/^[a-z]{2}\./, '');
+    document.cookie = `${name}=${value};path=/;max-age=${maxAge};domain=${domain}`;
   }
 
   export function deleteCookie(name: string) {
