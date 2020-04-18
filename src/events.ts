@@ -215,7 +215,7 @@ export function pointerOver($el: ElementView, fns: OverEventOptions) {
     if (over && fns.move) fns.move(posn(e));
   });
 
-  $el.on('touchend mouseexit', (e: Event) => {
+  $el.on('touchend mouseleave', (e: Event) => {
     if (over && fns.exit) fns.exit();
     over = false;
   }, {passive: true});
