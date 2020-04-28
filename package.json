@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.4.7",
+  "version": "0.5.0",
   "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
   "keywords": [
     "browser",
@@ -17,8 +17,9 @@
     "email": "dev@mathigon.org",
     "url": "https://mathigon.org"
   },
-  "main": "dist/boost.js",
-  "module": "index.ts",
+  "main": "dist/boost.cjs.js",
+  "module": "dist/boost.esm.js",
+  "main:ts": "index.ts",
   "repository": "mathigon/boost.js",
   "scripts": {
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",
@@ -26,13 +27,13 @@
     "build": "rollup --config"
   },
   "dependencies": {
-    "@mathigon/fermat": "^0.3.6",
-    "@mathigon/core": "^0.3.6"
+    "@mathigon/fermat": "^0.5.0",
+    "@mathigon/core": "^0.5.0"
   },
   "devDependencies": {
+    "@rollup/plugin-typescript": "^3.1.1",
     "@types/tape": "^4.2.33",
-    "rollup": "^1.26.4",
-    "rollup-plugin-typescript": "^1.0.1",
+    "rollup": "^2.3.4",
     "tape": "^4.11.0",
     "ts-node": "^8.4.1",
     "tslib": "^1.10.0",

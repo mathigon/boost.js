@@ -4,7 +4,7 @@
     "lib": [
       "es2016", "dom", "es2017.object"
     ],
-    "outDir": "build",
+    "outDir": "ts_build",
     "moduleResolution": "node",
     "strict": true,
     "noImplicitAny": true,
