@@ -126,15 +126,15 @@ function makeClickOutsideEvent($el: ElementView) {
 // Slide Events
 
 interface SlideEventOptions {
+  down?: (p: Point) => void;
   start?: (p: Point) => void;
   move?: (p: Point, start: Point, last: Point) => void;
   end?: (last: Point, start: Point) => void;
+  click?: (p: Point) => void;
   justInside?: boolean;
 }
 
 export function slide($el: ElementView, fns: SlideEventOptions) {
-  let isAnimating = false;
-
   let posn = pointerPosition;
   if ($el.type === 'svg') {
     posn = (e) => svgPointerPosn(e, ($el as SVGView).$ownerSVG);
@@ -147,47 +147,57 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   let startPosn: Point|undefined = undefined;
   let lastPosn: Point|undefined = undefined;
 
+  let hasMoved = false;
+  let pointerId = 0;
+
   if ($el.css('touch-action') === 'auto') $el.css('touch-action', 'none');
 
   function start(e: ScreenEvent) {
-    e.preventDefault();
     if (e.handled || getTouches(e).length > 1) return;
-    e.handled = true;
+    e.preventDefault();
 
-    if ('move' in fns) $parent.on('pointermove', move);
+    hasMoved = false;
+    pointerId = (e as any).pointerId || 0;
+
+    $parent.on('pointermove', move);
     $parent.on('pointerstop', end);
+
     startPosn = lastPosn = posn(e);
-    if (fns.start) fns.start(startPosn);
+    if (fns.down) fns.down(startPosn);
   }
 
   function move(e: ScreenEvent) {
+    if (pointerId && (e as any).pointerId !== pointerId) return;
     e.preventDefault();
-    if (isAnimating) return;
-    isAnimating = true;
 
-    window.requestAnimationFrame(function () {
-      if (!isAnimating) return;
-      const p = posn(e);
-      if (fns.move) fns.move(p, startPosn!, lastPosn!);
-      lastPosn = p;
-      isAnimating = false;
-    });
+    const p = posn(e);
+    if (Point.distance(p, lastPosn!) < 0.5) return;
+
+    if (!hasMoved && fns.start) fns.start(startPosn!);
+    if (fns.move) fns.move(p, startPosn!, lastPosn!);
+
+    lastPosn = p;
+    hasMoved = true;
   }
 
   function end(e: ScreenEvent) {
+    if (pointerId && (e as any).pointerId !== pointerId) return;
     e.preventDefault();
-    if (getTouches(e).length > 0) return;
-    isAnimating = false;
 
-    if (fns.move) $parent.off('pointermove', move);
+    $parent.off('pointermove', move);
     $parent.off('pointerstop', end);
 
-    if (fns.end) fns.end(lastPosn!, startPosn!);
+    if (hasMoved && fns.end) fns.end(lastPosn!, startPosn!);
+    if (!hasMoved && fns.click) fns.click(startPosn!);
   }
 
   $el.on('pointerdown', start);
   if (fns.justInside) $el.on('mouseleave', end);
 }
+
+
+// -----------------------------------------------------------------------------
+// Slide Events
 
 interface OverEventOptions {
   enter?: () => void;
