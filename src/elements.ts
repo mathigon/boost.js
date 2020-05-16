@@ -961,7 +961,7 @@ export class WindowView extends HTMLBaseView<HTMLHtmlElement|HTMLBodyElement> {
 // -----------------------------------------------------------------------------
 // Form Element (<form>, <input> and <select>)
 
-type InputOrSelectElement = HTMLInputElement|HTMLSelectElement;
+type InputFieldElement = HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement;
 
 export class FormView extends HTMLBaseView<HTMLFormElement> {
   readonly type = 'form';
@@ -972,8 +972,8 @@ export class FormView extends HTMLBaseView<HTMLFormElement> {
   get formData() {
     const data: Obj<string> = {};
     for (const el of Array.from(this._el.elements)) {
-      const id = (el as InputOrSelectElement).name || el.id;
-      if (id) data[id] = (el as InputOrSelectElement).value;
+      const id = (el as InputFieldElement).name || el.id;
+      if (id) data[id] = (el as InputFieldElement).value;
     }
     return data;
   }
@@ -983,7 +983,7 @@ export class FormView extends HTMLBaseView<HTMLFormElement> {
   }
 }
 
-export class InputView extends HTMLBaseView<InputOrSelectElement> {
+export class InputView extends HTMLBaseView<InputFieldElement> {
   readonly type = 'input';
 
   get checked() {
@@ -1141,8 +1141,8 @@ export function $(query?: string|Element,
     return new CanvasView(el as HTMLCanvasElement);
   } else if (tagName === 'form') {
     return new FormView(el as HTMLFormElement);
-  } else if (tagName === 'input' || tagName === 'select') {
-    return new InputView(el as InputOrSelectElement);
+  } else if (tagName === 'input' || tagName === 'select' || tagName === 'textarea') {
+    return new InputView(el as InputFieldElement);
   } else if (tagName === 'video' || tagName === 'audio') {
     return new MediaView(el as HTMLMediaElement);
   } else if (SVG_TAGS.includes(tagName)) {
