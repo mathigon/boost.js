@@ -904,11 +904,11 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     // window.URL.revokeObjectURL(url);
   }
 
-  downloadImage(fileName: string) {
+  downloadImage(fileName: string, size?: number) {
     // iOS Doesn't allow navigation calls within an async event.
     const windowRef = Browser.isIOS ? window.open('', '_blank') : undefined;
 
-    this.pngImage().then((href) => {
+    this.pngImage(size).then((href) => {
       if (windowRef) return windowRef.location.href = href;
       const $a = $N('a', {download: fileName, href, target: '_blank'});
       $a._el.dispatchEvent(new MouseEvent('click',
