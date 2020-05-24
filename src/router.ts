@@ -162,13 +162,11 @@ class Router extends EventTarget {
     const go = this.getView(path);
 
     if (path === this.active.path && hash !== this.active.hash) {
-      console.info('[boost] Routing to ' + path + hash);
       this.trigger('hashChange', hash.slice(1));
       this.trigger('change', path + hash);
       return true;
 
     } else if (go && path !== this.active.path) {
-      console.info('[boost] Routing to ' + path + hash);
       this.trigger('change', path + hash);
       if (window.ga) window.ga('send', 'pageview', path + hash);
       if (this.noLoad) {
