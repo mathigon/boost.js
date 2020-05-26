@@ -130,6 +130,7 @@ interface SlideEventOptions {
   start?: (p: Point) => void;
   move?: (p: Point, start: Point, last: Point) => void;
   end?: (last: Point, start: Point) => void;
+  up?: (last: Point, start: Point) => void;
   click?: (p: Point) => void;
   justInside?: boolean;
 }
@@ -187,6 +188,7 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
     $parent.off('pointermove', move);
     $parent.off('pointerstop', end);
 
+    if (fns.up) fns.up(lastPosn!, startPosn!);
     if (hasMoved && fns.end) fns.end(lastPosn!, startPosn!);
     if (!hasMoved && fns.click) fns.click(startPosn!);
   }
