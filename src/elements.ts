@@ -379,8 +379,8 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Adds a new child element at the end of this one. */
-  append(newChild: ElementView) {
-    this._el.appendChild(newChild._el);
+  append(newChild: ElementView|Text) {
+    this._el.appendChild(newChild instanceof Text ? newChild : newChild._el);
   }
 
   /** Adds a new element immediately before this one, as a sibling. */
