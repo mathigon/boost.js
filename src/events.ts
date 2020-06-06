@@ -292,84 +292,86 @@ interface HoverEventOptions {
   enter?: () => void;
   exit?: () => void;
   preventMouseover?: () => boolean;
+  canFocusWithin?: boolean;
   delay?: number;
   exitDelay?: number;
   $clickTarget?: ElementView;
 }
 
 export function hover($el: ElementView, options: HoverEventOptions) {
+  const $clickTarget = options.$clickTarget || $el;
+
   let timeout = 0;
   let active = false;
   let wasTriggeredByMouse = false;
   let wasTriggeredByFocus = false;
 
+  function enter() {
+    if (active) return;
+    if (options.enter) options.enter();
+    active = true;
+  }
+
+  function exit() {
+    if (!active) return;
+    clearTimeout(timeout);
+    if (options.exit) options.exit();
+    active = false;
+  }
+
   $el.on('mouseover', () => {
     if (options.preventMouseover && options.preventMouseover()) return;
     clearTimeout(timeout);
     timeout = delay(() => {
-      if (active) return;
-      if (options.enter) options.enter();
+      enter();
       wasTriggeredByMouse = true;
-      active = true;
     }, options.delay);
   });
 
   $el.on('mouseout', () => {
     if (!wasTriggeredByMouse) return;
     clearTimeout(timeout);
-    timeout = delay(() => {
-      if (!active) return;
-      if (options.exit) options.exit();
-      active = false;
-    }, options.exitDelay || options.delay);
+    timeout = delay(exit, options.exitDelay || options.delay);
   });
-
-  const $clickTarget = options.$clickTarget || $el;
 
   $clickTarget.on('focus', () => {
     if (active || options.preventMouseover && options.preventMouseover()) return;
     clearTimeout(timeout);
-    if (options.enter) options.enter();
+    enter();
     wasTriggeredByFocus = true;
-    active = true;
   });
 
   const onBlur = () => {
-    if (!wasTriggeredByFocus || !active) return;
+    if (!wasTriggeredByFocus) return;
 
-    setTimeout(() => {
+    if (options.canFocusWithin) {
       // Special handling if the blur of the $clickTarget was caused by focussing
       // another child of $el (e.g. e <button> inside a popup).
       // Timeout required so that the new element has focussed.
-      const $newActive = Browser.getActiveInput();
-      if ($newActive && $newActive.hasParent($el)) {
-        $newActive.one('blur', onBlur);
-        return;
-      }
-
-      clearTimeout(timeout);
-      if (options.exit) options.exit();
-      active = false;
-    });
+      setTimeout(() => {
+        const $newActive = Browser.getActiveInput();
+        if ($newActive && $newActive.hasParent($el)) {
+          $newActive.one('blur', onBlur);
+        } else {
+          exit();
+        }
+      });
+    } else {
+      exit();
+    }
   };
   $clickTarget.on('blur', onBlur);
 
   $clickTarget.on('click', () => {
     if (active && (!wasTriggeredByMouse)) {
-      if (options.exit) options.exit();
-      active = false;
+      exit();
     } else if (!active) {
-      if (options.enter) options.enter();
+      enter();
       wasTriggeredByMouse = false;
-      active = true;
     }
   });
 
-  $el.on('clickOutside', () => {
-    if (!active) return;
-    if (options.exit) options.exit();
-    active = false;
-  });
+  $el.on('clickOutside', () => exit);
 }
 
 
