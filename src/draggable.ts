@@ -63,7 +63,8 @@ export class Draggable extends EventTarget {
         if (this.disabled) return;
         this.trigger(last.equals(start) ? 'click' : 'end');
         $html.removeClass('grabbing');
-      }
+      },
+      accessible: true
     });
 
     Browser.onResize(() => {

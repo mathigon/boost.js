@@ -133,14 +133,17 @@ interface SlideEventOptions {
   up?: (last: Point, start: Point) => void;
   click?: (p: Point) => void;
   justInside?: boolean;
+  accessible?: boolean;
+  $box?: ElementView;
 }
 
 export function slide($el: ElementView, fns: SlideEventOptions) {
+  const $box = fns.$box || $el;
   let posn = pointerPosition;
-  if ($el.type === 'svg') {
-    posn = (e) => svgPointerPosn(e, ($el as SVGView).$ownerSVG);
-  } else if ($el.type === 'canvas') {
-    posn = (e) => canvasPointerPosition(e, $el as CanvasView);
+  if ($box.type === 'svg') {
+    posn = (e) => svgPointerPosn(e, ($box as SVGView).$ownerSVG);
+  } else if ($box.type === 'canvas') {
+    posn = (e) => canvasPointerPosition(e, $box as CanvasView);
   }
 
   const $parent = fns.justInside ? $el : $body;
@@ -195,6 +198,26 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
 
   $el.on('pointerdown', start);
   if (fns.justInside) $el.on('mouseleave', end);
+
+  if (fns.accessible) {
+    $el.setAttr('tabindex', '0');
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (![37, 38, 39, 40].includes(e.keyCode)) return;
+      if ($el !== Browser.getActiveInput()) return;
+
+      const center = $el.boxCenter;
+      const start = posn({clientX: center.x, clientY: center.y});
+
+      const dx = (e.keyCode === 37) ? -25 : (e.keyCode === 39) ? 25 : 0;
+      const dy = (e.keyCode === 38) ? -25 : (e.keyCode === 40) ? 25 : 0;
+      const end = start.shift(dx, dy);
+
+      if (fns.down) fns.down(start);
+      if (fns.start) fns.start(start);
+      if (fns.move) fns.move(end, start, start);
+      if (fns.end) fns.end(end, start);
+    });
+  }
 }
 
 
