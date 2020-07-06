@@ -155,6 +155,7 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   let pointerId = 0;
 
   if ($el.css('touch-action') === 'auto') $el.css('touch-action', 'none');
+  $el.addClass('noselect');
 
   function start(e: ScreenEvent) {
     if (e.handled || getTouches(e).length > 1) return;
