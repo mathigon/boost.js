@@ -395,7 +395,7 @@ export function hover($el: ElementView, options: HoverEventOptions) {
     }
   });
 
-  $el.on('clickOutside', () => exit);
+  $el.on('clickOutside', exit);
 }
 
 
