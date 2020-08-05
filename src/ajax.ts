@@ -67,8 +67,8 @@ export function post(url: string, data?: string|PostData) {
           (typeof data === 'string') ? data : toQueryString(data),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'X-CSRF-Token': window.csrfToken || ''
-    }
+      'X-CSRF-Token': window.csrfToken || '',
+    },
   };
 
   const ext = url.includes('?') ? '&xhr=1' : '?xhr=1';

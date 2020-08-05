@@ -86,7 +86,7 @@ class Router extends EventTarget {
   private preloaded = false;
   private transition = false;
   private noLoad = false;
-  private initialise: Callback = () => {};
+  private initialise: Callback = () => undefined;
 
   setup(options: RouterOptions = {}) {
     if (options.$viewport) this.$viewport = options.$viewport;
@@ -124,10 +124,10 @@ class Router extends EventTarget {
     this.active = {
       path: window.location.pathname + this.search,
       hash: window.location.hash,
-      index: 0
+      index: 0,
     };
     window.history.replaceState(this.active, '',
-                                this.active.path + this.active.hash);
+        this.active.path + this.active.hash);
 
     // The wrappers fix stupid Firefox, which doesn't seem to take its time
     // triggering .createdCallbacks for web components...
@@ -182,7 +182,7 @@ class Router extends EventTarget {
   }
 
   private async loadView(view: View, params: ViewParams = {}, url = '') {
-    this.$viewport.css({opacity: 0.4, 'pointer-events': 'none'});
+    this.$viewport.css({'opacity': 0.4, 'pointer-events': 'none'});
 
     const template = await getTemplate(view, params, url);
 
@@ -196,7 +196,7 @@ class Router extends EventTarget {
       this.$viewport.html = template;
       Browser.resize();
       replaceSvgImports();
-      this.$viewport.css({opacity: 1, 'pointer-events': 'all'});
+      this.$viewport.css({'opacity': 1, 'pointer-events': 'all'});
 
       const $title = this.$viewport.$('title');
       if ($title) document.title = $title.text;
@@ -260,9 +260,13 @@ class Router extends EventTarget {
     return success;
   }
 
-  back() { window.history.back(); }
+  back() {
+    window.history.back();
+  }
 
-  forward() { window.history.forward(); }
+  forward() {
+    window.history.forward();
+  }
 }
 
 export const RouterInstance = new Router();

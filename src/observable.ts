@@ -115,7 +115,7 @@ export function observe<T = any>(state: T) {
       callbackMap.delete(p);
       computedKeys.delete(p);
       return true;
-    }
+    },
   });
 
   return proxy as Observable<T>;

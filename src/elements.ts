@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {isOneOf, words, applyDefaults, last, Obj} from '@mathigon/core';
+import {isOneOf, words, applyDefaults, Obj} from '@mathigon/core';
 import {roundTo, Point, isBetween, Rectangle, SimplePoint, nearlyEquals} from '@mathigon/fermat';
 import {loadImage} from './ajax';
 
@@ -44,9 +44,13 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     _el._view = this;
   }
 
-  get id() { return this._el.id; }
+  get id() {
+    return this._el.id;
+  }
 
-  get data() { return this._el.dataset; }
+  get data() {
+    return this._el.dataset;
+  }
 
   get tagName() {
     return this._el.tagName.toUpperCase();
@@ -82,9 +86,13 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
-  attr(attr: string) { return this._el.getAttribute(attr) || ''; }
+  attr(attr: string) {
+    return this._el.getAttribute(attr) || '';
+  }
 
-  hasAttr(attr: string) { return this._el.hasAttribute(attr); }
+  hasAttr(attr: string) {
+    return this._el.hasAttribute(attr);
+  }
 
   setAttr(attr: string, value: any) {
     if (value === undefined) {
@@ -94,29 +102,45 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
-  removeAttr(attr: string) { this._el.removeAttribute(attr); }
+  removeAttr(attr: string) {
+    this._el.removeAttribute(attr);
+  }
 
   get attributes() {
     // Array.from() converts the NamedNodeMap into an array (for Safari).
     return Array.from(this._el.attributes || []);
   }
 
-  get html() { return this._el.innerHTML || ''; }
+  get html() {
+    return this._el.innerHTML || '';
+  }
 
-  set html(h: string) { this._el.innerHTML = h; }
+  set html(h: string) {
+    this._el.innerHTML = h;
+  }
 
-  get text(): string { return this._el.textContent || ''; }
+  get text(): string {
+    return this._el.textContent || '';
+  }
 
-  set text(t: string) { this._el.textContent = t; }
+  set text(t: string) {
+    this._el.textContent = t;
+  }
 
   // Required because TS doesn't allow getters and setters with different types.
-  set textStr(t: any) { this._el.textContent = '' + t; }
+  set textStr(t: any) {
+    this._el.textContent = '' + t;
+  }
 
   /** Blurs this DOM element. */
-  blur() { this._el.blur(); }
+  blur() {
+    this._el.blur();
+  }
 
   /** Focuses this DOM element. */
-  focus() { this._el.focus(); }
+  focus() {
+    this._el.focus();
+  }
 
   // -------------------------------------------------------------------------
   // Model Binding
@@ -135,7 +159,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
         const event = name.slice(1);
         const expr = compile(value);
         this.removeAttr(name);
-        this.on(event, () =>  expr(model));
+        this.on(event, () => expr(model));
 
       } else if (name === ':show') {
         const expr = compile(value);
@@ -178,7 +202,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
-  protected bindVariable(model: Observable, name: string) {
+  protected bindVariable(_model: Observable, _name: string) {
     // Can be implemented by child classes.
   }
 
@@ -186,7 +210,9 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   // -------------------------------------------------------------------------
   // Scrolling and Dimensions
 
-  get bounds() { return this._el.getBoundingClientRect(); }
+  get bounds() {
+    return this._el.getBoundingClientRect();
+  }
 
   /** Checks if this element is currently visible in the viewport. */
   get isInViewport() {
@@ -213,17 +239,25 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   abstract get positionTop(): number;
 
-  get scrollWidth() { return this._el.scrollWidth; }
+  get scrollWidth() {
+    return this._el.scrollWidth;
+  }
 
-  get scrollHeight() { return this._el.scrollHeight; }
+  get scrollHeight() {
+    return this._el.scrollHeight;
+  }
 
-  get scrollTop() { return this._el.scrollTop; }
-
-  get scrollLeft() { return this._el.scrollLeft; }
+  get scrollTop() {
+    return this._el.scrollTop;
+  }
 
   set scrollTop(y: number) {
     this._el.scrollTop = y;
     this.trigger('scroll', {top: y, left: this.scrollLeft});
+  }
+
+  get scrollLeft() {
+    return this._el.scrollLeft;
   }
 
   set scrollLeft(x: number) {
@@ -285,7 +319,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     const transform = this.transform;
     if (!transform) return [[1, 0, 0], [0, 1, 0]];
 
-    const coords = transform.match(/matrix\(([0-9,.\s\-]*)\)/);
+    const coords = transform.match(/matrix\(([0-9,.\s-]*)\)/);
     if (!coords || !coords[1]) return [[1, 0, 0], [0, 1, 0]];
 
     const matrix = coords[1].split(',');
@@ -302,8 +336,10 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Sets the CSS transform on this element. */
   setTransform(posn?: SimplePoint, angle = 0, scale = 1) {
     let t = '';
-    if (posn) t +=
+    if (posn) {
+      t +=
         `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)}px)`;
+    }
     if (angle) t += ` rotate(${angle}rad)`;
     if (scale) t += ` scale(${scale})`;
     this._el.style.transform = t;
@@ -409,10 +445,14 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** The first child element matching a given selector. */
-  $(selector: string): ElementView|undefined { return $(selector, this); }
+  $(selector: string): ElementView|undefined {
+    return $(selector, this);
+  }
 
   /** All child elements matching a given selector. */
-  $$(selector: string): ElementView[] { return $$(selector, this); }
+  $$(selector: string): ElementView[] {
+    return $$(selector, this);
+  }
 
   /** Returns this element's parent, or undefined. */
   get parent() {
@@ -540,7 +580,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * delay and ease function.
    */
   animate(rules: AnimationProperties, duration = 400, delay = 0,
-          easing = 'ease-in-out'): AnimationResponse {
+      easing = 'ease-in-out'): AnimationResponse {
     return transition(this, rules, duration, delay, easing);
   }
 
@@ -589,8 +629,9 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   private copyInlineStyles($source: ElementView, recursive = true) {
     const style = window.getComputedStyle($source._el);
-    for (const s of Array.from(style))
+    for (const s of Array.from(style)) {
       this.css(s, style.getPropertyValue(s));
+    }
 
     if (recursive) {
       const children = this.children;
@@ -610,17 +651,27 @@ export type ElementView = BaseView<HTMLElement|SVGElement>;
 
 export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
 
-  get offsetTop() { return this._el.offsetTop; }
+  get offsetTop() {
+    return this._el.offsetTop;
+  }
 
-  get offsetLeft() { return this._el.offsetLeft; }
+  get offsetLeft() {
+    return this._el.offsetLeft;
+  }
 
-  get offsetParent() { return $(this._el.offsetParent || undefined); }
+  get offsetParent() {
+    return $(this._el.offsetParent || undefined);
+  }
 
   /** Returns this element's width, including border and padding. */
-  get width() { return this._el.offsetWidth; }
+  get width() {
+    return this._el.offsetWidth;
+  }
 
   /** Returns this element's height, including border and padding. */
-  get height() { return this._el.offsetHeight; }
+  get height() {
+    return this._el.offsetHeight;
+  }
 
   /** Returns this element's width, excluding border and padding. */
   get innerWidth() {
@@ -692,7 +743,7 @@ export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
       const box = this._el.getBoundingClientRect();
       return {
         top: box.top - parentBox.top, left: box.left - parentBox.left,
-        bottom: box.bottom - parentBox.top, right: box.right - parentBox.left
+        bottom: box.bottom - parentBox.top, right: box.right - parentBox.left,
       };
     }
   }
@@ -713,9 +764,13 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   }
 
   // See https://www.chromestatus.com/features/5724912467574784
-  get width() { return this.bounds.width; }
+  get width() {
+    return this.bounds.width;
+  }
 
-  get height() { return this.bounds.height; }
+  get height() {
+    return this.bounds.height;
+  }
 
   // SVG Elements don't have offset properties. We instead use the position of
   // the first non-SVG parent, plus the margin of the SVG owner, plus the SVG
@@ -845,7 +900,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
       arrows: this.attr('arrows'),
       size: (+this.attr('size')) || undefined,
       fill: this.hasClass('fill'),
-      round: this.hasAttr('round')
+      round: this.hasAttr('round'),
     };
     this.setAttr('d', drawSVG(obj, applyDefaults(options, attributes)));
   }
@@ -926,29 +981,49 @@ export type SVGView = SVGBaseView<SVGGraphicsElement>;
 export class WindowView extends HTMLBaseView<HTMLHtmlElement|HTMLBodyElement> {
   readonly type = 'window';
 
-  get width() { return window.innerWidth; }
+  get width() {
+    return window.innerWidth;
+  }
 
-  get height() { return window.innerHeight; }
+  get height() {
+    return window.innerHeight;
+  }
 
-  get innerWidth() { return window.innerWidth; }
+  get innerWidth() {
+    return window.innerWidth;
+  }
 
-  get innerHeight() { return window.innerHeight; }
+  get innerHeight() {
+    return window.innerHeight;
+  }
 
-  get outerWidth() { return window.outerWidth; }
+  get outerWidth() {
+    return window.outerWidth;
+  }
 
-  get outerHeight() { return window.outerHeight; }
+  get outerHeight() {
+    return window.outerHeight;
+  }
 
-  get scrollWidth() { return document.body.scrollWidth; }
+  get scrollWidth() {
+    return document.body.scrollWidth;
+  }
 
-  get scrollHeight() { return document.body.scrollHeight; }
+  get scrollHeight() {
+    return document.body.scrollHeight;
+  }
 
-  get scrollTop() { return window.pageYOffset; }
-
-  get scrollLeft() { return window.pageXOffset; }
+  get scrollTop() {
+    return window.pageYOffset;
+  }
 
   set scrollTop(y) {
     document.body.scrollTop = document.documentElement.scrollTop = y;
     this.trigger('scroll', {top: y, left: this.scrollLeft});
+  }
+
+  get scrollLeft() {
+    return window.pageXOffset;
   }
 
   set scrollLeft(x) {
@@ -966,7 +1041,9 @@ type InputFieldElement = HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement;
 export class FormView extends HTMLBaseView<HTMLFormElement> {
   readonly type = 'form';
 
-  get action() { return this._el.action; }
+  get action() {
+    return this._el.action;
+  }
 
   /** Summarises the data for an HTML <form> element in an JSON Object. */
   get formData() {
@@ -990,9 +1067,13 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     return this._el instanceof HTMLInputElement ? this._el.checked : false;
   }
 
-  get value() { return this._el.value; }
+  get value() {
+    return this._el.value;
+  }
 
-  set value(v) { this._el.value = v; }
+  set value(v) {
+    this._el.value = v;
+  }
 
   protected bindVariable(model: Observable, name: string) {
     model[name] = this.value;
@@ -1124,7 +1205,7 @@ const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
  * Element wrapper around a native HTMLElement instance.
  */
 export function $(query?: string|Element,
-                  context?: ElementView): ElementView|undefined {
+    context?: ElementView): ElementView|undefined {
   if (!query) return undefined;
 
   const c = context ? context._el : document.documentElement;
@@ -1155,7 +1236,7 @@ export function $(query?: string|Element,
 
 /** Finds all elements that match a specific CSS selector. */
 export function $$(selector: string,
-                   context?: ElementView): ElementView[] {
+    context?: ElementView): ElementView[] {
   const c = context ? context._el : document.documentElement;
   const els = selector ? c.querySelectorAll(selector) : [];
   return Array.from(els, el => $(el)!);
@@ -1163,7 +1244,7 @@ export function $$(selector: string,
 
 /** Creates a new Element instance from a given set of options. */
 export function $N(tag: string, attributes: Obj<any> = {},
-                   parent?: ElementView) {
+    parent?: ElementView) {
 
   const el = !SVG_TAGS.includes(tag) ? document.createElement(tag) :
              document.createElementNS('http://www.w3.org/2000/svg', tag);

@@ -11,6 +11,8 @@ import {compile} from '../src/eval';
 tape('simple expressions', (test) => {
   test.equal(compile('1+2')(), 3);
   test.equal(compile('2*(1+2)')(), 6);
+
+  // eslint-disable-next-line no-tabs
   test.equal(compile('1 + 2  -3*	4 / 2')(), -3);
 
   test.equal(compile('"abc"')(), 'abc');
@@ -23,8 +25,8 @@ tape('simple expressions', (test) => {
 
 tape('arrays and properties', (test) => {
   test.equal(compile('a[1]')({a: [2, 3, 4]}), 3);
-  //test.equal(compile('([2,,4])[x]')({x: 2}), 4);
-  //test.equal(compile('([1,2,3])[1]')(), 2);
+  // test.equal(compile('([2,,4])[x]')({x: 2}), 4);
+  // test.equal(compile('([1,2,3])[1]')(), 2);
 
   test.equal(compile('x.aa')({x: {aa: 9}}), 9);
   test.equal(compile('x.a.b')({x: {a: {b: 4}}}), 4);
@@ -39,7 +41,9 @@ tape('arrays and properties', (test) => {
 tape('this reference', (test) => {
   class Foo {
     constructor(readonly bar = 10) {}
-    getBar() { return this.bar; }
+    getBar() {
+      return this.bar;
+    }
   }
 
   const foo = new Foo();

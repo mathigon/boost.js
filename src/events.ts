@@ -251,7 +251,7 @@ export function pointerOver($el: ElementView, fns: OverEventOptions) {
     if (over && fns.move) fns.move(posn(e));
   });
 
-  $el.on('touchend mouseleave', (e: Event) => {
+  $el.on('touchend mouseleave', () => {
     if (over && fns.exit) fns.exit();
     over = false;
   }, {passive: true});
@@ -303,7 +303,7 @@ function makeScrollEvents($el: ElementView) {
     window.removeEventListener('touchend', touchEnd);
   }
 
-  $el._el.addEventListener('touchstart', function (e) {
+  $el._el.addEventListener('touchstart', function(e) {
     if (!e.handled) touchStart();
   });
 }
@@ -549,7 +549,7 @@ const aliases: Obj<string> = {
              touchSupport ? 'touchend' : 'mouseup',
   pointercancel: pointerSupport ? 'pointercancel' : 'touchcancel',
   pointerstop: pointerSupport ? 'pointerup pointercancel' :
-               touchSupport ? 'touchend touchcancel' : 'mouseup'
+               touchSupport ? 'touchend touchcancel' : 'mouseup',
 };
 
 const customEvents: Obj<($el: ElementView, remove: boolean) => void> = {
@@ -567,11 +567,11 @@ const customEvents: Obj<($el: ElementView, remove: boolean) => void> = {
 
   enterViewport: makeIntersectionEvents,
   exitViewport: makeIntersectionEvents,
-  resize: makeResizeEvents
+  resize: makeResizeEvents,
 };
 
 export function bindEvent($el: ElementView, event: string, fn: EventCallback,
-                          options?: EventListenerOptions) {
+    options?: EventListenerOptions) {
   if (event in customEvents) {
     customEvents[event]($el, false);
   } else if (event in aliases) {
@@ -584,7 +584,7 @@ export function bindEvent($el: ElementView, event: string, fn: EventCallback,
 }
 
 export function unbindEvent($el: ElementView, event: string,
-                            fn?: EventCallback) {
+    fn?: EventCallback) {
 
   if (event in customEvents) {
     if (!$el._events[event] || !$el._events[event].length) {

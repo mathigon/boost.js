@@ -21,11 +21,10 @@ const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
 // Simple Animations
 
 export type AnimationCancel = () => void;
-export type AnimationCallback = (p: number, dt: number,
-                                 cancel: AnimationCancel) => void;
+export type AnimationCallback = (p: number, dt: number, cancel: AnimationCancel) => void;
 export type AnimationResponse = {cancel: AnimationCancel, promise: Promise<void>};
 
-export const ResolvedAnimation = {cancel: () => {}, promise: Promise.resolve()};
+export const ResolvedAnimation = {cancel: () => undefined, promise: Promise.resolve()};
 
 
 /**
@@ -36,10 +35,10 @@ export const ResolvedAnimation = {cancel: () => {}, promise: Promise.resolve()};
  * argument is the time difference since the last animation frame, and the
  * third callback argument is a `cancel()` function to stop the animation.
  */
-export function animate(callback: AnimationCallback,
-                        duration?: number): AnimationResponse {
+export function animate(callback: AnimationCallback, duration?: number): AnimationResponse {
+
   if (duration === 0) {
-    callback(1, 0, () => {});
+    callback(1, 0, () => undefined);
     return ResolvedAnimation;
   }
 
@@ -55,12 +54,12 @@ export function animate(callback: AnimationCallback,
   };
 
   function getFrame() {
-    if (running && (!duration || lastTime <= duration))
+    if (running && (!duration || lastTime <= duration)) {
       window.requestAnimationFrame(getFrame);
+    }
 
     const time = Date.now() - startTime;
-    callback(duration ? Math.min(1, time / duration) : time, time - lastTime,
-        cancel);
+    callback(duration ? Math.min(1, time / duration) : time, time - lastTime, cancel);
     if (duration && time >= duration) deferred.resolve();
     lastTime = time;
   }
@@ -148,8 +147,8 @@ export type AnimationProperties = Obj<AnimationValue|AnimationValue[]>;
 
 
 export function transition($el: ElementView, properties: AnimationProperties,
-                           duration = 400, _delay = 0,
-                           easing = 'ease-in-out'): AnimationResponse {
+    duration = 400, _delay = 0,
+    easing = 'ease-in-out'): AnimationResponse {
 
   // Don't play animations while the page is loading.
   if (!isReady) {
@@ -163,7 +162,7 @@ export function transition($el: ElementView, properties: AnimationProperties,
   if (easing === 'bounce-in') easing = BOUNCE_IN;
   if (easing === 'bounce-out') easing = BOUNCE_OUT;
 
-  let oldTransition: string = '';
+  let oldTransition = '';
   if (Browser.isSafari) {
     oldTransition = $el._el.style.transition;
     $el.css('transition', 'none');
@@ -174,7 +173,8 @@ export function transition($el: ElementView, properties: AnimationProperties,
   const currentAnimation = $el._data['animation'];
   if (currentAnimation) (currentAnimation as AnimationResponse).cancel();
 
-  const to: Keyframe = {}, from: Keyframe = {};
+  const to: Keyframe = {};
+  const from: Keyframe = {};
   const deferred = defer<void>();
 
   const style = window.getComputedStyle($el._el);
@@ -202,8 +202,9 @@ export function transition($el: ElementView, properties: AnimationProperties,
 
     player = $el._el.animate([from, to], {duration, easing, fill: 'forwards'});
     player.onfinish = () => {
-      if ($el._el) Object.keys(properties)
-          .forEach(k => $el.css(k, k === 'height' ? oldHeight! : to[k]!));
+      if ($el._el) {
+        Object.keys(properties).forEach(k => $el.css(k, k === 'height' ? oldHeight! : to[k]!));
+      }
       if (Browser.isSafari) $el.css('transition', oldTransition);
       deferred.resolve();
       player.cancel();  // bit ugly, but needed for Safari...
@@ -216,7 +217,7 @@ export function transition($el: ElementView, properties: AnimationProperties,
       if ($el._el) Object.keys(properties).forEach(k => $el.css(k, $el.css(k)));
       if (player) player.cancel();
     },
-    promise: deferred.promise
+    promise: deferred.promise,
   };
 
   // Only allow cancelling of animation in next thread.
@@ -233,7 +234,8 @@ export function transition($el: ElementView, properties: AnimationProperties,
 const CSS_MATRIX = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
 
 export function enter($el: ElementView, effect = 'fade', duration = 500,
-                      _delay = 0): AnimationResponse {
+    _delay = 0): AnimationResponse {
+
   $el.show();
   if (!isReady) return ResolvedAnimation;
   const opacity = (+$el.css('opacity')!) || 1;
@@ -248,8 +250,7 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
     // TODO Merge into one transition.
     transition($el, {opacity: [0, opacity]}, duration, _delay);
     return transition($el, {
-      transform: [transform + ' scale(0.5)',
-        transform + ' scale(1)']
+      transform: [transform + ' scale(0.5)', transform + ' scale(1)'],
     }, duration, _delay, 'bounce-in');
 
   } else if (effect === 'descend') {
@@ -285,7 +286,7 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
 }
 
 export function exit($el: ElementView, effect = 'fade', duration = 400,
-                     delay = 0, remove = false): AnimationResponse {
+    delay = 0, remove = false): AnimationResponse {
   if (!$el._el) return ResolvedAnimation;
 
   if (!isReady) {
@@ -304,8 +305,7 @@ export function exit($el: ElementView, effect = 'fade', duration = 400,
 
     transition($el, {opacity: [1, 0]}, duration, delay);
     animation = transition($el, {
-      transform: [transform + ' scale(1)',
-        transform + ' scale(0.5)']
+      transform: [transform + ' scale(1)', transform + ' scale(0.5)'],
     }, duration, delay, 'bounce-out');
 
   } else if (effect === 'ascend') {

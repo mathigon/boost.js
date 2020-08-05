@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {Line, Ray, Segment, Circle, Arc, Sector, Polygon, Polyline, Rectangle} from '@mathigon/fermat';
+import {Segment, Circle, Polygon, Polyline} from '@mathigon/fermat';
 import {GeoShape} from './svg';
 
 
@@ -19,7 +19,7 @@ export interface CanvasDrawingOptions {
 
 
 export function drawCanvas(ctx: CanvasRenderingContext2D, obj: GeoShape,
-                           options: CanvasDrawingOptions = {}) {
+    options: CanvasDrawingOptions = {}) {
   if (options.fill) ctx.fillStyle = options.fill;
   if (options.opacity) ctx.globalAlpha = options.opacity;
 

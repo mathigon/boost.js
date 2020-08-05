@@ -12,7 +12,7 @@ import {defer} from '@mathigon/core';
  * thread(). Note that `fn` has to be a single function with no external
  * references or bindings, so that it can be stringified using .toString().
  */
-export function functionToWorker(fn: Function) {
+export function functionToWorker(fn: () => any) {
   const content = `onmessage = e => postMessage((${fn.toString()})(e.data))`;
   const blob = new Blob([content], {type: 'application/javascript'});
   return URL.createObjectURL(blob);

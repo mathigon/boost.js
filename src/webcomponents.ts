@@ -113,9 +113,13 @@ abstract class CustomHTMLElement extends HTMLElement {
  * the element lifecycle.
  */
 export abstract class CustomElementView extends HTMLBaseView<CustomHTMLElement> {
-  created() {}
+  created() {
+    // abstract
+  }
 
-  ready() {}
+  ready() {
+    // abstract
+  }
 }
 
 
@@ -138,5 +142,5 @@ export function register(tagName: string, options: CustomElementOptions = {}) {
 
     customElementOptions.set(tagName.toUpperCase(), options);
     window.customElements.define(tagName, Constructor);
-  }
+  };
 }

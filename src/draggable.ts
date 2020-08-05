@@ -39,7 +39,7 @@ export class Draggable extends EventTarget {
   height = 0;
 
   constructor(readonly $el: ElementView, $parent: ElementView,
-              options: DraggableOptions = {}) {
+      options: DraggableOptions = {}) {
     super();
 
     this.options = applyDefaults(options, {moveX: true, moveY: true});
@@ -64,7 +64,7 @@ export class Draggable extends EventTarget {
         this.trigger(last.equals(start) ? 'click' : 'end');
         $html.removeClass('grabbing');
       },
-      accessible: true
+      accessible: true,
     });
 
     Browser.onResize(() => {
@@ -72,7 +72,7 @@ export class Draggable extends EventTarget {
       const oldHeight = this.height;
       this.setDimensions($parent);
       this.setPosition(this.position.x * this.width / oldWidth || 0,
-                       this.position.y * this.height / oldHeight || 0);
+          this.position.y * this.height / oldHeight || 0);
     });
   }
 

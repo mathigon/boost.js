@@ -94,13 +94,13 @@ const BINARY_OPS: Obj<(a: any, b: any) => any> = {
   '-': (a: any, b: any) => a - b,
   '*': (a: any, b: any) => a * b,
   '/': (a: any, b: any) => a / b,
-  '%': (a: any, b: any) => a % b
+  '%': (a: any, b: any) => a % b,
 };
 
 const UNARY_OPS: Obj<(a: any) => any> = {
   '-': (a: any) => -a,
   '+': (a: any) => +a,
-  '!': (a: any) => !a
+  '!': (a: any) => !a,
 };
 
 // Binary operations with their precedence
@@ -110,13 +110,13 @@ const BINARY_PRECEDENCE: Obj<number> = {
   '<': 4, '>': 4, '<=': 4, '>=': 4,
   '+': 5, '-': 5,
   '*': 6, '/': 6, '%': 6,
-  '**': 7  // TODO Exponentiation should be right-to-left.
+  '**': 7,  // TODO Exponentiation should be right-to-left.
 };
 
 const LITERALS: Obj<any> = {
   'true': true,
   'false': false,
-  'undefined': undefined
+  'undefined': undefined,
 };
 
 const SPACE = /\s/;
@@ -170,7 +170,7 @@ function parseSyntaxTree(expr: string) {
     let string = '';
 
     while (index < length) {
-      let char = expr[index++];
+      const char = expr[index++];
       if (char === quote) {
         closed = true;
         break;
@@ -259,7 +259,7 @@ function parseSyntaxTree(expr: string) {
           type: NODE_TYPE.Member,
           object: node!,
           computed: false,
-          property: gobbleIdentifier()
+          property: gobbleIdentifier(),
         };
       } else if (expr[index] === '[') {
         // Array index accessors.
@@ -268,7 +268,7 @@ function parseSyntaxTree(expr: string) {
           type: NODE_TYPE.Member,
           object: node!,
           computed: true,
-          property: gobbleExpression()!
+          property: gobbleExpression()!,
         };
         gobbleSpaces();
         if (expr[index] !== ']') throwError('Unclosed [');
@@ -279,7 +279,7 @@ function parseSyntaxTree(expr: string) {
         node = {
           type: NODE_TYPE.Call,
           args: gobbleArguments(')'),
-          callee: node
+          callee: node,
         };
       }
       gobbleSpaces();
@@ -305,7 +305,7 @@ function parseSyntaxTree(expr: string) {
   // TODO Support expressions like `[a, b][c]` or `([a, b])[c]`.
   function gobbleToken(): AnyNode|UnaryNode {
     gobbleSpaces();
-    let operator = expr[index];
+    const operator = expr[index];
 
     if (DIGIT.test(operator) || operator === '.') {
       return gobbleNumericLiteral();
@@ -340,11 +340,11 @@ function parseSyntaxTree(expr: string) {
     // correct order using recursive descent.
 
     let node: AnyNode;
-    let stack = [left, biop, right];
+    const stack = [left, biop, right];
 
     while ((biop = gobbleBinaryOp())) {
-      let prec = BINARY_PRECEDENCE[biop];
-      let cur_biop = biop;
+      const prec = BINARY_PRECEDENCE[biop];
+      const curBiop = biop;
 
       while (stack.length > 2 && prec <=
              BINARY_PRECEDENCE[stack[stack.length - 2] as string]) {
@@ -356,8 +356,8 @@ function parseSyntaxTree(expr: string) {
       }
 
       node = gobbleToken();
-      if (!node) throwError('Expected expression after ' + cur_biop);
-      stack.push(cur_biop, node);
+      if (!node) throwError('Expected expression after ' + curBiop);
+      stack.push(curBiop, node);
     }
 
     let i = stack.length - 1;
@@ -365,7 +365,7 @@ function parseSyntaxTree(expr: string) {
     while (i > 1) {
       node = {
         type: NODE_TYPE.BinaryOp, operator: stack[i - 1] as string,
-        left: stack[i - 2] as AnyNode, right: node
+        left: stack[i - 2] as AnyNode, right: node,
       };
       i -= 2;
     }
@@ -386,7 +386,7 @@ function parseSyntaxTree(expr: string) {
       gobbleSpaces();
       if (expr[index] === ':') {
         index++;
-        let alternate = gobbleExpression();
+        const alternate = gobbleExpression();
         if (!alternate) throwError('Expected expression');
         return {type: NODE_TYPE.Conditional, test, consequent, alternate};
       } else {
@@ -418,6 +418,7 @@ const EMPTY: [undefined, undefined] = [undefined, undefined];
  *     we return undefined, rather than throwing an error.
  */
 function evaluate(node: AnyNode, context: any): [any, any] {
+  /* eslint-disable no-case-declarations */
   switch (node.type) {
     case NODE_TYPE.Array:
       const v1 = node.elements.map((n) => evaluate(n, context)[0]);
@@ -467,7 +468,7 @@ function evaluate(node: AnyNode, context: any): [any, any] {
  */
 export function compile<T = any>(expr: string) {
   const node = parseSyntaxTree(expr);
-  if (!node) return (context: any = {}) => undefined;
+  if (!node) return (_context: any = {}) => undefined;
   return (context: any = {}): T|undefined => evaluate(node, context)[0];
 }
 

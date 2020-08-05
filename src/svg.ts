@@ -228,7 +228,7 @@ export function parsePath(d: string) {
     for (let i = 0; i < items.length; i += itemLength) {
       const x = items[i + itemLength - 2];
       const y = items[i + itemLength - 1];
-      points.push(isRelative ? last(points).shift(x, y) : new Point(x, y))
+      points.push(isRelative ? last(points).shift(x, y) : new Point(x, y));
     }
   }
 

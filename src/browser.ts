@@ -16,26 +16,26 @@ declare global {
 }
 
 export const KEY_CODES: Obj<number> = {
-  backspace: 8,
-  tab: 9,
-  enter: 13,
-  shift: 16,
-  ctrl: 17,
-  alt: 18,
-  pause: 19,
-  capslock: 20,
-  escape: 27,
-  space: 32,
-  pageup: 33,
-  pagedown: 34,
-  end: 35,
-  home: 36,
-  left: 37,
-  up: 38,
-  right: 39,
-  down: 40,
-  insert: 45,
-  'delete': 46
+  'backspace': 8,
+  'tab': 9,
+  'enter': 13,
+  'shift': 16,
+  'ctrl': 17,
+  'alt': 18,
+  'pause': 19,
+  'capslock': 20,
+  'escape': 27,
+  'space': 32,
+  'pageup': 33,
+  'pagedown': 34,
+  'end': 35,
+  'home': 36,
+  'left': 37,
+  'up': 38,
+  'right': 39,
+  'down': 40,
+  'insert': 45,
+  'delete': 46,
 };
 
 export type ResizeEvent = {width: number, height: number};
@@ -44,6 +44,7 @@ export type ResizeEvent = {width: number, height: number};
 // -----------------------------------------------------------------------------
 // Browser Namespace
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Browser {
 
   const ua = window.navigator.userAgent.toLowerCase();
@@ -71,6 +72,7 @@ export namespace Browser {
   const loadQueue: (() => void)[] = [];
   let loaded = false;
 
+  // eslint-disable-next-line no-inner-declarations
   function afterLoad() {
     if (loaded) return;
     loaded = true;
@@ -170,7 +172,7 @@ export namespace Browser {
   }
 
   export function setCookie(name: string, value: any,
-                            maxAge = 60 * 60 * 24 * 365) {
+      maxAge = 60 * 60 * 24 * 365) {
     // Cookies are also set for all subdomains. Remove locale subdomains.
     const domain = window.location.hostname.replace(/^[a-z]{2}\./, '');
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};domain=${domain}`;
@@ -240,7 +242,7 @@ export namespace Browser {
     const keyCodes = keyNames.map(k => KEY_CODES[k] || k);
     const event = up ? 'keyup' : 'keydown';
 
-    document.addEventListener(event, function (e) {
+    document.addEventListener(event, function(e) {
       const $active = getActiveInput();
       if ($active && ($active.is('input, textarea, [contenteditable]') ||
                       $active.hasAttr('tabindex'))) return;
@@ -270,7 +272,7 @@ export function replaceSvgImports() {
   if (!polyfill) return;
 
   const uses = Array.from(document.querySelectorAll('svg > use'));
-  uses.forEach(function (use) {
+  uses.forEach(function(use) {
     const src = use.getAttribute('xlink:href')!;
     const [url, id] = src.split('#');
     if (!url.length || !id) return;
