@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
   "keywords": [
     "browser",
@@ -25,11 +25,11 @@
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",
     "prepublish": "npm test && npm run lint && npm run build",
     "build": "rollup --config",
-    "lint": "eslint . --ext .ts --fix"
+    "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@mathigon/fermat": "^0.5.0",
-    "@mathigon/core": "^0.5.0"
+    "@mathigon/fermat": "0.5.2",
+    "@mathigon/core": "0.5.2"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "5.0.2",
@@ -48,6 +48,26 @@
   "renovate": {
     "extends": [
       "config:base"
+    ],
+    "schedule": [
+      "every weekend"
+    ],
+    "packageRules": [
+      {
+        "updateTypes": [
+          "patch",
+          "pin",
+          "digest"
+        ],
+        "automerge": true
+      },
+      {
+        "packagePatterns": [
+          "eslint",
+          "^@types"
+        ],
+        "automerge": true
+      }
     ]
   }
 }
