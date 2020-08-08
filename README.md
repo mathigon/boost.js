@@ -1,13 +1,14 @@
 # Boost.ts
 
+[![Build Status](https://travis-ci.org/mathigon/boost.js.svg?branch=master)](https://travis-ci.org/mathigon/boost.js)
+[![npm](https://img.shields.io/npm/v/@mathigon/boost.svg)](https://www.npmjs.com/package/@mathigon/boost)
+[![npm](https://img.shields.io/github/license/mathigon/boost.js.svg)](https://github.com/mathigon/boost.js/blob/master/LICENSE)
+
 Bost.ts is a library that makes working with browsers easier: everything from
 DOM manipulation to web components, event handling, animations, routing,
 multi-threading and AJAX requests. It was developed for
 [Mathigon.org](https://mathigon.org), an award-winning mathematics education
 project.
-
-[![npm](https://img.shields.io/npm/v/@mathigon/boost.svg)](https://www.npmjs.com/package/@mathigon/boost)
-[![npm](https://img.shields.io/github/license/mathigon/boost.js.svg)](https://github.com/mathigon/boost.js/blob/master/LICENSE)
 
 
 ## Features
