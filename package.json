@@ -23,7 +23,7 @@
   "repository": "mathigon/boost.js",
   "scripts": {
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",
-    "prepublish": "npm test && npm run lint && npm run build",
+    "prepublishOnly": "npm test && npm run lint && npm run build",
     "build": "rollup --config",
     "lint": "eslint . --ext .ts"
   },
