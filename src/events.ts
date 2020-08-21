@@ -172,6 +172,7 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   }
 
   function move(e: ScreenEvent) {
+    if (!startPosn) return;
     if (pointerId && (e as any).pointerId !== pointerId) return;
     e.preventDefault();
 
@@ -185,7 +186,8 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
     hasMoved = true;
   }
 
-  function end(e: ScreenEvent) {
+  function end(e: ScreenEvent, preventClick = false) {
+    if (!startPosn) return;
     if (pointerId && (e as any).pointerId !== pointerId) return;
     e.preventDefault();
 
@@ -194,8 +196,20 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
 
     if (fns.up) fns.up(lastPosn!, startPosn!);
     if (hasMoved && fns.end) fns.end(lastPosn!, startPosn!);
-    if (!hasMoved && fns.click) fns.click(startPosn!);
+    if (!hasMoved && fns.click && !preventClick) fns.click(startPosn!);
+    startPosn = undefined;
   }
+
+  // Cancel running slide gestures when pressing escape.
+  Browser.onKey('escape', () => {
+    if (!startPosn) return;
+    // Move the element back to the start position.
+    if (hasMoved && fns.move) fns.move(startPosn, startPosn, lastPosn!);
+    lastPosn = startPosn;
+    const event = document.createEvent('MouseEvent');
+    (event as any).pointerId = pointerId;
+    end(event, true);
+  });
 
   $el.on('pointerdown', start);
   if (fns.justInside) $el.on('mouseleave', end);
