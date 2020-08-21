@@ -236,19 +236,23 @@ export namespace Browser {
 
   type KeyboardEventListener = (e: KeyboardEvent, key: string) => void;
 
+  const KEY_NAMES: Obj<string> = {};
+  for (const [name, id] of Object.entries(KEY_CODES)) KEY_NAMES[id] = name;
+
   /** Binds an event listener that is fired when a key is pressed. */
   export function onKey(keys: string, fn: KeyboardEventListener, up = false) {
     const keyNames = words(keys);
-    const keyCodes = keyNames.map(k => KEY_CODES[k] || k);
     const event = up ? 'keyup' : 'keydown';
 
-    document.addEventListener(event, function(e) {
-      const $active = getActiveInput();
-      if ($active && ($active.is('input, textarea, [contenteditable]') ||
-                      $active.hasAttr('tabindex'))) return;
+    document.addEventListener(event, (e) => {
+      const key = KEY_NAMES[e.keyCode] || e.key;
+      if (!keyNames.includes(key)) return;
 
-      const i = keyCodes.findIndex(k => e.keyCode === k || e.key === k);
-      if (i >= 0) fn(e, keyNames[i]);
+      const $active = getActiveInput();
+      if ($active && $active.is('input, textarea, [contenteditable]')) return;
+      if ($active && ['space', 'enter', 'tab'].includes(key) && $active.is('button, a, [tabindex]')) return;
+
+      fn(e, key);
     });
   }
 }
