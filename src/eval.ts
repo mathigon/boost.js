@@ -417,7 +417,7 @@ const EMPTY: [undefined, undefined] = [undefined, undefined];
  * (2) All operations are "safe", i.e. when one of the arguments is undefined,
  *     we return undefined, rather than throwing an error.
  */
-function evaluate(node: AnyNode, context: Record<string, Object>): [any, any] {
+function evaluate(node: AnyNode, context: Record<string, unknown>): [any, any] {
   /* eslint-disable no-case-declarations */
   switch (node.type) {
     case NODE_TYPE.Array:
