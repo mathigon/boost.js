@@ -417,7 +417,7 @@ const EMPTY: [undefined, undefined] = [undefined, undefined];
  * (2) All operations are "safe", i.e. when one of the arguments is undefined,
  *     we return undefined, rather than throwing an error.
  */
-function evaluate(node: AnyNode, context: any): [any, any] {
+function evaluate(node: AnyNode, context: Record<string, unknown>): [any, any] {
   /* eslint-disable no-case-declarations */
   switch (node.type) {
     case NODE_TYPE.Array:
@@ -469,7 +469,7 @@ function evaluate(node: AnyNode, context: any): [any, any] {
 export function compile<T = any>(expr: string) {
   const node = parseSyntaxTree(expr);
   if (!node) return (_context: any = {}) => undefined;
-  return (context: any = {}): T|undefined => evaluate(node, context)[0];
+  return (context = {}): T|undefined => evaluate(node, context)[0];
 }
 
 
