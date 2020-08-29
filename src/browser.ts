@@ -58,7 +58,7 @@ export namespace Browser {
   export const isFirefox = ua.indexOf('firefox') >= 0;
   export const isAndroid = ua.indexOf('android') >= 0;
   export const isIOS = /iphone|ipad|ipod/i.test(ua);
-  export const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  export const isSafari = isIOS || /^((?!chrome|android).)*safari/i.test(ua);
 
   /** Forces a re-paint. This is useful when updating transition properties. */
   export function redraw() {
