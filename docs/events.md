@@ -15,25 +15,25 @@ import {slide, $} from '@mathigon/boost';
 
 const $target = $('.my-element');
 slide($target, {
-	down: (posn: Point) => {
-		// Executed on mouse/touch/pointerdown
-	},
-	start: (posn: Point) => {
-		// Executed just before starting to move the pointer
-	},
-	move: (posn: Point, start: Point, last: Point) => {
-		// Executed on every frame while sliding, including outside of the original $target.
+  down: (posn: Point) => {
+    // Executed on mouse/touch/pointerdown
+  },
+  start: (posn: Point) => {
+    // Executed just before starting to move the pointer
+  },
+  move: (posn: Point, start: Point, last: Point) => {
+    // Executed on every frame while sliding, including outside of the original $target.
     // You can always access the start position of the gesture, and the last position
     // with which the move() function was called as arguments of this function.
-		const distance = Point.distance(posn, last);
-	},
-	end: (posn: Point) => {
-		// Executed on mouse/touch/pointerup, after a sliding gesture.
-	},
-	click: (posn: Point) => {
-		// Executed on mouse/touch/pointerup, if there was no sliding gesture and the
+    const distance = Point.distance(posn, last);
+  },
+  end: (posn: Point) => {
+    // Executed on mouse/touch/pointerup, after a sliding gesture.
+  },
+  click: (posn: Point) => {
+    // Executed on mouse/touch/pointerup, if there was no sliding gesture and the
     // user simply clicked.
-	}
+  }
 });
 ```
 
