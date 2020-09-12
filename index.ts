@@ -5,6 +5,7 @@
 
 
 export * from './src/ajax';
+export * from './src/audio';
 export * from './src/animate';
 export * from './src/browser';
 export * from './src/draggable';
