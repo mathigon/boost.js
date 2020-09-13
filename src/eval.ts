@@ -483,13 +483,11 @@ const TEMPLATE = /\${([^}]+)}/g;
  * all `${x}` type expressions and evaluate them based on a context.
  */
 export function compileString(expr: string): (vars: any) => string {
-  expr = expr.replace(/×/g, '*');
-
   // This array contains the alternating static and variable parts of the expr.
   // For example, the input expression `Here ${is} some ${text}` would give
   // parts = ['Here ', 'is', ' some ', 'text', ''].
   const parts = expr.split(TEMPLATE);
-  const fns = parts.map((p, i) => (i % 2) ? compile(p) : undefined);
+  const fns = parts.map((p, i) => (i % 2) ? compile(p.replace(/×/g, '*')) : undefined);
 
   return (context: any) => {
     return parts.map((p, i) => {
