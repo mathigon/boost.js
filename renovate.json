@@ -1,6 +1,6 @@
 {
   "extends": ["config:base"],
-  "schedule": ["before 5am on Saturday"],
+  "schedule": ["before 5am on the first day of the month"],
   "packageRules": [{
     "packagePatterns": ["eslint"],
     "groupName": "lint",
@@ -8,6 +8,7 @@
     "automergeType": "branch"
   }, {
     "packagePatterns": ["^@mathigon"],
+    "schedule": ["at any time"],
     "groupName": "mathigon",
     "automerge": true,
     "automergeType": "branch"
