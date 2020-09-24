@@ -935,13 +935,14 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
   }
 
   /** Converts an SVG element into a PNG data URI. */
-  async pngImage(size?: number) {
+  async pngImage(width?: number, height?: number) {
     const $copy = this.copy(true, true);
 
-    const width = size || this.svgWidth;
-    const height = size || this.svgHeight;
+    if (!height) height = width || this.svgHeight;
+    if (!width) width = this.svgWidth;
     $copy.setAttr('width', width);
     $copy.setAttr('height', height);
+    $copy.setAttr('viewBox', this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
 
     const data = new XMLSerializer().serializeToString($copy._el);
     let url = 'data:image/svg+xml;utf8,' + encodeURIComponent(data);

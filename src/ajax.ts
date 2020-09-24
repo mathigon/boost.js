@@ -60,7 +60,7 @@ export function fromQueryString(str: string) {
  * Asynchronously loads a resource using a POST request. This utility function
  * automatically form-encodes JSON data and adds a CSRF header.
  */
-export function post(url: string, data?: string|PostData) {
+export async function post(url: string, data?: string|PostData) {
   const options = {
     method: 'POST',
     body: !data ? undefined :
@@ -72,7 +72,9 @@ export function post(url: string, data?: string|PostData) {
   };
 
   const ext = url.includes('?') ? '&xhr=1' : '?xhr=1';
-  return fetch(url + ext, options).then((r) => r.text());
+  const response = await fetch(url + ext, options);
+  if (!response.ok) throw new Error(`Fetch error ${response.status}: ${url}`);
+  return response.text();
 }
 
 /** Asynchronously loads and executes a JS script. */
