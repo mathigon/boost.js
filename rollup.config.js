@@ -3,7 +3,7 @@ import typescript from '@rollup/plugin-typescript';
 const options = {
   input: './index.ts',
   plugins: [typescript()],
-  external: ['@mathigon/core', '@mathigon/fermat'],
+  external: ['@mathigon/core', '@mathigon/fermat', '@mathigon/euclid'],
   onwarn(e) {
     if (e.code !== 'CIRCULAR_DEPENDENCY') console.warn(e.message);
   },
