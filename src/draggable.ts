@@ -5,7 +5,7 @@
 
 
 import {EventTarget, applyDefaults} from '@mathigon/core';
-import {Bounds, Point} from '@mathigon/fermat';
+import {Bounds, Point} from '@mathigon/euclid';
 import {SVGParentView, ElementView, $html} from './elements';
 import {Browser} from './browser';
 import {slide} from './events';

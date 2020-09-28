@@ -5,7 +5,8 @@
 
 
 import {isOneOf, words, applyDefaults, Obj} from '@mathigon/core';
-import {roundTo, Point, isBetween, Rectangle, SimplePoint, nearlyEquals} from '@mathigon/fermat';
+import {roundTo, isBetween, nearlyEquals} from '@mathigon/fermat';
+import {Point, Rectangle, SimplePoint, GeoShape, SVGDrawingOptions, drawSVG, drawCanvas, CanvasDrawingOptions} from '@mathigon/euclid';
 import {loadImage} from './ajax';
 
 import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
@@ -13,8 +14,7 @@ import {Browser, KEY_CODES} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
 import {Observable} from './observable';
-import {drawSVG, GeoShape, parsePath, SVGDrawingOptions} from './svg';
-import {CanvasDrawingOptions, drawCanvas} from './canvas';
+import {parsePath} from './svg';
 
 
 declare global {

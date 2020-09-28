@@ -5,7 +5,7 @@
 
 
 import {delay, Obj, words} from '@mathigon/core';
-import {Point} from '@mathigon/fermat';
+import {Point} from '@mathigon/euclid';
 import {SVGParentView, $, $body, ElementView, CanvasView, InputView, SVGView} from './elements';
 import {Browser} from './browser';
 
