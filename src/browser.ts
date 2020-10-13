@@ -135,7 +135,7 @@ export namespace Browser {
 
 
   // ---------------------------------------------------------------------------
-  // Location Hash
+  // Location
 
   /** Returns the hash string of the current window. */
   export function getHash() {
@@ -148,6 +148,12 @@ export namespace Browser {
     const scroll = document.body.scrollTop;
     window.location.hash = h;
     document.body.scrollTop = scroll;
+  }
+
+  /** Set the URL of the current window. */
+  export function setURL(url: string, title = '') {
+    window.history.replaceState({}, title, url);
+    if (title) window.document.title = title;
   }
 
 

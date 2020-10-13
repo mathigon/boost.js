@@ -32,17 +32,18 @@ function applyTemplate(el: CustomHTMLElement, options: CustomElementOptions) {
   }
 
   if (!children.length) return;
-  const defaultSlot = el.querySelector('slot:not([name])');
+  const slots: Record<string, HTMLElement> = {};
+  for (const s of Array.from(el.querySelectorAll('slot'))) {
+    slots[s.getAttribute('name') || ''] = s;
+  }
 
   for (const child of children) {
-    const name = child.getAttribute ? child.getAttribute('slot') : undefined;
-    const slot = name ? el.querySelector(`slot[name="${name}"]`) : defaultSlot;
+    const name = child.getAttribute ? (child.getAttribute('slot') || '') : '';
+    const slot = slots[name] || slots[''];
     if (slot) slot.parentNode!.insertBefore(child, slot);
   }
 
-  for (const slot of Array.from(el.querySelectorAll('slot'))) {
-    slot.parentNode!.removeChild(slot);
-  }
+  for (const slot of Object.values(slots)) slot.parentNode!.removeChild(slot);
 }
 
 function customElementChildren(el: Element) {

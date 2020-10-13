@@ -178,6 +178,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       } else if (name === ':bind') {
         this.bindVariable(model, value);
 
+      } else if (name ===':class') {
+        const expr = compile(value);
+        const initialClass = this.attr('class') + ' ';
+        this.removeAttr(name);
+        model.watch(() => this.setAttr('class', initialClass + expr(model)));
+
       } else if (name.startsWith(':')) {
         const expr = compile(value);
         const attr = name.slice(1);
