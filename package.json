@@ -28,7 +28,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@mathigon/euclid": "^0.6.3",
+    "@mathigon/euclid": "^0.6.4",
     "@mathigon/fermat": "^0.6.0",
     "@mathigon/core": "^0.5.2"
   },
