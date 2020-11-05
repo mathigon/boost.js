@@ -60,16 +60,16 @@ export function fromQueryString(str: string) {
  * Asynchronously loads a resource using a POST request. This utility function
  * automatically form-encodes JSON data and adds a CSRF header.
  */
-export async function post(url: string, data?: string|PostData) {
+export async function post(url: string, data?: FormData|PostData) {
+  const isForm = data instanceof FormData;
+
   const options = {
     method: 'POST',
-    body: !data ? undefined :
-          (typeof data === 'string') ? data : toQueryString(data),
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-CSRF-Token': window.csrfToken || '',
-    },
+    body: isForm ? (data as FormData) : data ? toQueryString(data) : undefined,
+    headers: {'X-CSRF-Token': window.csrfToken || ''} as Record<string, string>,
   };
+
+  if (!isForm) options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
 
   const ext = url.includes('?') ? '&xhr=1' : '?xhr=1';
   const response = await fetch(url + ext, options);
