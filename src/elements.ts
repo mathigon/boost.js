@@ -1074,6 +1074,10 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     return this._el instanceof HTMLInputElement ? this._el.checked : false;
   }
 
+  set checked(value: boolean) {
+    (this._el as HTMLInputElement).checked = value;
+  }
+
   get value() {
     return this._el.value;
   }

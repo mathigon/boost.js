@@ -5,7 +5,7 @@
 
 
 import {throttle, words, safeToJSON, Obj} from '@mathigon/core';
-import {$, $body} from './elements';
+import {$, $body, $html} from './elements';
 
 
 declare global {
@@ -63,6 +63,15 @@ export namespace Browser {
   /** Forces a re-paint. This is useful when updating transition properties. */
   export function redraw() {
     document.body.offsetHeight; /* jshint ignore:line */
+  }
+
+  export function isDarkMode() {
+    const attr = $html.attr('theme');
+    if (attr === 'auto') {
+      return window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    } else {
+      return attr === 'dark';
+    }
   }
 
 
