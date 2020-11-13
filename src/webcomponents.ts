@@ -7,7 +7,7 @@
 import {HTMLBaseView} from './elements';
 
 
-type CustomElementOptions = {attributes?: string[], template?: string, templateId?: string};
+type CustomElementOptions = {attributes?: string[], template?: string};
 type CustomElementConstructor = new (el: CustomHTMLElement) => CustomElementView;
 
 export type AttributeChangedEvent = {newVal: string, oldVal: string};
@@ -16,22 +16,12 @@ export type AttributeChangedEvent = {newVal: string, oldVal: string};
 // -----------------------------------------------------------------------------
 // Utility Functions
 
-function applyTemplate(el: CustomHTMLElement, options: CustomElementOptions) {
+function applyTemplate(el: CustomHTMLElement, template: string) {
   // Array.from() is required to break the reference to the original parent.
   const children = Array.from(el.childNodes) as Element[];
 
-  if (options.template) {
-    el.innerHTML = options.template;
-  } else if (options.templateId) {
-    const template = document.querySelector(options.templateId);
-    if (!template) throw new Error(`Template not found: ${options.templateId}`);
-    while (el.firstChild) el.removeChild(el.firstChild);
-    const content = (template as HTMLTemplateElement).content;
-    const clone = document.importNode(content, true);
-    el.appendChild(clone);
-  }
+  el.innerHTML = template;
 
-  if (!children.length) return;
   const slots: Record<string, HTMLElement> = {};
   for (const s of Array.from(el.querySelectorAll('slot'))) {
     slots[s.getAttribute('name') || ''] = s;
@@ -85,7 +75,7 @@ abstract class CustomHTMLElement extends HTMLElement {
     const options = customElementOptions.get(this._view.tagName) || {};
 
     // Bind Component Template
-    if (options.template || options.templateId) applyTemplate(this, options);
+    if (options.template) applyTemplate(this, options.template);
 
     // Select all unresolved custom element children
     // TODO improve performance and fix ordering
