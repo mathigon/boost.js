@@ -1087,8 +1087,15 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   }
 
   protected bindVariable(model: Observable, name: string) {
-    model[name] = this.value;
-    this.change((v: string) => model[name] = v);
+    const isNumber = this.attr('type') === 'number';
+
+    if (model[name]) {
+      this.value = model[name];
+    } else if (this.value) {
+      model[name] = this.value;
+    }
+
+    this.change((v: string) => model[name] = isNumber ? +v : v);
     model.watch(() => this.value = model[name]);
   }
 
