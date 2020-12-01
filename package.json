@@ -30,7 +30,7 @@
   "dependencies": {
     "@mathigon/euclid": "^0.6.4",
     "@mathigon/fermat": "^0.6.0",
-    "@mathigon/core": "^0.5.2"
+    "@mathigon/core": "^0.6.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "6.1.0",
