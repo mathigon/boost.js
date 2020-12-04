@@ -5,7 +5,7 @@
 
 
 import {isOneOf, words, applyDefaults, Obj} from '@mathigon/core';
-import {roundTo, isBetween, nearlyEquals} from '@mathigon/fermat';
+import {roundTo, isBetween, nearlyEquals, clamp} from '@mathigon/fermat';
 import {Point, Rectangle, SimplePoint, GeoShape, SVGDrawingOptions, drawSVG, drawCanvas, CanvasDrawingOptions} from '@mathigon/euclid';
 import {loadImage} from './ajax';
 
@@ -574,7 +574,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Returns a promise that is resolved when an event is triggered. */
   onPromise(event: string, resolveImmediately = false) {
     if (resolveImmediately) return Promise.resolve();
-    return new Promise((resolve) => this.one('solve', () => resolve()));
+    return new Promise<void>((resolve) => this.one('solve', () => resolve()));
   }
 
 
@@ -1088,6 +1088,8 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
 
   protected bindVariable(model: Observable, name: string) {
     const isNumber = this.attr('type') === 'number';
+    const min = this.hasAttr('min') ? +this.attr('min') : -Infinity;
+    const max = this.hasAttr('max') ? +this.attr('max') : Infinity;
 
     if (model[name]) {
       this.value = model[name];
@@ -1095,7 +1097,10 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
       model[name] = this.value;
     }
 
-    this.change((v: string) => model[name] = isNumber ? +v : v);
+    // Update the value on blur, in case it doesn't match the clamped value.
+    if (isNumber) this.on('blur', () => this.value = model[name]);
+
+    this.change((v: string) => model[name] = isNumber ? clamp(+v, min, max) : v);
     model.watch(() => this.value = model[name]);
   }
 
