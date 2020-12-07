@@ -1071,7 +1071,7 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   readonly type = 'input';
 
   get checked() {
-    return this._el instanceof HTMLInputElement ? this._el.checked : false;
+    return (this._el as HTMLInputElement).checked || false;
   }
 
   set checked(value: boolean) {
@@ -1087,21 +1087,33 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   }
 
   protected bindVariable(model: Observable, name: string) {
-    const isNumber = this.attr('type') === 'number';
-    const min = this.hasAttr('min') ? +this.attr('min') : -Infinity;
-    const max = this.hasAttr('max') ? +this.attr('max') : Infinity;
+    const isNumber = this._el.type === 'number';
+    const isCheckbox = this._el.type === 'checkbox';
 
-    if (model[name]) {
-      this.value = model[name];
+    if (name in model) {
+      isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
     } else if (this.value) {
-      model[name] = this.value;
+      isCheckbox ? (model[name] = this.checked) : (model[name] = this.value);
     }
 
-    // Update the value on blur, in case it doesn't match the clamped value.
-    if (isNumber) this.on('blur', () => this.value = model[name]);
+    if (isNumber) {
+      const min = this.hasAttr('min') ? +this.attr('min') : -Infinity;
+      const max = this.hasAttr('max') ? +this.attr('max') : Infinity;
+      this.change((v: string) => model[name] = clamp(+v, min, max));
 
-    this.change((v: string) => model[name] = isNumber ? clamp(+v, min, max) : v);
-    model.watch(() => this.value = model[name]);
+      // Update the value on blur, in case it doesn't match the clamped value.
+      this.on('blur', () => this.value = model[name]);
+
+    } else if (isCheckbox) {
+      this.on('change', () => model[name] = this.checked);
+
+    } else {
+      this.change((v: string) => model[name] = v);
+    }
+
+    model.watch(() => {
+      isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
+    });
   }
 
   /** Binds a change event listener. */
