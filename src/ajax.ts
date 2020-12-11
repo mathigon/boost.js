@@ -89,9 +89,10 @@ export function loadScript(src: string) {
 }
 
 /** Asynchronously loads an Image. */
-export function loadImage(url: string): Promise<HTMLImageElement> {
+export function loadImage(url: string, credentials = false): Promise<HTMLImageElement> {
   return new Promise((resolve) => {
     const img = new Image();
+    if (!credentials) img.crossOrigin = 'Anonymous';
     img.onload = () => resolve(img);
     img.src = url;
   });

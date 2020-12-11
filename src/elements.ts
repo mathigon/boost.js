@@ -949,21 +949,29 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     $copy.setAttr('width', width);
     $copy.setAttr('height', height);
     $copy.setAttr('viewBox', this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
+    $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
 
-    const data = new XMLSerializer().serializeToString($copy._el);
-    let url = 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
-    url = url.replace('svg ', 'svg xmlns="http://www.w3.org/2000/svg" ');
-    // const svgBlob = new Blob([data], {type: "image/svg+xml;charset=utf-8"});
-    // const url = window.URL.createObjectURL(svgBlob);
+    // External images in an SVG are not rendered because of CORS issues. We
+    // first need to individually convert them to data URIs.
+    const $images = $copy.$$('image[href^="http"]');
+    await Promise.all($images.map(async $i => {
+      const img = await loadImage($i.attr('href'));
+      const $canvas = $N('canvas', {width: img.width, height: img.height}) as CanvasView;
+      $canvas.ctx.drawImage(img, 0, 0, img.width, img.height);
+      const dataUri = await $canvas.pngImage;
+      $i.setAttr('href', dataUri);
+    }));
+
+    const serialised = new XMLSerializer().serializeToString($copy._el);
+    const url = 'data:image/svg+xml;utf8,' + encodeURIComponent(serialised);
 
     const $canvas = $N('canvas', {width, height}) as CanvasView;
-    $canvas.ctx.fillStyle = '#fff';
+    $canvas.ctx.fillStyle = $html.css('background-color') || 'white';
     $canvas.ctx.fillRect(0, 0, width, height);
 
     const image = await loadImage(url);
     $canvas.ctx.drawImage(image, 0, 0, width, height);
     return $canvas.pngImage;
-    // window.URL.revokeObjectURL(url);
   }
 
   downloadImage(fileName: string, size?: number) {
