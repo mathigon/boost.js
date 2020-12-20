@@ -571,6 +571,21 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     });
   }
 
+  onAttr(name: string, callback: (value: string, initial?: boolean) => void) {
+    // TODO Reuse existing observers, remove events, disconnect when deleting.
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === name) {
+          callback(this.attr(name));
+        }
+      }
+    });
+
+    observer.observe(this._el, {attributes: true});
+    callback(this.attr(name), true);
+  }
+
   /** Returns a promise that is resolved when an event is triggered. */
   onPromise(event: string, resolveImmediately = false) {
     if (resolveImmediately) return Promise.resolve();

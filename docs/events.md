@@ -42,6 +42,23 @@ top-left corner of the browser. if `$target` is an SVG or CANVAS element, the `p
 in the coordinate system of that element. This includes automatically inverting any transformations
 applied to the element (e.g. scaling).
 
+## Attributes
+
+You can watch changes to element attributes using the `.onAttr()` method:
+
+```ts
+import {slide, $} from '@mathigon/boost';
+
+const $target = $('.my-element');
+$target.onAttr('style', (style: string) => {
+  console.log(style);
+});
+```
+
+The callback is executed once immediately when binding the event listener, with the current value of
+the corresponding attribute. In that case, a second `initial: boolean` parameter is passed to the
+callback with value `true`.
+
 ## Other event types
 
 TODO…

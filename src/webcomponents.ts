@@ -6,11 +6,8 @@
 
 import {HTMLBaseView} from './elements';
 
-
-type CustomElementOptions = {attributes?: string[], template?: string};
+type CustomElementOptions = {template?: string};
 type CustomElementConstructor = new (el: CustomHTMLElement) => CustomElementView;
-
-export type AttributeChangedEvent = {newVal: string, oldVal: string};
 
 
 // -----------------------------------------------------------------------------
@@ -92,10 +89,6 @@ abstract class CustomHTMLElement extends HTMLElement {
   disconnectedCallback() {
     this._view.trigger('disconnected');
   }
-
-  attributeChangedCallback(attrName: string, oldVal: string, newVal: string) {
-    this._view.trigger('attr:' + attrName, {newVal, oldVal});
-  }
 }
 
 /**
@@ -127,8 +120,6 @@ export function register(tagName: string, options: CustomElementOptions = {}) {
         super();
         this._view = new ElementClass(this);
       }
-
-      static observedAttributes = options.attributes || [];
     }
 
     customElementOptions.set(tagName.toUpperCase(), options);
