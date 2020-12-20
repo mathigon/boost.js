@@ -551,6 +551,25 @@ function makeKeyEvent($el: ElementView) {
 
 
 // -----------------------------------------------------------------------------
+// Atribute Change Events
+
+function makeAttributeChangeEvent($el: ElementView, attr: string, remove = false) {
+  // TODO Support removing events.
+
+  if ($el._data._attributeObserver || !window.MutationObserver) return;
+  $el._data._attributeObserver = true;
+
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type !== 'attributes') continue;
+      $el.trigger('attr:' + m.attributeName, {value: $el.attr(m.attributeName!)});
+    }
+  });
+  observer.observe($el._el, {attributes: true});
+}
+
+
+// -----------------------------------------------------------------------------
 // Event Creation
 
 const aliases: Obj<string> = {
@@ -592,6 +611,8 @@ export function bindEvent($el: ElementView, event: string, fn: EventCallback,
     const events = words(aliases[event]);
     // Note that the mouse event aliases don't pass through makeMouseEvent()!
     for (const e of events) $el._el.addEventListener(e, fn, options);
+  } else if(event.startsWith('attr:')) {
+    makeAttributeChangeEvent($el, event.slice(5));
   } else {
     $el._el.addEventListener(event, fn, options);
   }
@@ -608,6 +629,8 @@ export function unbindEvent($el: ElementView, event: string,
   } else if (fn && event in aliases) {
     const events = words(aliases[event]);
     for (const e of events) $el._el.removeEventListener(e, fn);
+  } else if(fn && event.startsWith('attr:')) {
+    makeAttributeChangeEvent($el, event.slice(5), true);
   } else if (fn) {
     $el._el.removeEventListener(event, fn);
   }
