@@ -74,6 +74,7 @@ export function observe<T = any>(state: T) {
 
   function getKey() {
     lastKey += 1;
+    while ('_x' + lastKey in state) lastKey += 1;
     return '_x' + lastKey;
   }
 
