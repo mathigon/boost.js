@@ -166,6 +166,20 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
         this.removeAttr(name);
         model.watch(() => this.toggle(!!expr(model)));
 
+      } else if (name === ':if') {
+        const expr = compile(value);
+        this.removeAttr(name);
+        const placeholder = document.createComment('');
+        this._el.parentElement?.insertBefore(placeholder, this._el);
+        let visible = true;
+        model.watch(() => {
+          const show = !!expr(model);
+          if (show === visible) return;
+          if (show) placeholder.parentElement?.insertBefore(this._el, placeholder);
+          if (!show) this._el.parentNode?.removeChild(this._el);
+          visible = show;
+        });
+
       } else if (name === ':html') {
         const expr = compile(value);
         this.removeAttr(name);
