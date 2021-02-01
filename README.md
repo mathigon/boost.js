@@ -1,6 +1,6 @@
 # Boost.ts
 
-[![Build Status](https://travis-ci.org/mathigon/boost.js.svg?branch=master)](https://travis-ci.org/mathigon/boost.js)
+[![Build Status](https://github.com/mathigon/boost.js/workflows/CI%20Tests/badge.svg)](https://github.com/mathigon/boost.js/actions?query=workflow%3A%22CI+Tests%22)
 [![npm](https://img.shields.io/npm/v/@mathigon/boost.svg)](https://www.npmjs.com/package/@mathigon/boost)
 [![npm](https://img.shields.io/github/license/mathigon/boost.js.svg)](https://github.com/mathigon/boost.js/blob/master/LICENSE)
 
