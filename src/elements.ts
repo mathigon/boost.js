@@ -970,14 +970,14 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
   }
 
   /** Converts an SVG element into a PNG data URI. */
-  async pngImage(width?: number, height?: number) {
+  async pngImage(width?: number, height?: number, viewBox?: string) {
     const $copy = this.copy(true, true);
 
     if (!height) height = width || this.svgHeight;
     if (!width) width = this.svgWidth;
     $copy.setAttr('width', width);
     $copy.setAttr('height', height);
-    $copy.setAttr('viewBox', this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
+    $copy.setAttr('viewBox', viewBox || this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
     $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
 
     // External images in an SVG are not rendered because of CORS issues. We
@@ -1003,11 +1003,11 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     return $canvas.pngImage;
   }
 
-  downloadImage(fileName: string, size?: number) {
+  downloadImage(fileName: string, width?: number, height?: number, viewBox?: string) {
     // iOS Doesn't allow navigation calls within an async event.
     const windowRef = Browser.isIOS ? window.open('', '_blank') : undefined;
 
-    this.pngImage(size).then((href) => {
+    this.pngImage(width, height, viewBox).then((href) => {
       if (windowRef) return windowRef.location.href = href;
       const $a = $N('a', {download: fileName, href, target: '_blank'});
       $a._el.dispatchEvent(new MouseEvent('click',
