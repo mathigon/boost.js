@@ -17,6 +17,7 @@ interface ObservableOptions<T> {
   forceUpdate: () => void;
   assign: (obj: any) => void;
   getKey: () => string;
+  clear: () => void;
 }
 
 export type Observable<T = any> = T&ObservableOptions<T>;
@@ -78,6 +79,13 @@ export function observe<T = any>(state: T) {
     return '_x' + lastKey;
   }
 
+  function clear() {
+    state = {} as T;
+    callbackMap.clear();
+    computedKeys.clear();
+    lastKey = 0;
+  }
+
   const proxy = new Proxy(state as any, {
     get(_: T, key: string) {
       if (key === 'watch') return watch;
@@ -86,6 +94,7 @@ export function observe<T = any>(state: T) {
       if (key === 'forceUpdate') return forceUpdate;
       if (key === 'assign') return assign;
       if (key === 'getKey') return getKey;
+      if (key === 'clear') return clear;
       if (key === '_internal') return [state, callbackMap];
 
       // A callback is currently being run. We track its dependencies.

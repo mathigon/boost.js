@@ -5,8 +5,9 @@
 
 
 import {EventTarget, Obj} from '@mathigon/core';
+import {animate, AnimationResponse} from './animate';
 import {Browser, replaceSvgImports} from './browser';
-import {$body, ElementView} from './elements';
+import {$body, $N, ElementView} from './elements';
 
 
 declare global {
@@ -14,6 +15,8 @@ declare global {
     ga?: any;  // Google Analytics Object
   }
 }
+
+const LOADING_STYLE = 'position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #0f82f2; pointer-events: none; z-index: 9999; will-change: transform;';
 
 type Callback = ($el: ElementView, params: ViewParams) => void;
 
@@ -266,6 +269,29 @@ class Router extends EventTarget {
 
   forward() {
     window.history.forward();
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Loading Bar
+
+  private animation?: AnimationResponse;
+  private $loadingBar?: ElementView;
+
+  showLoadingBar() {
+    if (!this.$loadingBar) this.$loadingBar = $N('div', {style: LOADING_STYLE}, $body);
+    this.$loadingBar.css({transform: 'translateX(-100%)', opacity: 1});
+    this.$loadingBar.show();
+
+    this.animation = animate((p) => {
+      this.$loadingBar!.css('transform', `translateX(-${10 + 90 * Math.exp(-4 * p)}%)`);
+    }, 3000);
+  }
+
+  async hideLoadingBar() {
+    this.animation?.cancel();
+    await this.$loadingBar?.animate({transform: 'none', opacity: 0}).promise;
+    this.$loadingBar?.hide();
   }
 }
 
