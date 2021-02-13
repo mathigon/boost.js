@@ -51,3 +51,11 @@ tape('this reference', (test) => {
 
   test.end();
 });
+
+
+tape('undefined keys', (test) => {
+  test.equal(compile('x + y')({x: 1}), undefined);
+  test.equal(compile('x')({}), undefined);
+  test.equal(compile('!x')({}), true);
+  test.end();
+});

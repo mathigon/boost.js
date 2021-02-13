@@ -458,7 +458,8 @@ function evaluate(node: AnyNode, context: Record<string, unknown>): [any, any] {
 
     case NODE_TYPE.UnaryOp:
       const arg = evaluate(node.argument, context)[0];
-      if (arg === undefined) return EMPTY;
+      // For the ! operator, we allow undefined arguments.
+      if (arg === undefined && node.operator !== '!') return EMPTY;
       return [UNARY_OPS[node.operator](arg), undefined];
   }
 }
