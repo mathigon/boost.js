@@ -654,17 +654,18 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Creates a copy of this element.
    * @param {boolean=} recursive
    * @param {boolean=} withStyles Whether to inline all styles.
+   * @param {string[]?} styleKeys A whitelist of all neccessary styles.
    * @returns {Element}
    */
-  copy(recursive = true, withStyles = true) {
+  copy(recursive = true, withStyles = true, styleKeys?: string[]) {
     const $copy = $(this._el.cloneNode(recursive) as Element)!;
-    if (withStyles) $copy.copyInlineStyles(this, recursive);
+    if (withStyles) $copy.copyInlineStyles(this, recursive, styleKeys);
     return $copy;
   }
 
-  private copyInlineStyles($source: ElementView, recursive = true) {
+  private copyInlineStyles($source: ElementView, recursive = true, styleKeys?: string[]) {
     const style = window.getComputedStyle($source._el);
-    for (const s of Array.from(style)) {
+    for (const s of styleKeys || Array.from(style)) {
       this.css(s, style.getPropertyValue(s));
     }
 
@@ -672,7 +673,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       const children = this.children;
       const sourceChildren = $source.children;
       for (let i = 0; i < children.length; ++i) {
-        children[i].copyInlineStyles(sourceChildren[i], true);
+        children[i].copyInlineStyles(sourceChildren[i], true, styleKeys);
       }
     }
   }
@@ -789,6 +790,15 @@ export type HTMLView = HTMLBaseView<HTMLElement>;
 
 // -----------------------------------------------------------------------------
 // SVG Elements
+
+// Styles to copy when converting SVG elements to PNG
+const SVG_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
+  'letter-spacing', 'text-decoration', 'color', 'display', 'visibility',
+  'alignment-baseline', 'baseline-shift', 'text-anchor', 'clip', 'clip-path',
+  'clip-rule', 'mask', 'opacity', 'filter', 'fill', 'fill-rule', 'marker',
+  'marker-start', 'marker-mid', 'marker-end', 'stroke', 'stroke-dasharray',
+  'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width',
+  'text-rendering'];
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   readonly type = 'svg';
@@ -971,7 +981,7 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
 
   /** Converts an SVG element into a PNG data URI. */
   async pngImage(width?: number, height?: number, viewBox?: string) {
-    const $copy = this.copy(true, true);
+    const $copy = this.copy(true, true, SVG_STYLES);
 
     if (!height) height = width || this.svgHeight;
     if (!width) width = this.svgWidth;
