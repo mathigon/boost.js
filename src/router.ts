@@ -55,8 +55,7 @@ function getViewParams(url: string, view: View): ViewParams|undefined {
   }
 }
 
-async function getTemplate(view: View, params: ViewParams, url: string):
-    Promise<string> {
+async function getTemplate(view: View, params: ViewParams, url: string): Promise<string> {
   if (view.template) {
     if (typeof view.template === 'string') return view.template;
     return view.template(params);
@@ -76,6 +75,7 @@ if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
 }
 
+
 // -----------------------------------------------------------------------------
 // Router Cla
 
@@ -83,13 +83,13 @@ class Router extends EventTarget {
   private $viewport: ElementView = $body;
   private views: View[] = [];
 
-  private active = {path: '', hash: '', index: 0};
-  private search = window.location.search;
+  private active = {path: '', hash: ''};
 
   private preloaded = false;
   private transition = false;
   private noLoad = false;
   private initialise: Callback = () => undefined;
+  beforeChange?: () => Promise<boolean>;
 
   setup(options: RouterOptions = {}) {
     if (options.$viewport) this.$viewport = options.$viewport;
@@ -103,34 +103,30 @@ class Router extends EventTarget {
     }
 
     if (options.history) {
-      window.addEventListener('popstate', (e: PopStateEvent) => {
-        if (isReady && e.state) this.goToState(e.state);
+      window.addEventListener('popstate', async (e: PopStateEvent) => {
+        if (!isReady || !e.state?.path) return;
+        const success = await this.load(e.state.path, e.state.hash);
+        // Manually revert to the previous state, since popstate events are non-cancellable.
+        if (!success) window.history.pushState(this.active, '', this.active.path + this.active.hash);
       });
     }
   }
 
   view(url: string, {enter, exit, template}: ViewOptions = {}) {
-
-    // TODO Error on multiple matching views
     const params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
-    const regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') +
-                     '\\/?';
+    const regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') + '\\/?';
     const searchStr = url.includes('?') ? '' : '(\\?.*)?';
     const regex = new RegExp('^' + regexStr + searchStr + '$', 'i');
 
     const thisView = {regex, params, enter, exit, template};
     this.views.push(thisView);
 
-    const viewParams = getViewParams(window.location.pathname, thisView);
+    const current = window.location.pathname + window.location.search;
+    const viewParams = getViewParams(current, thisView);
     if (!viewParams) return;
 
-    this.active = {
-      path: window.location.pathname + this.search,
-      hash: window.location.hash,
-      index: 0,
-    };
-    window.history.replaceState(this.active, '',
-        this.active.path + this.active.hash);
+    this.active = {path: current, hash: window.location.hash};
+    window.history.replaceState(this.active, '', this.active.path + this.active.hash);
 
     // The wrappers fix stupid Firefox, which doesn't seem to take its time
     // triggering .createdCallbacks for web components...
@@ -140,7 +136,7 @@ class Router extends EventTarget {
           this.initialise(this.$viewport, viewParams);
           if (thisView.enter) thisView.enter(this.$viewport, viewParams);
         } else {
-          this.loadView(thisView, viewParams, window.location.pathname);
+          this.loadView(thisView, viewParams);
         }
       });
     });
@@ -150,7 +146,7 @@ class Router extends EventTarget {
     for (const url of urls) this.view(url);
   }
 
-  getView(path: string) {
+  private getView(path: string) {
     for (const view of this.views) {
       const params = getViewParams(path, view);
       if (params) return {view, params};
@@ -161,53 +157,55 @@ class Router extends EventTarget {
   // ---------------------------------------------------------------------------
   // Loading and Rendering
 
-  load(path: string, hash = '') {
-    const go = this.getView(path);
-
+  private async load(path: string, hash: string) {
     if (path === this.active.path && hash !== this.active.hash) {
       this.trigger('hashChange', hash.slice(1));
       this.trigger('change', path + hash);
+      this.active = {path, hash};
       return true;
-
-    } else if (go && path !== this.active.path) {
-      this.trigger('change', path + hash);
-      if (window.ga) window.ga('send', 'pageview', path + hash);
-      if (this.noLoad) {
-        if (go.view.enter) go.view.enter(this.$viewport, go.params);
-      } else {
-        this.loadView(go.view, go.params, path);
-      }
-      return true;
-
-    } else {
-      return false;
     }
+
+    const go = this.getView(path);
+    if (!go) return false;
+
+    if (this.beforeChange && !(await this.beforeChange())) return false;
+    this.active = {path, hash};
+
+    this.trigger('change', path + hash);
+    if (window.ga) window.ga('send', 'pageview', path + hash);
+    if (this.noLoad) {
+      if (go.view.enter) go.view.enter(this.$viewport, go.params);
+    } else {
+      this.loadView(go.view, go.params);  // async
+    }
+
+    return true;
   }
 
-  private async loadView(view: View, params: ViewParams = {}, url = '') {
-    this.$viewport.css({'opacity': 0.4, 'pointer-events': 'none'});
+  private async loadView(view: View, params: ViewParams = {}) {
+    this.showLoadingBar();
 
-    const template = await getTemplate(view, params, url);
+    const path = this.active.path;
+    const template = await getTemplate(view, params, path);
+    if (this.active.path !== path) return;  // Navigated during load..
 
-    this.$viewport.css('opacity', 0);
+    // TODO Remove all event listeners in $viewport, to avoid memory leaks.
+    await this.$viewport.animate({opacity: 0}, 200).promise;
+    this.$viewport.removeChildren();
 
-    setTimeout(() => {
-      this.$viewport.removeChildren();
-      // TODO Remove all event listeners in $viewport, to avoid memory leaks.
+    $body.scrollTop = 0;
+    this.$viewport.html = template;
+    Browser.resize();
+    replaceSvgImports();
+    this.$viewport.animate({'opacity': 1}, 200);  // async
+    this.hideLoadingBar();
 
-      $body.scrollTop = 0;
-      this.$viewport.html = template;
-      Browser.resize();
-      replaceSvgImports();
-      this.$viewport.css({'opacity': 1, 'pointer-events': 'all'});
+    const $title = this.$viewport.$('title');
+    if ($title) document.title = $title.text;
 
-      const $title = this.$viewport.$('title');
-      if ($title) document.title = $title.text;
-
-      this.initialise(this.$viewport, params);
-      if (view.enter) view.enter(this.$viewport, params);
-      this.trigger('afterChange', {$viewport: this.$viewport});
-    }, 350);
+    this.initialise(this.$viewport, params);
+    if (view.enter) view.enter(this.$viewport, params);
+    this.trigger('afterChange', {$viewport: this.$viewport});
   }
 
 
@@ -238,29 +236,24 @@ class Router extends EventTarget {
     const link = anchor.getAttribute('href');
     if (link && link.indexOf('mailto:') > -1) return;
 
-    const success = this.goTo(anchor.pathname + anchor.search, anchor.hash);
-    if (success) e.preventDefault();
+    if (this.getView(anchor.pathname + anchor.search)) {
+      e.preventDefault();  // Only prevent default of the view exists.
+      this.goTo(anchor.pathname + anchor.search, anchor.hash);
+    }
   }
 
-
-  goToState(state: {path: '', hash: '', index: 0}) {
-    if (!state || !state.path) return;
-    const change = this.load(state.path + this.search, state.hash);
-
-    if (change && state.index < this.active.index) this.trigger('back');
-    if (change && state.index > this.active.index) this.trigger('forward');
-    this.active = state;
-  }
-
-
-  goTo(path: string, hash = '') {
-    const success = this.load(path, hash);
-    if (success) {
-      const index = (this.active ? this.active.index + 1 : 0);
-      this.active = {path, hash, index};
+  async goTo(path: string, hash = '') {
+    const current = this.active.path + this.active.hash;
+    const success = await this.load(path, hash);
+    if (success && current !== this.active.path + this.active.hash) {
+      // If the path is the same, we don't push another state.
       window.history.pushState(this.active, '', path + hash);
     }
-    return success;
+  }
+
+  replace(path: string, hash = '') {
+    this.active = {path, hash};
+    window.history.replaceState(this.active, '', path + hash);
   }
 
   back() {
