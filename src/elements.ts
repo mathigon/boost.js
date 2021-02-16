@@ -13,7 +13,7 @@ import {ease, animate, transition, enter, exit, AnimationProperties, AnimationRe
 import {Browser, KEY_CODES} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
-import {Observable} from './observable';
+import {Observable, observe} from './observable';
 import {parsePath} from './svg';
 
 
@@ -142,8 +142,8 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     this._el.focus();
   }
 
-  // -------------------------------------------------------------------------
-  // Model Binding
+  // ---------------------------------------------------------------------------
+  // Templates and Model Binding
 
   getParentModel(): Observable|undefined {
     const parent = this.parent;
@@ -154,62 +154,11 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     if (this.model) return;  // Prevent duplicate binding.
     this.model = model;
 
+    // Special handling for :for attributes needs to happen first
+    if (this.hasAttr(':for')) return this.makeDynamicList(model);
+
     for (const {name, value} of this.attributes) {
-      if (name.startsWith('@')) {
-        const event = name.slice(1);
-        const expr = compile(value);
-        this.removeAttr(name);
-        this.on(event, () => expr(model));
-
-      } else if (name === ':show') {
-        const expr = compile(value);
-        this.removeAttr(name);
-        model.watch(() => this.toggle(!!expr(model)));
-
-      } else if (name === ':if') {
-        const expr = compile(value);
-        this.removeAttr(name);
-        const placeholder = document.createComment('');
-        this._el.parentElement?.insertBefore(placeholder, this._el);
-        let visible = true;
-        model.watch(() => {
-          const show = !!expr(model);
-          if (show === visible) return;
-          if (show) placeholder.parentElement?.insertBefore(this._el, placeholder);
-          if (!show) this._el.parentNode?.removeChild(this._el);
-          visible = show;
-        });
-
-      } else if (name === ':html') {
-        const expr = compile(value);
-        this.removeAttr(name);
-        model.watch(() => this.html = expr(model) || '');
-
-      } else if (name === ':draw') {
-        const expr = compile(value);
-        this.removeAttr(name);
-        model.watch(() => (this as unknown as SVGView).draw(expr(model)));
-
-      } else if (name === ':bind') {
-        this.removeAttr(name);
-        this.bindVariable(model, value);
-
-      } else if (name ===':class') {
-        const expr = compile(value);
-        const initialClass = this.attr('class') + ' ';
-        this.removeAttr(name);
-        model.watch(() => this.setAttr('class', initialClass + expr(model)));
-
-      } else if (name.startsWith(':')) {
-        const expr = compile(value);
-        const attr = name.slice(1);
-        this.removeAttr(name);
-        model.watch(() => this.setAttr(attr, expr(model)));
-
-      } else if (value.includes('${')) {
-        const expr = compileString(value);
-        model.watch(() => this.setAttr(name, expr(model) || ''));
-      }
+      this.makeDynamicAttribute(name, value, model);
     }
 
     for (const $c of this.childNodes) {
@@ -226,6 +175,94 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   protected bindVariable(_model: Observable, _name: string) {
     // Can be implemented by child classes.
+  }
+
+  private makeDynamicAttribute(name: string, value: string, model: Observable) {
+    if (name.startsWith('@')) {
+      const event = name.slice(1);
+      const expr = compile(value);
+      this.on(event, () => expr(model));
+
+    } else if (name === ':show') {
+      const expr = compile(value);
+      model.watch(() => this.toggle(!!expr(model)));
+
+    } else if (name === ':if') {
+      // While :show only toggles the visibility of an element, :if actually
+      // removes it from the DOM. This is useful for :first/last-child CSS.
+      const expr = compile(value);
+      const $placeholder = $(document.createComment('') as unknown as Element)!;
+      this.insertBefore($placeholder);
+      let visible = true;
+      model.watch(() => {
+        const show = !!expr(model);
+        if (show === visible) return;
+        if (show) $placeholder.insertBefore(this);
+        if (!show) this.detach();
+        visible = show;
+      });
+
+    } else if (name === ':html') {
+      const expr = compile(value);
+      model.watch(() => this.html = expr(model) || '');
+
+    } else if (name === ':draw') {
+      const expr = compile(value);
+      model.watch(() => (this as unknown as SVGView).draw(expr(model)));
+
+    } else if (name ===':class') {
+      const expr = compile(value);
+      const initialClass = this.attr('class') + ' ';
+      model.watch(() => this.setAttr('class', initialClass + expr(model)));
+
+    } else if (name === ':bind') {
+      this.bindVariable(model, value);
+
+    } else if (name.startsWith(':')) {
+      const expr = compile(value);
+      const attr = name.slice(1);
+      model.watch(() => this.setAttr(attr, expr(model)));
+
+    } else if (value.includes('${')) {
+      const expr = compileString(value);
+      model.watch(() => this.setAttr(name, expr(model) || ''));
+    }
+
+    if (name.startsWith('@') || name.startsWith(':')) this.removeAttr(name);
+  }
+
+  private makeDynamicList(model: Observable) {
+    const [name, value] = this.attr(':for').split(' in ');
+    this.removeAttr(':for');
+
+    const expr = compile(value);
+    const $placeholder = $(document.createComment('') as unknown as Element)!;
+    this.insertBefore($placeholder);
+    this.detach();
+
+    const $cached: ElementView[] = [];
+    let visible = 0;
+
+    model.watch(() => {
+      // TODO Better diff checking for arrays
+      let array = expr(model);
+      if (!Array.isArray(array)) array = [];
+
+      // Hide or show existing elements
+      for (let i = array.length; i < visible; ++i) $cached[i].detach();
+      for (let i = visible; i < $cached.length; ++i) $placeholder.insertBefore($cached[i]);
+
+      // Create new elements if necessary
+      for (let i = $cached.length; i < array.length; ++i) {
+        const $el = this.copy(true);
+        $el.bindModel(observe({[name]: undefined}, model));
+        $placeholder.insertBefore($el);
+        $cached.push($el);
+      }
+      visible = array.length;
+
+      for (let i = 0; i < visible; ++i) $cached[i].model[name] = array[i];
+    });
   }
 
 
@@ -512,16 +549,24 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Returns an array of all child nodes, including text nodes. */
   get childNodes(): (ElementView|Text)[] {
     return Array.from(this._el.childNodes, (node) => {
-      return node instanceof Text ? node : $(node as Element)!;
-    });
+      if (node instanceof Comment) return undefined;
+      if (node instanceof Text) return node;
+      return $(node as Element)!;
+    }).filter(x => x) as (ElementView|Text)[];
+  }
+
+  /** Detaches an element from the DOM. */
+  detach() {
+    if (this._el && this._el.parentNode) {
+      this._el.parentNode.removeChild(this._el);
+    }
   }
 
   /** Removes this element. */
   remove() {
-    if (this._el && this._el.parentNode) {
-      this._el.parentNode.removeChild(this._el);
-    }
-    // TODO More cleanup: remove event listeners, clean children, etc.
+    this.detach();
+    // TODO Remove event listeners (including children)
+    // TODO Remove model bindings (including children)
     // this._el = this._data = this._events = undefined;
   }
 

@@ -23,7 +23,7 @@ interface ObservableOptions<T> {
 export type Observable<T = any> = T&ObservableOptions<T>;
 
 
-export function observe<T = any>(state: T) {
+export function observe<T = any>(state: T, parentModel?: Observable) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
   let pendingCallback: Callback<T>|undefined = undefined;
@@ -86,6 +86,15 @@ export function observe<T = any>(state: T) {
     lastKey = 0;
   }
 
+  /**
+   * Allow this model to "inherit" properties from a parent model, and update
+   * it when the parent model changes.
+   */
+  function inherit(key: string) {
+    if (!parentModel) return;
+    parentModel.watch(() => proxy[key] = parentModel[key]);
+  }
+
   const proxy = new Proxy(state as any, {
     get(_: T, key: string) {
       if (key === 'watch') return watch;
@@ -103,6 +112,7 @@ export function observe<T = any>(state: T) {
         callbackMap.get(key)!.add(pendingCallback);
       }
 
+      if (!(key in state)) inherit(key);
       return (state as any)[key];
     },
 
@@ -111,6 +121,7 @@ export function observe<T = any>(state: T) {
       (state as any)[key] = value;
 
       // Clear a value that was previously computed.
+      // TODO Clear properties that were inherited from parent modal.
       if (computedKeys.has(key)) {
         unwatch(computedKeys.get(key)!);
         computedKeys.delete(key);
