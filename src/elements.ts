@@ -845,7 +845,7 @@ const SVG_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
   'clip-rule', 'mask', 'opacity', 'filter', 'fill', 'fill-rule', 'marker',
   'marker-start', 'marker-mid', 'marker-end', 'stroke', 'stroke-dasharray',
   'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width',
-  'text-rendering'];
+  'text-rendering', 'transform'];
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   readonly type = 'svg';
@@ -1208,6 +1208,14 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     model.watch(() => {
       isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
     });
+  }
+
+  /** Polyfill for type and inputmode attributes. */
+  setInputPattern(value: string) {
+    if (isNaN(+value)) return;
+    const digitsOnly = value.match(/^[0-9]+$/);
+    this.setAttr('inputmode', digitsOnly ? 'numeric' : 'decimal');
+    if (digitsOnly) this.setAttr('pattern', '[0-9]*');
   }
 
   /** Binds a change event listener. */
