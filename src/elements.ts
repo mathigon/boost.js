@@ -395,10 +395,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Sets the CSS transform on this element. */
   setTransform(posn?: SimplePoint, angle = 0, scale = 1) {
     let t = '';
-    if (posn) {
-      t +=
-        `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)}px)`;
-    }
+    if (posn) t += `translate(${roundTo(posn.x, 0.1)}px,${roundTo(posn.y, 0.1)}px)`;
     if (angle) t += ` rotate(${angle}rad)`;
     if (scale) t += ` scale(${scale})`;
     this._el.style.transform = t;
@@ -896,9 +893,10 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   }
 
   setTransform(posn?: SimplePoint, angle = 0, scale = 1) {
-    const t1 = posn ?
-               `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` :
-               '';
+    // TODO Safari only supports transform-origin and transform-box for CSS
+    // transforms, not the [transform=] attribute:
+    // https://stackoverflow.com/questions/61272308/
+    const t1 = posn ? `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` : '';
     const t2 = nearlyEquals(angle, 0) ? '' : `rotate(${angle * 180 / Math.PI})`;
     const t3 = nearlyEquals(scale, 1) ? '' : `scale(${scale})`;
     this.setAttr('transform', [t1, t2, t3].join(' '));
