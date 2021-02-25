@@ -239,8 +239,9 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   function remove() {
     $el.off('pointerdown', start);
     if (fns.justInside) $el.off('mouseleave', end);
-    if (fns.accessible)
+    if (fns.accessible) {
       document.removeEventListener('keydown', accessibilityHandler);
+    }
   }
 
   return remove;
