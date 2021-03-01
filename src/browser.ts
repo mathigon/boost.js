@@ -79,6 +79,13 @@ class BrowserInstance {
     this.darkQuery?.addEventListener('change', () => this.applyThemeChange());
     const initial = this.getCookie('theme');
     if (initial) this.setTheme(initial as any);
+
+    try {
+      this.localStorage = window.localStorage;
+    } catch {
+      // This could happen when running inside an iFrame
+      console.warn('Unable to access Local Storage in this context.');
+    }
   }
 
 
@@ -232,9 +239,11 @@ class BrowserInstance {
   // ---------------------------------------------------------------------------
   // Local Storage
 
+  private localStorage?: Storage;
+
   setStorage(key: string, value: any) {
     const keys = (key || '').split('.');
-    const storage = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
+    const storage = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined);
     let path = storage;
 
     for (let i = 0; i < keys.length - 1; ++i) {
@@ -243,11 +252,11 @@ class BrowserInstance {
     }
 
     path[keys[keys.length - 1]] = value;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
+    this.localStorage?.setItem(STORAGE_KEY, JSON.stringify(storage));
   }
 
   getStorage(key: string) {
-    let path = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
+    let path = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined);
     if (!key) return path;
 
     const keys = (key || '').split('.');
@@ -264,7 +273,7 @@ class BrowserInstance {
     if (key) {
       this.setStorage(key, undefined);
     } else {
-      window.localStorage.setItem(STORAGE_KEY, '');
+      this.localStorage?.setItem(STORAGE_KEY, '');
     }
   }
 
