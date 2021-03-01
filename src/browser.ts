@@ -65,15 +65,6 @@ export namespace Browser {
     document.body.offsetHeight; /* jshint ignore:line */
   }
 
-  export function isDarkMode() {
-    const attr = $html.attr('theme');
-    if (attr === 'auto') {
-      return window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-    } else {
-      return attr === 'dark';
-    }
-  }
-
 
   // ---------------------------------------------------------------------------
   // Load Events
@@ -167,6 +158,41 @@ export namespace Browser {
 
 
   // ---------------------------------------------------------------------------
+  // Theme
+
+  type Theme = {name: 'dark'|'light'|'auto', isDark: boolean};
+  export const theme = {name: 'light', isDark: false} as Theme;
+  const themeOverride = $html.attr('theme');
+
+  const darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+  const themeCallbacks: ((theme: Theme) => void)[] = [];
+
+  // eslint-disable-next-line no-inner-declarations
+  function updateTheme() {
+    const isDark = theme.name === 'dark' || (theme.name === 'auto' && darkQuery.matches);
+    if (isDark === theme.isDark) return;
+    theme.isDark = isDark;
+    $html.setAttr('theme', themeOverride || isDark ? 'dark' : 'light');
+    for (const c of themeCallbacks) c(theme);
+  }
+
+  export function setTheme(name: 'dark'|'light'|'auto') {
+    if (name === theme.name) return;
+    theme.name = name;
+    setCookie('theme', name);
+    updateTheme();
+  }
+
+  export function onThemeChange(fn: (theme: Theme) => void) {
+    themeCallbacks.push(fn);
+  }
+
+  darkQuery?.addEventListener('change', updateTheme);
+  const initial = getCookie('theme');
+  if (initial) setTheme(initial as any);
+
+
+  // ---------------------------------------------------------------------------
   // Cookies
 
   /** Returns a JSON object of all cookies. */
@@ -186,8 +212,7 @@ export namespace Browser {
     return v ? v[2] : undefined;
   }
 
-  export function setCookie(name: string, value: any,
-      maxAge = 60 * 60 * 24 * 365) {
+  export function setCookie(name: string, value: any, maxAge = 60 * 60 * 24 * 365) {
     // Cookies are also set for all subdomains. Remove locale subdomains.
     const domain = window.location.hostname.replace(/^[a-z]{2}\./, '');
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};domain=${domain}`;

@@ -578,6 +578,8 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   /** Binds one ore more space-separated event listeners on this element. */
   on(events: string, callback: EventCallback, options?: EventListenerOptions) {
+    // TODO Use WeakRef to avoid having to unbind events when the element is deleted.
+    // https://v8.dev/features/weak-references
     for (const e of words(events)) {
       if (e in this._events) {
         if (!this._events[e].includes(callback)) this._events[e].push(callback);
