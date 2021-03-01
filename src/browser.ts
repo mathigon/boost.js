@@ -10,6 +10,7 @@ import {$, $body, $html} from './elements';
 
 declare global {
   interface Window {
+    BoostBrowser?: BrowserInstance;
     Touch: any;
     chrome: any;
   }
@@ -39,111 +40,151 @@ export const KEY_CODES: Obj<number> = {
 };
 
 export type ResizeEvent = {width: number, height: number};
+type ResizeCallback = (e: ResizeEvent) => void;
+type KeyboardEventListener = (e: KeyboardEvent, key: string) => void;
+type Theme = {name: 'dark'|'light'|'auto', isDark: boolean};
+
+const STORAGE_KEY = '_M';
+const UA = window.navigator.userAgent.toLowerCase();
+
+const KEY_NAMES: Obj<string> = {};
+for (const [name, id] of Object.entries(KEY_CODES)) KEY_NAMES[id] = name;
+
+const MOBILE_REGEX = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+const IOS_REGEX = /iphone|ipad|ipod/i;
+const SAFARI_REGEX = /^((?!chrome|android).)*safari/i;
 
 
 // -----------------------------------------------------------------------------
 // Browser Namespace
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace Browser {
+class BrowserInstance {
+  readonly isMobile = MOBILE_REGEX.test(UA);
+  readonly isRetina = ((window.devicePixelRatio || 1) > 1);
+  readonly isTouch = (!!window.Touch) || ('ontouchstart' in window);
 
-  const ua = window.navigator.userAgent.toLowerCase();
+  readonly isChrome = !!window.chrome;
+  readonly isFirefox = UA.indexOf('firefox') >= 0;
+  readonly isAndroid = UA.indexOf('android') >= 0;
+  readonly isIOS = IOS_REGEX.test(UA);
+  readonly isSafari = IOS_REGEX.test(UA) || SAFARI_REGEX.test(UA);
 
-  export const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-      ua);
-  export const isRetina = ((window.devicePixelRatio || 1) > 1);
-  export const isTouch = (!!window.Touch) || 'ontouchstart' in window;
+  constructor() {
+    window.onload = () => this.afterLoad();
+    document.addEventListener('DOMContentLoaded', () => this.afterLoad());
 
-  export const isChrome = !!window.chrome;
-  export const isFirefox = ua.indexOf('firefox') >= 0;
-  export const isAndroid = ua.indexOf('android') >= 0;
-  export const isIOS = /iphone|ipad|ipod/i.test(ua);
-  export const isSafari = isIOS || /^((?!chrome|android).)*safari/i.test(ua);
+    const applyResizeThrottled = throttle(() => this.applyResize());
+    window.addEventListener('resize', () => applyResizeThrottled);
 
-  /** Forces a re-paint. This is useful when updating transition properties. */
-  export function redraw() {
-    document.body.offsetHeight; /* jshint ignore:line */
+    this.darkQuery?.addEventListener('change', () => this.applyThemeChange());
+    const initial = this.getCookie('theme');
+    if (initial) this.setTheme(initial as any);
   }
 
 
   // ---------------------------------------------------------------------------
-  // Load Events
+  // Loading Events
 
-  const loadQueue: (() => void)[] = [];
-  let loaded = false;
+  private readonly loadQueue: (() => void)[] = [];
+  private loaded = false;
 
-  // eslint-disable-next-line no-inner-declarations
-  function afterLoad() {
-    if (loaded) return;
-    loaded = true;
-    for (const fn of loadQueue) fn();
-    setTimeout(resize);
+  private afterLoad() {
+    if (this.loaded) return;
+    this.loaded = true;
+    for (const fn of this.loadQueue) fn();
+    setTimeout(() => this.resize());
   }
 
-  window.onload = afterLoad;
-  document.addEventListener('DOMContentLoaded', afterLoad);
-
   /** Binds an event listener that is triggered when the page is loaded. */
-  export function ready(fn: () => void) {
-    if (loaded) {
+  ready(fn: () => void) {
+    if (this.loaded) {
       fn();
     } else {
-      loadQueue.push(fn);
+      this.loadQueue.push(fn);
     }
+  }
+
+  /** Forces a re-paint. This is useful when updating transition properties. */
+  redraw() {
+    document.body.offsetHeight; /* jshint ignore:line */
   }
 
 
   // ---------------------------------------------------------------------------
   // Resize Events
 
-  type ResizeCallback = (e: ResizeEvent) => void;
-  const resizeCallbacks: ResizeCallback[] = [];
+  width = window.innerWidth;
+  height = window.innerHeight;
+  private readonly resizeCallbacks: ResizeCallback[] = [];
 
-  export let width = window.innerWidth;
-  export let height = window.innerHeight;
-
-  const doResize = throttle(() => {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    for (const fn of resizeCallbacks) fn({width, height});
-    $body.trigger('scroll', {top: $body.scrollTop});
-  });
-
-  export function onResize(fn: ResizeCallback) {
-    fn({width, height});
-    resizeCallbacks.push(fn);
-  }
-
-  export function offResize(fn: ResizeCallback) {
-    const i = resizeCallbacks.indexOf(fn);
-    if (i >= 0) resizeCallbacks.splice(i, 1);
-  }
-
-  export function resize() {
-    doResize();
-  }
-
-  window.addEventListener('resize', () => {
+  private applyResize() {
     const newWidth = window.innerWidth;
     const newHeight = window.innerHeight;
-    if (width === newWidth && height === newHeight) return;
+    if (this.width === newWidth && this.height === newHeight) return;
 
-    width = newWidth;
-    height = newHeight;
-    doResize();
-  });
+    this.width = newWidth;
+    this.height = newHeight;
+
+    for (const fn of this.resizeCallbacks) fn({width: this.width, height: this.height});
+    $body.trigger('scroll', {top: $body.scrollTop});
+  }
+
+  onResize(fn: ResizeCallback) {
+    fn({width: this.width, height: this.height});
+    this.resizeCallbacks.push(fn);
+  }
+
+  offResize(fn: ResizeCallback) {
+    const i = this.resizeCallbacks.indexOf(fn);
+    if (i >= 0) this.resizeCallbacks.splice(i, 1);
+  }
+
+  resize() {
+    this.applyResize();
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Theme
+
+  readonly theme: Theme = {name: 'light', isDark: false};
+  private readonly themeChangedCallbacks: ((theme: Theme) => void)[] = [];
+  private themeOverride = '';
+  private darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+
+  private applyThemeChange() {
+    const name = this.theme.name;
+    const isDark = name === 'dark' || (name === 'auto' && this.darkQuery.matches);
+
+    if (isDark === this.theme.isDark) return;
+    this.theme.isDark = isDark;
+
+    $html.setAttr('theme', this.themeOverride || (isDark ? 'dark' : 'light'));
+    for (const c of this.themeChangedCallbacks) c(this.theme);
+  }
+
+  setTheme(name: 'dark'|'light'|'auto') {
+    if (name === this.theme.name) return;
+    this.theme.name = name;
+    this.setCookie('theme', name);
+    this.applyThemeChange();
+  }
+
+  onThemeChange(fn: (theme: Theme) => void) {
+    this.themeChangedCallbacks.push(fn);
+  }
 
 
   // ---------------------------------------------------------------------------
   // Location
 
   /** Returns the hash string of the current window. */
-  export function getHash() {
+  getHash() {
     return window.location.hash.slice(1);
   }
 
   /** Set the hash string of the current window. */
-  export function setHash(h: string) {
+  setHash(h: string) {
     // Prevent scroll to top when resetting hash.
     const scroll = document.body.scrollTop;
     window.location.hash = h;
@@ -151,52 +192,17 @@ export namespace Browser {
   }
 
   /** Set the URL of the current window. */
-  export function setURL(url: string, title = '') {
+  setURL(url: string, title = '') {
     window.history.replaceState({}, title, url);
     if (title) window.document.title = title;
   }
 
 
   // ---------------------------------------------------------------------------
-  // Theme
-
-  type Theme = {name: 'dark'|'light'|'auto', isDark: boolean};
-  export const theme = {name: 'light', isDark: false} as Theme;
-  const themeOverride = $html.attr('theme');
-
-  const darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-  const themeCallbacks: ((theme: Theme) => void)[] = [];
-
-  // eslint-disable-next-line no-inner-declarations
-  function updateTheme() {
-    const isDark = theme.name === 'dark' || (theme.name === 'auto' && darkQuery.matches);
-    if (isDark === theme.isDark) return;
-    theme.isDark = isDark;
-    $html.setAttr('theme', themeOverride || isDark ? 'dark' : 'light');
-    for (const c of themeCallbacks) c(theme);
-  }
-
-  export function setTheme(name: 'dark'|'light'|'auto') {
-    if (name === theme.name) return;
-    theme.name = name;
-    setCookie('theme', name);
-    updateTheme();
-  }
-
-  export function onThemeChange(fn: (theme: Theme) => void) {
-    themeCallbacks.push(fn);
-  }
-
-  darkQuery?.addEventListener('change', updateTheme);
-  const initial = getCookie('theme');
-  if (initial) setTheme(initial as any);
-
-
-  // ---------------------------------------------------------------------------
   // Cookies
 
   /** Returns a JSON object of all cookies. */
-  export function getCookies() {
+  getCookies() {
     const pairs = document.cookie.split(';');
     const result: Obj<string> = {};
     for (let i = 0, n = pairs.length; i < n; ++i) {
@@ -207,28 +213,26 @@ export namespace Browser {
     return result;
   }
 
-  export function getCookie(name: string) {
+  getCookie(name: string) {
     const v = document.cookie.match(new RegExp(`(^|;) ?${name}=([^;]*)(;|$)`));
     return v ? v[2] : undefined;
   }
 
-  export function setCookie(name: string, value: any, maxAge = 60 * 60 * 24 * 365) {
+  setCookie(name: string, value: any, maxAge = 60 * 60 * 24 * 365) {
     // Cookies are also set for all subdomains. Remove locale subdomains.
     const domain = window.location.hostname.replace(/^[a-z]{2}\./, '');
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};domain=${domain}`;
   }
 
-  export function deleteCookie(name: string) {
-    setCookie(name, '', -1);
+  deleteCookie(name: string) {
+    this.setCookie(name, '', -1);
   }
 
 
   // ---------------------------------------------------------------------------
   // Local Storage
 
-  const STORAGE_KEY = '_M';
-
-  export function setStorage(key: string, value: any) {
+  setStorage(key: string, value: any) {
     const keys = (key || '').split('.');
     const storage = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
     let path = storage;
@@ -242,7 +246,7 @@ export namespace Browser {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
   }
 
-  export function getStorage(key: string) {
+  getStorage(key: string) {
     let path = safeToJSON(window.localStorage.getItem(STORAGE_KEY) || undefined);
     if (!key) return path;
 
@@ -256,9 +260,9 @@ export namespace Browser {
     return path[lastKey];
   }
 
-  export function deleteStorage(key: string) {
+  deleteStorage(key: string) {
     if (key) {
-      setStorage(key, undefined);
+      this.setStorage(key, undefined);
     } else {
       window.localStorage.setItem(STORAGE_KEY, '');
     }
@@ -269,18 +273,13 @@ export namespace Browser {
   // Keyboard Event Handling
 
   /** The current active element on the page (e.g. and `<input>`). */
-  export function getActiveInput() {
+  getActiveInput() {
     const active = document.activeElement;
     return active === document.body ? undefined : $(active as HTMLElement);
   }
 
-  type KeyboardEventListener = (e: KeyboardEvent, key: string) => void;
-
-  const KEY_NAMES: Obj<string> = {};
-  for (const [name, id] of Object.entries(KEY_CODES)) KEY_NAMES[id] = name;
-
   /** Binds an event listener that is fired when a key is pressed. */
-  export function onKey(keys: string, fn: KeyboardEventListener, up = false) {
+  onKey(keys: string, fn: KeyboardEventListener, up = false) {
     const keyNames = words(keys);
     const event = up ? 'keyup' : 'keydown';
 
@@ -288,7 +287,7 @@ export namespace Browser {
       const key = KEY_NAMES[e.keyCode] || e.key;
       if (!keyNames.includes(key)) return;
 
-      const $active = getActiveInput();
+      const $active = this.getActiveInput();
       if ($active && $active.is('input, textarea, [contenteditable]')) return;
       if ($active && ['space', 'enter', 'tab'].includes(key) && $active.is('button, a, [tabindex]')) return;
 
@@ -296,6 +295,10 @@ export namespace Browser {
     });
   }
 }
+
+// Ensure we only create one Browser class during the lifetime of a page.
+export const Browser = window.BoostBrowser || new BrowserInstance();
+window.BoostBrowser = Browser;
 
 
 // -----------------------------------------------------------------------------
