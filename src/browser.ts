@@ -74,7 +74,7 @@ class BrowserInstance {
     document.addEventListener('DOMContentLoaded', () => this.afterLoad());
 
     const applyResizeThrottled = throttle(() => this.applyResize());
-    window.addEventListener('resize', () => applyResizeThrottled);
+    window.addEventListener('resize', applyResizeThrottled);
 
     this.darkQuery?.addEventListener('change', () => this.applyThemeChange());
     const initial = this.getCookie('theme');
