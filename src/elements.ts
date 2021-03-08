@@ -273,6 +273,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el.getBoundingClientRect();
   }
 
+  contains(point: Point) {
+    const bounds = this.bounds;
+    return isBetween(point.x, bounds.left, bounds.left + bounds.width) &&
+           isBetween(point.y, bounds.top, bounds.top + bounds.height);
+  }
+
   /** Checks if this element is currently visible in the viewport. */
   get isInViewport() {
     if (this.height === 0) return false;
