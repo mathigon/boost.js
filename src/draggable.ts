@@ -32,7 +32,7 @@ interface DraggableOptions {
  * @emits {Point} Draggable#move When the position of this element changes.
  */
 export class Draggable extends EventTarget {
-  private options: DraggableOptions;
+  protected options: DraggableOptions;
   position = new Point(0, 0);
   disabled = false;
   width = 0;
