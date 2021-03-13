@@ -1342,7 +1342,7 @@ export class MediaView extends HTMLBaseView<HTMLMediaElement> {
 
 const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
   'g', 'defs', 'marker', 'line', 'text', 'tspan', 'pattern', 'mask', 'svg',
-  'foreignObject', 'image'];
+  'foreignObject', 'image', 'use'];
 
 /**
  * Finds the Element that matches a specific CSS selector, or creates a new
