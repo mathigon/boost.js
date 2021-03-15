@@ -1005,7 +1005,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
 }
 
 export class SVGParentView extends SVGBaseView<SVGSVGElement> {
-  /** Draws a generic geometry object onto a new child SVG `<path>` element, 
+  /** Draws a generic geometry object onto a new child SVG `<path>` element,
     * and returns this element */
   drawElem(obj: GeoShape, attributes?: Obj<any>, options: SVGDrawingOptions = {}) {
     const $el = $N('path', {}, this) as SVGView;
