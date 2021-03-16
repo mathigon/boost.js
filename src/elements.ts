@@ -273,10 +273,13 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el.getBoundingClientRect();
   }
 
-  contains(point: Point) {
+  get boundsRectangle() {
     const bounds = this.bounds;
-    return isBetween(point.x, bounds.left, bounds.left + bounds.width) &&
-           isBetween(point.y, bounds.top, bounds.top + bounds.height);
+    return new Rectangle(new Point(bounds.x, bounds.y), bounds.width, bounds.height);
+  }
+
+  contains(point: Point) {
+    this.boundsRectangle.contains(point);
   }
 
   /** Checks if this element is currently visible in the viewport. */
