@@ -273,13 +273,13 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el.getBoundingClientRect();
   }
 
-  get boundsRectangle() {
+  get boundsRect() {
     const bounds = this.bounds;
     return new Rectangle(new Point(bounds.x, bounds.y), bounds.width, bounds.height);
   }
 
   contains(point: Point) {
-    this.boundsRectangle.contains(point);
+    this.boundsRect.contains(point);
   }
 
   /** Checks if this element is currently visible in the viewport. */
