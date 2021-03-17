@@ -76,7 +76,13 @@ class BrowserInstance {
     const applyResizeThrottled = throttle(() => this.applyResize());
     window.addEventListener('resize', applyResizeThrottled);
 
-    this.darkQuery?.addEventListener('change', () => this.applyThemeChange());
+    try {
+      this.darkQuery?.addEventListener('change', () => this.applyThemeChange());
+    } catch {
+      // Deprecated, but required for older versions of Safari
+      // https://developer.mozilla.org/en-US/docs/Web/API/MediaQueryList/addListener#browser_compatibility
+      this.darkQuery?.addListener(() => this.applyThemeChange());
+    }
     const initial = this.getCookie('theme');
     if (initial) this.setTheme(initial as any);
 
