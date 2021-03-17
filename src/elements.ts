@@ -1035,6 +1035,13 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     return this.viewBox.height || this.height;
   }
 
+  /** Create a new `<path>` element child and draw a geometry object onto it. */
+  drawPath(obj: GeoShape, attributes: Obj<any> = {}, options: SVGDrawingOptions = {}) {
+    const $el = $N('path', attributes, this) as SVGView;
+    $el.draw(obj, options);
+    return $el;
+  }
+
   /** Converts an SVG element into a PNG data URI. */
   async pngImage(width?: number, height?: number, viewBox?: string) {
     const $copy = this.copy(true, true, SVG_STYLES);
