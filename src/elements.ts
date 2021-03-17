@@ -1005,14 +1005,6 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
 }
 
 export class SVGParentView extends SVGBaseView<SVGSVGElement> {
-  /** Draws a generic geometry object onto a new child SVG `<path>` element,
-    * and returns this element */
-  drawElem(obj: GeoShape, attributes?: Obj<any>, options: SVGDrawingOptions = {}) {
-    const $el = $N('path', {}, this) as SVGView;
-    $el.draw(obj, options);
-    return $el;
-  }
-
   /** Returns the viewport coordinates of this `<svg>` element. */
   get viewBox() {
     return (this._el as SVGSVGElement).viewBox.baseVal || {width: 0, height: 0};
@@ -1038,6 +1030,13 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
   /** Returns the intrinsic height of this `<svg>` element. */
   get svgHeight() {
     return this.viewBox.height || this.height;
+  }
+
+  /** Create a new `<path>` element child and draw a geometry object onto it. */
+  drawPath(obj: GeoShape, attributes?: Obj<any> = {}, options: SVGDrawingOptions = {}) {
+    const $el = $N('path', attributes, this) as SVGView;
+    $el.draw(obj, options);
+    return $el;
   }
 
   /** Converts an SVG element into a PNG data URI. */
