@@ -220,8 +220,7 @@ class BrowserInstance {
     const result: Obj<string> = {};
     for (let i = 0, n = pairs.length; i < n; ++i) {
       const pair = pairs[i].split('=');
-      pair[0] = pair[0].replace(/^\s+|\s+$/, '');
-      result[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+      result[decodeURIComponent(pair[0]).trim()] = decodeURIComponent(pair[1]);
     }
     return result;
   }
@@ -269,7 +268,7 @@ class BrowserInstance {
     const lastKey = keys.pop()!;
 
     for (const k of keys) {
-      if (!(k in path)) return undefined;
+      if (!(k in path)) return;
       path = path[k];
     }
     return path[lastKey];
