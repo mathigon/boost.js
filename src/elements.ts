@@ -1033,7 +1033,7 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
   }
 
   /** Create a new `<path>` element child and draw a geometry object onto it. */
-  drawPath(obj: GeoShape, attributes?: Obj<any> = {}, options: SVGDrawingOptions = {}) {
+  drawPath(obj: GeoShape, attributes: Obj<any> = {}, options: SVGDrawingOptions = {}) {
     const $el = $N('path', attributes, this) as SVGView;
     $el.draw(obj, options);
     return $el;
