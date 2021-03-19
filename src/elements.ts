@@ -510,12 +510,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** The first child element matching a given selector. */
-  $(selector: string): ElementView|undefined {
+  $<T extends DomQuery>(selector: T): QueryResult<T> {
     return $(selector, this);
   }
 
   /** All child elements matching a given selector. */
-  $$(selector: string): ElementView[] {
+  $$<T extends DomQuery>(selector: T): QueryResults<T> {
     return $$(selector, this);
   }
 
@@ -1354,6 +1354,15 @@ const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
   'g', 'defs', 'marker', 'line', 'text', 'tspan', 'pattern', 'mask', 'svg',
   'foreignObject', 'image', 'use'] as const;
 
+type HtmlTag =
+  'div' |
+  'p' |
+  'span';
+
+type WindowTag =
+  'html' |
+  'body';
+
 type SvgTag = typeof SVG_TAGS[number];
 
 type InputTag =
@@ -1364,6 +1373,8 @@ type InputTag =
 type MediaTag = 'video' | 'audio';
 
 type DomName =
+  HtmlTag |
+  WindowTag |
   SvgTag |
   InputTag |
   MediaTag |
@@ -1372,6 +1383,8 @@ type DomName =
 type DomQuery = Element | DomName;
 
 type CreateResult<T extends DomName> =
+  T extends HtmlTag ? HTMLView :
+  T extends WindowTag ? WindowView :
   T extends 'svg' ? SVGParentView :
   T extends SvgTag ? SVGView :
   T extends 'canvas' ? CanvasView :
