@@ -1380,7 +1380,14 @@ type DomName =
   MediaTag |
   string;
 
-type DomQuery = Element | DomName;
+type DomQuery =
+  HTMLDivElement |
+  HTMLSpanElement |
+  HTMLCanvasElement |
+  SVGSVGElement |
+  SVGElement |
+  Element |
+  DomName;
 
 type CreateResult<T extends DomName> =
   T extends HtmlTag ? HTMLView :
@@ -1394,11 +1401,19 @@ type CreateResult<T extends DomName> =
   ElementView;
 
 type QueryResult<T extends DomQuery> =
+  T extends HTMLDivElement | HTMLSpanElement ? HTMLView :
+  T extends HTMLCanvasElement ? CanvasView :
+  T extends SVGSVGElement ? SVGParentView :
+  T extends SVGElement ? SVGView :
   T extends Element ? ElementView :
   T extends string ? CreateResult<T> | undefined :
   ElementView | undefined;
 
 type QueryResults<T extends DomQuery> =
+  T extends HTMLDivElement | HTMLSpanElement ? HTMLView[] :
+  T extends HTMLCanvasElement ? CanvasView[] :
+  T extends SVGSVGElement ? SVGParentView[] :
+  T extends SVGElement ? SVGView[] :
   T extends Element ? ElementView[] :
   T extends string ? CreateResult<T>[] :
   ElementView[];
