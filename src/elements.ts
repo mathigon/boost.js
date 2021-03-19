@@ -1352,27 +1352,9 @@ export class MediaView extends HTMLBaseView<HTMLMediaElement> {
 
 const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
   'g', 'defs', 'marker', 'line', 'text', 'tspan', 'pattern', 'mask', 'svg',
-  'foreignObject', 'image', 'use'];
+  'foreignObject', 'image', 'use'] as const;
 
-type SvgTag =
-  'path'|
-  'rect'|
-  'circle'|
-  'ellipse'|
-  'polygon'|
-  'polyline'|
-  'g'|
-  'defs'|
-  'marker'|
-  'line'|
-  'text'|
-  'tspan'|
-  'pattern'|
-  'mask'|
-  'svg'|
-  'foreignObject'|
-  'image'|
-  'use';
+type SvgTag = typeof SVG_TAGS[number];
 
 type InputTag =
   'input' |
@@ -1434,7 +1416,7 @@ export function $<T extends DomQuery>(query?: T,
     return new InputView(el as InputFieldElement) as QueryResult<T>;
   } else if (tagName === 'video' || tagName === 'audio') {
     return new MediaView(el as HTMLMediaElement) as QueryResult<T>;
-  } else if (SVG_TAGS.includes(tagName)) {
+  } else if ((SVG_TAGS as readonly string[]).includes(tagName)) {
     // TODO <mask> and <pattern> are not SVGGraphicsElements.
     return new SVGBaseView<SVGGraphicsElement>(el as SVGGraphicsElement) as QueryResult<T>;
   } else {
@@ -1454,7 +1436,7 @@ export function $$<T extends DomQuery>(selector: T,
 export function $N<T extends DomName>(tag: T, attributes: Obj<any> = {},
     parent?: ElementView): CreateResult<T> {
 
-  const el = !SVG_TAGS.includes(tag) ? document.createElement(tag) :
+  const el = !(SVG_TAGS as readonly string[]).includes(tag) ? document.createElement(tag) :
              document.createElementNS('http://www.w3.org/2000/svg', tag);
 
   for (const [key, value] of Object.entries(attributes)) {
