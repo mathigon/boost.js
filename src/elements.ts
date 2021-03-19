@@ -515,7 +515,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** All child elements matching a given selector. */
-  $$<T extends DomQuery>(selector: T): QueryResults<T> {
+  $$<T extends DomName>(selector: T): QueryResults<T> {
     return $$(selector, this);
   }
 
@@ -1409,12 +1409,7 @@ type QueryResult<T extends DomQuery> =
   T extends string ? CreateResult<T> | undefined :
   ElementView | undefined;
 
-type QueryResults<T extends DomQuery> =
-  T extends HTMLDivElement | HTMLSpanElement ? HTMLView[] :
-  T extends HTMLCanvasElement ? CanvasView[] :
-  T extends SVGSVGElement ? SVGParentView[] :
-  T extends SVGElement ? SVGView[] :
-  T extends Element ? ElementView[] :
+type QueryResults<T extends DomName> =
   T extends string ? CreateResult<T>[] :
   ElementView[];
 
@@ -1453,7 +1448,7 @@ export function $<T extends DomQuery>(query?: T,
 }
 
 /** Finds all elements that match a specific CSS selector. */
-export function $$<T extends DomQuery>(selector: T,
+export function $$<T extends DomName>(selector: T,
     context?: ElementView): QueryResults<T> {
   const c = context ? context._el : document.documentElement;
   const els = selector ? c.querySelectorAll(selector as string) : [];
