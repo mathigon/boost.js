@@ -510,12 +510,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** The first child element matching a given selector. */
-  $(selector: string): ElementView|undefined {
+  $<T extends Element | string>(selector: T): QueryResult<T> {
     return $(selector, this);
   }
 
   /** All child elements matching a given selector. */
-  $$(selector: string): ElementView[] {
+  $$<T extends string>(selector: T): QueryResults<T> {
     return $$(selector, this);
   }
 
@@ -1352,55 +1352,79 @@ export class MediaView extends HTMLBaseView<HTMLMediaElement> {
 
 const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
   'g', 'defs', 'marker', 'line', 'text', 'tspan', 'pattern', 'mask', 'svg',
-  'foreignObject', 'image', 'use'];
+  'foreignObject', 'image', 'use'] as const;
+
+type CreateResult<T extends string> =
+  T extends ('div' | 'p' | 'span') ? HTMLView :
+  T extends 'svg' ? SVGParentView :
+  T extends (typeof SVG_TAGS[number]) ? SVGView :
+  T extends 'canvas' ? CanvasView :
+  T extends 'form' ? FormView :
+  T extends ('input' | 'select' | 'textarea') ? InputView :
+  T extends ('video' | 'audio') ? MediaView :
+  // T extends ('html' | 'body') ? WindowView :
+  ElementView;
+
+type QueryResult<T extends Element | string> =
+  T extends HTMLDivElement | HTMLSpanElement ? HTMLView :
+  T extends HTMLCanvasElement ? CanvasView :
+  T extends SVGSVGElement ? SVGParentView :
+  T extends SVGElement ? SVGView :
+  T extends Element ? ElementView :
+  T extends string ? CreateResult<T> | undefined :
+  ElementView | undefined;
+
+type QueryResults<T extends string> =
+  T extends string ? CreateResult<T>[] :
+  ElementView[];
 
 /**
  * Finds the Element that matches a specific CSS selector, or creates a new
  * Element wrapper around a native HTMLElement instance.
  */
-export function $(query?: string|Element,
-    context?: ElementView): ElementView|undefined {
-  if (!query) return undefined;
+export function $<T extends Element | string>(query?: T,
+    context?: ElementView): QueryResult<T> {
+  if (!query) return undefined as QueryResult<T>;
 
   const c = context ? context._el : document.documentElement;
   const el = (typeof query === 'string') ? c.querySelector(query) : query;
 
-  if (!el) return undefined;
-  if (el._view) return el._view;
+  if (!el) return undefined as QueryResult<T>;
+  if ((el as Element)._view) return (el as Element)._view as QueryResult<T>;
 
-  const tagName = (el.tagName || '').toLowerCase();
+  const tagName = ((el as Element).tagName || '').toLowerCase();
 
   if (tagName === 'svg') {
-    return new SVGParentView(el as SVGSVGElement);
+    return new SVGParentView(el as SVGSVGElement) as QueryResult<T>;
   } else if (tagName === 'canvas') {
-    return new CanvasView(el as HTMLCanvasElement);
+    return new CanvasView(el as HTMLCanvasElement) as QueryResult<T>;
   } else if (tagName === 'form') {
-    return new FormView(el as HTMLFormElement);
+    return new FormView(el as HTMLFormElement) as QueryResult<T>;
   } else if (tagName === 'input' || tagName === 'select' || tagName === 'textarea') {
-    return new InputView(el as InputFieldElement);
+    return new InputView(el as InputFieldElement) as QueryResult<T>;
   } else if (tagName === 'video' || tagName === 'audio') {
-    return new MediaView(el as HTMLMediaElement);
-  } else if (SVG_TAGS.includes(tagName)) {
+    return new MediaView(el as HTMLMediaElement) as QueryResult<T>;
+  } else if ((SVG_TAGS as readonly string[]).includes(tagName)) {
     // TODO <mask> and <pattern> are not SVGGraphicsElements.
-    return new SVGBaseView<SVGGraphicsElement>(el as SVGGraphicsElement);
+    return new SVGBaseView<SVGGraphicsElement>(el as SVGGraphicsElement) as QueryResult<T>;
   } else {
-    return new HTMLBaseView<HTMLElement>(el as HTMLElement);
+    return new HTMLBaseView<HTMLElement>(el as HTMLElement) as QueryResult<T>;
   }
 }
 
 /** Finds all elements that match a specific CSS selector. */
-export function $$(selector: string,
-    context?: ElementView): ElementView[] {
+export function $$<T extends string>(selector: T,
+    context?: ElementView): QueryResults<T> {
   const c = context ? context._el : document.documentElement;
-  const els = selector ? c.querySelectorAll(selector) : [];
-  return Array.from(els, el => $(el)!);
+  const els = selector ? c.querySelectorAll(selector as string) : [];
+  return Array.from(els, el => $(el)!) as QueryResults<T>;
 }
 
 /** Creates a new Element instance from a given set of options. */
-export function $N(tag: string, attributes: Obj<any> = {},
-    parent?: ElementView) {
+export function $N<T extends string>(tag: T, attributes: Obj<any> = {},
+    parent?: ElementView): CreateResult<T> {
 
-  const el = !SVG_TAGS.includes(tag) ? document.createElement(tag) :
+  const el = !(SVG_TAGS as readonly string[]).includes(tag) ? document.createElement(tag) :
              document.createElementNS('http://www.w3.org/2000/svg', tag);
 
   for (const [key, value] of Object.entries(attributes)) {
@@ -1420,9 +1444,8 @@ export function $N(tag: string, attributes: Obj<any> = {},
 
   const $el = $(el)!;
   if (parent) parent.append($el);
-  return $el;
+  return $el as CreateResult<T>;
 }
 
 export const $body = new WindowView(document.body as HTMLBodyElement);
-export const $html = new WindowView(
-    document.documentElement as HTMLHtmlElement);
+export const $html = new WindowView(document.documentElement as HTMLHtmlElement);
