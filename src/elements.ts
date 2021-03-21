@@ -510,12 +510,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** The first child element matching a given selector. */
-  $<T extends DomQuery>(selector: T): QueryResult<T> {
+  $<T extends Element | string>(selector: T): QueryResult<T> {
     return $(selector, this);
   }
 
   /** All child elements matching a given selector. */
-  $$<T extends DomName>(selector: T): QueryResults<T> {
+  $$<T extends string>(selector: T): QueryResults<T> {
     return $$(selector, this);
   }
 
@@ -1354,53 +1354,18 @@ const SVG_TAGS = ['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline',
   'g', 'defs', 'marker', 'line', 'text', 'tspan', 'pattern', 'mask', 'svg',
   'foreignObject', 'image', 'use'] as const;
 
-type HtmlTag =
-  'div' |
-  'p' |
-  'span';
-
-type WindowTag =
-  'html' |
-  'body';
-
-type SvgTag = typeof SVG_TAGS[number];
-
-type InputTag =
-  'input' |
-  'select' |
-  'textarea';
-
-type MediaTag = 'video' | 'audio';
-
-type DomName =
-  HtmlTag |
-  WindowTag |
-  SvgTag |
-  InputTag |
-  MediaTag |
-  string;
-
-type DomQuery =
-  HTMLDivElement |
-  HTMLSpanElement |
-  HTMLCanvasElement |
-  SVGSVGElement |
-  SVGElement |
-  Element |
-  DomName;
-
-type CreateResult<T extends DomName> =
-  T extends HtmlTag ? HTMLView :
-  T extends WindowTag ? WindowView :
+type CreateResult<T extends string> =
+  T extends ('div' | 'p' | 'span') ? HTMLView :
   T extends 'svg' ? SVGParentView :
-  T extends SvgTag ? SVGView :
+  T extends (typeof SVG_TAGS[number]) ? SVGView :
   T extends 'canvas' ? CanvasView :
   T extends 'form' ? FormView :
-  T extends InputTag ? InputView :
-  T extends MediaTag ? MediaView :
+  T extends ('input' | 'select' | 'textarea') ? InputView :
+  T extends ('video' | 'audio') ? MediaView :
+  // T extends ('html' | 'body') ? WindowView :
   ElementView;
 
-type QueryResult<T extends DomQuery> =
+type QueryResult<T extends Element | string> =
   T extends HTMLDivElement | HTMLSpanElement ? HTMLView :
   T extends HTMLCanvasElement ? CanvasView :
   T extends SVGSVGElement ? SVGParentView :
@@ -1409,7 +1374,7 @@ type QueryResult<T extends DomQuery> =
   T extends string ? CreateResult<T> | undefined :
   ElementView | undefined;
 
-type QueryResults<T extends DomName> =
+type QueryResults<T extends string> =
   T extends string ? CreateResult<T>[] :
   ElementView[];
 
@@ -1417,7 +1382,7 @@ type QueryResults<T extends DomName> =
  * Finds the Element that matches a specific CSS selector, or creates a new
  * Element wrapper around a native HTMLElement instance.
  */
-export function $<T extends DomQuery>(query?: T,
+export function $<T extends Element | string>(query?: T,
     context?: ElementView): QueryResult<T> {
   if (!query) return undefined as QueryResult<T>;
 
@@ -1448,7 +1413,7 @@ export function $<T extends DomQuery>(query?: T,
 }
 
 /** Finds all elements that match a specific CSS selector. */
-export function $$<T extends DomName>(selector: T,
+export function $$<T extends string>(selector: T,
     context?: ElementView): QueryResults<T> {
   const c = context ? context._el : document.documentElement;
   const els = selector ? c.querySelectorAll(selector as string) : [];
@@ -1456,7 +1421,7 @@ export function $$<T extends DomName>(selector: T,
 }
 
 /** Creates a new Element instance from a given set of options. */
-export function $N<T extends DomName>(tag: T, attributes: Obj<any> = {},
+export function $N<T extends string>(tag: T, attributes: Obj<any> = {},
     parent?: ElementView): CreateResult<T> {
 
   const el = !(SVG_TAGS as readonly string[]).includes(tag) ? document.createElement(tag) :
@@ -1483,5 +1448,4 @@ export function $N<T extends DomName>(tag: T, attributes: Obj<any> = {},
 }
 
 export const $body = new WindowView(document.body as HTMLBodyElement);
-export const $html = new WindowView(
-    document.documentElement as HTMLHtmlElement);
+export const $html = new WindowView(document.documentElement as HTMLHtmlElement);
