@@ -5,7 +5,7 @@
 
 
 import {EventTarget, applyDefaults} from '@mathigon/core';
-import {Bounds, Point} from '@mathigon/euclid';
+import {Point} from '@mathigon/euclid';
 import {SVGParentView, ElementView, $html} from './elements';
 import {Browser} from './browser';
 import {slide} from './events';
@@ -170,10 +170,10 @@ export class Draggable extends EventTarget {
 
   /** Sets the position of the element. */
   setPosition(x: number, y: number) {
-    const m = this.options.margin || 0;
+    // const m = this.options.margin || 0;
 
     let p = new Point(this.options.moveX ? x : 0, this.options.moveY ? y : 0)
-        .clamp(
+        /* .clamp(
             new Bounds(
                 this.areaBounds.topLeft.x,
                 this.areaBounds.bottomRight.x,
@@ -181,7 +181,7 @@ export class Draggable extends EventTarget {
                 this.areaBounds.bottomRight.y
             ),
             m
-        )
+        )*/
         .round(this.options.snap || 1);
 
     if (this.options.round) p = this.options.round(p);
