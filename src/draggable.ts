@@ -9,6 +9,7 @@ import {Bounds, Point} from '@mathigon/euclid';
 import {SVGParentView, ElementView, $html} from './elements';
 import {Browser} from './browser';
 import {slide} from './events';
+import {animate} from './animate';
 
 
 type HoverData =
@@ -199,7 +200,12 @@ export class Draggable extends EventTarget {
   }
 
   resetPosition() {
-    this.setPosition(this.startPos.x, this.startPos.y);
+    // TODO: Disable pointer events during animation
+    animate((p: number) => {
+      const currentPos = Point.interpolate(this.position, this.startPos, p);
+      this.setPosition(currentPos.x, currentPos.y);
+    }, 800);
+  }
 
   removeTarget($target: ElementView) {
     this.$targets = this.$targets?.filter($t => $t != $target);
