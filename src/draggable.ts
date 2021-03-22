@@ -46,6 +46,7 @@ export class Draggable extends EventTarget {
   protected areaBounds = {topLeft: new Point(0, 0), bottomRight: new Point(0, 0)};
   protected over: HoverData;
   protected startPos = new Point(0, 0);
+  protected $targets: ElementView[] | undefined;
   position = new Point(0, 0);
   disabled = false;
   width = 0;
@@ -58,6 +59,7 @@ export class Draggable extends EventTarget {
     this.over = {tag: 'NonTarget'};
 
     this.options = applyDefaults(options, {moveX: true, moveY: true});
+    this.$targets = this.options.$targets;
     this.setDimensions($parent);
 
     slide($el, {
@@ -75,8 +77,8 @@ export class Draggable extends EventTarget {
 
         let overTarget = false;
         const prevTarget = this.over.tag == 'NonTarget' ? undefined : this.over.$el;
-        if (this.options.$targets != undefined) {
-          for (const $target of this.options.$targets) {
+        if (this.$targets != undefined) {
+          for (const $target of this.$targets) {
             if ($target.boundsRect.contains(posn)) {
               overTarget = true;
               if (prevTarget != $target) {
@@ -111,8 +113,8 @@ export class Draggable extends EventTarget {
 
         let droppedOn: ElementView | undefined;
 
-        if (this.options.$targets != undefined) {
-          for (const $target of this.options.$targets) {
+        if (this.$targets != undefined) {
+          for (const $target of this.$targets) {
             if ($target.boundsRect.contains(last)) {
               /**
                * Fires when the user releases the pointer while over a 'target' element
@@ -198,5 +200,8 @@ export class Draggable extends EventTarget {
 
   resetPosition() {
     this.setPosition(this.startPos.x, this.startPos.y);
+
+  removeTarget($target: ElementView) {
+    this.$targets = this.$targets?.filter($t => $t != $target);
   }
 }
