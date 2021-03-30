@@ -861,7 +861,7 @@ const SVG_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
   'clip-rule', 'mask', 'opacity', 'filter', 'fill', 'fill-rule', 'marker',
   'marker-start', 'marker-mid', 'marker-end', 'stroke', 'stroke-dasharray',
   'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width',
-  'text-rendering', 'transform'];
+  'text-rendering', 'transform', 'dominant-baseline'];
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   readonly type = 'svg';
