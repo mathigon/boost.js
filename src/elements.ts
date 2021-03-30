@@ -561,6 +561,14 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }).filter(x => x) as (ElementView|Text)[];
   }
 
+  /** Detach and re-insert to restart CSS animations. */
+  restartAnimation() {
+    const n = this.next;
+    const p = this.parent;
+    this.detach();
+    n ? n.insertBefore(this) : p!.append(this);
+  }
+
   /** Detaches an element from the DOM. */
   detach() {
     if (this._el && this._el.parentNode) {
