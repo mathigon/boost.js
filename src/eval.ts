@@ -407,6 +407,7 @@ function parseSyntaxTree(expr: string) {
 // Evaluations
 
 const EMPTY: [undefined, undefined] = [undefined, undefined];
+type State = Record<string, unknown>;
 
 /**
  * Returns [value, this]. We need to keep track of the `this` value so that
@@ -417,47 +418,47 @@ const EMPTY: [undefined, undefined] = [undefined, undefined];
  * (2) All operations are "safe", i.e. when one of the arguments is undefined,
  *     we return undefined, rather than throwing an error.
  */
-function evaluate(node: AnyNode, context: Record<string, unknown>): [any, any] {
+function evaluate(node: AnyNode, context: State, local: State): [any, any] {
   /* eslint-disable no-case-declarations */
   switch (node.type) {
     case NODE_TYPE.Array:
-      const v1 = node.elements.map((n) => evaluate(n, context)[0]);
+      const v1 = node.elements.map((n) => evaluate(n, context, local)[0]);
       if (v1.some(v => v === undefined)) return EMPTY;
       return [v1, undefined];
 
     case NODE_TYPE.BinaryOp:
-      const left = evaluate(node.left, context)[0];
-      const right = evaluate(node.right, context)[0];
+      const left = evaluate(node.left, context, local)[0];
+      const right = evaluate(node.right, context, local)[0];
       if ('+-**/%'.includes(node.operator) && (left === undefined || right === undefined)) return EMPTY;
       return [BINARY_OPS[node.operator](left, right), undefined];
 
     case NODE_TYPE.Call:
       // Note: we evaluate arguments even if fn is undefined.
-      const [fn, self] = evaluate(node.callee, context);
-      const args = node.args.map((n) => evaluate(n, context)[0]);
+      const [fn, self] = evaluate(node.callee, context, local);
+      const args = node.args.map((n) => evaluate(n, context, local)[0]);
       if (args.some(v => v === undefined) || typeof fn !== 'function') return EMPTY;
       return [fn.apply(self, args), undefined];
 
     case NODE_TYPE.Conditional:
       // Note: we evaluate all possible options of the unary operator.
-      const consequent = evaluate(node.consequent, context);
-      const alternate = evaluate(node.alternate, context);
-      return evaluate(node.test, context)[0] ? consequent : alternate;
+      const consequent = evaluate(node.consequent, context, local);
+      const alternate = evaluate(node.alternate, context, local);
+      return evaluate(node.test, context, local)[0] ? consequent : alternate;
 
     case NODE_TYPE.Identifier:
-      return [context[node.name], undefined];
+      return [local[node.name] || context[node.name], undefined];
 
     case NODE_TYPE.Literal:
       return [node.value, undefined];
 
     case NODE_TYPE.Member:
-      const object = evaluate(node.object, context)[0];
-      const property = node.computed ? evaluate(node.property, context)[0] :
+      const object = evaluate(node.object, context, local)[0];
+      const property = node.computed ? evaluate(node.property, context, local)[0] :
                        (node.property as IdentifierNode).name;
       return object ? [object[property], object] : [undefined, undefined];
 
     case NODE_TYPE.UnaryOp:
-      const arg = evaluate(node.argument, context)[0];
+      const arg = evaluate(node.argument, context, local)[0];
       // For the ! operator, we allow undefined arguments.
       if (arg === undefined && node.operator !== '!') return EMPTY;
       return [UNARY_OPS[node.operator](arg), undefined];
@@ -470,7 +471,7 @@ function evaluate(node: AnyNode, context: Record<string, unknown>): [any, any] {
 export function compile<T = any>(expr: string) {
   const node = parseSyntaxTree(expr);
   if (!node) return (_context: any = {}) => undefined;
-  return (context = {}): T|undefined => evaluate(node, context)[0];
+  return (context = {}, local = {}): T|undefined => evaluate(node, context, local)[0];
 }
 
 

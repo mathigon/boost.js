@@ -181,7 +181,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     if (name.startsWith('@')) {
       const event = name.slice(1);
       const expr = compile(value);
-      this.on(event, () => expr(model));
+      this.on(event, (e) => expr(model, {$event: e}));
 
     } else if (name === ':show') {
       const expr = compile(value);
@@ -255,6 +255,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       // Create new elements if necessary
       for (let i = $cached.length; i < array.length; ++i) {
         const $el = this.copy(true);
+        // TODO Set the index name as "local" variable, not a separate model
         $el.bindModel(observe({[name]: undefined}, model));
         $placeholder.insertBefore($el);
         $cached.push($el);
