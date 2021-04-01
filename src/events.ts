@@ -536,14 +536,16 @@ function makeKeyEvent($el: ElementView) {
     if (e.metaKey || e.ctrlKey) return;
     if (Browser.isAndroid && e.keyCode === 229) return;
 
-    const key = (e.key || String.fromCharCode(e.which)).toLowerCase();
-    $el.trigger('key', {code: e.keyCode, key});
+    const char = (e.key || String.fromCharCode(e.which));
+    const key = char.toLowerCase();
+    $el.trigger('key', {code: e.keyCode, key, char});
   });
 
   if (Browser.isAndroid && $el.type === 'input') {
     $el.on('input', (e) => {
-      const key = e.data[e.data.length - 1].toLowerCase();
-      $el.trigger('key', {code: undefined, key});
+      const char = e.data[e.data.length - 1];
+      const key = char.toLowerCase();
+      $el.trigger('key', {code: undefined, key, char});
       ($el as InputView).value = '';
     });
   }
