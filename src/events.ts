@@ -538,7 +538,8 @@ function makeKeyEvent($el: ElementView) {
 
     const char = (e.key || String.fromCharCode(e.which));
     const key = char.toLowerCase();
-    $el.trigger('key', {code: e.keyCode, key, char});
+    const shift = !!e.shiftKey;
+    $el.trigger('key', {code: e.keyCode, key, char, shift});
   });
 
   if (Browser.isAndroid && $el.type === 'input') {
