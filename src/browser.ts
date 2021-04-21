@@ -288,7 +288,8 @@ class BrowserInstance {
 
   /** The current active element on the page (e.g. and `<input>`). */
   getActiveInput() {
-    const active = document.activeElement;
+    let active = document.activeElement;
+    if (active?.shadowRoot) active = active.shadowRoot.activeElement;
     return active === document.body ? undefined : $(active as HTMLElement);
   }
 
