@@ -444,7 +444,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Hides or shows the element based on a boolean value. */
-  toggle(show: boolean) {
+  toggle(show?: boolean) {
     if (show) {
       this.show();
     } else {
