@@ -737,7 +737,9 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       const children = this.children;
       const sourceChildren = $source.children;
       for (let i = 0; i < children.length; ++i) {
-        children[i].copyInlineStyles(sourceChildren[i], true, styleKeys);
+        // Don't filter SVG style whitelist inside foreignObject!
+        const keys = children[i].tagName === 'foreignObject' ? styleKeys : undefined;
+        children[i].copyInlineStyles(sourceChildren[i], true, keys);
       }
     }
   }
