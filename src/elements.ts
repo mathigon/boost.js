@@ -1234,7 +1234,7 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
 
     model.watch(() => {
       isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
-      this.trigger('change');
+      this.trigger('model-change', {defaultPrevented: true});
     });
   }
 
@@ -1249,10 +1249,10 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   /** Binds a change event listener. */
   change(callback: (val: string) => void) {
     let value = this.value || '';
-    this.on('change keyup input paste', () => {
+    this.on('change keyup input paste model-change', (e) => {
       if (this.value === value) return;
       value = this.value.trim();
-      callback(value);
+      if (!e.defaultPrevented) callback(value);
     });
   }
 
