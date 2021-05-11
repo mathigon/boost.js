@@ -1234,6 +1234,7 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
 
     model.watch(() => {
       isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
+      this.trigger('change');
     });
   }
 
