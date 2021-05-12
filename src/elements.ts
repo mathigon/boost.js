@@ -718,7 +718,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Creates a copy of this element.
    * @param {boolean=} recursive
    * @param {boolean=} withStyles Whether to inline all styles.
-   * @param {string[]?} styleKeys A whitelist of all neccessary styles.
+   * @param {string[]?} styleKeys A whitelist of all necessary styles.
    * @returns {Element}
    */
   copy(recursive = true, withStyles = true, styleKeys?: string[]) {
@@ -738,7 +738,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       const sourceChildren = $source.children;
       for (let i = 0; i < children.length; ++i) {
         // Don't filter SVG style whitelist inside foreignObject!
-        const keys = children[i].tagName === 'foreignObject' ? styleKeys : undefined;
+        const keys = children[i].tagName === 'foreignObject' ? undefined : styleKeys;
         children[i].copyInlineStyles(sourceChildren[i], true, keys);
       }
     }
@@ -864,7 +864,8 @@ const SVG_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
   'clip-rule', 'mask', 'opacity', 'filter', 'fill', 'fill-rule', 'marker',
   'marker-start', 'marker-mid', 'marker-end', 'stroke', 'stroke-dasharray',
   'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width',
-  'text-rendering', 'transform', 'dominant-baseline'];
+  'text-rendering', 'transform', 'dominant-baseline', 'transform-origin',
+  'transform-box'];
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   readonly type = 'svg';
@@ -1074,6 +1075,8 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
       const dataUri = await $canvas.pngImage;
       $i.setAttr('href', dataUri);
     }));
+
+    // TODO Load external fonts used in the SVG
 
     const serialised = new XMLSerializer().serializeToString($copy._el);
     const url = 'data:image/svg+xml;utf8,' + encodeURIComponent(serialised);
