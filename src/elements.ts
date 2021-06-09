@@ -280,7 +280,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   contains(point: Point) {
-    this.boundsRect.contains(point);
+    return this.boundsRect.contains(point);
   }
 
   /** Checks if this element is currently visible in the viewport. */
