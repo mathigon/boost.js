@@ -7,7 +7,7 @@
 import {Obj} from '@mathigon/core';
 
 
-type Callback<T> = (state: T) => void;
+type Callback<T> = (state: T, initial?: boolean) => void;
 type Expr<T> = (state: T) => void;
 
 interface ObservableOptions<T> {
@@ -31,7 +31,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
 
   function watch(callback: Callback<T>) {
     pendingCallback = callback;
-    const result = callback(proxy);
+    const result = callback(proxy, true);
     pendingCallback = undefined;
     return result;
   }
