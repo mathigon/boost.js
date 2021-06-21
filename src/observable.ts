@@ -64,10 +64,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
   }
 
   function triggerCallbacks(key: string) {
-    const callbacks = callbackMap.get(key);
-    if (callbacks) {
-      for (const callback of callbacks) callback(state);
-    }
+    for (const callback of callbackMap.get(key) || []) callback(state);
     for (const callback of watchAllCallbacks) callback(state);
   }
 
@@ -75,6 +72,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     for (const callbacks of callbackMap.values()) {
       for (const callback of callbacks) callback(state);
     }
+    for (const callback of watchAllCallbacks) callback(state);
   }
 
   function assign(changes: Obj<string>) {
