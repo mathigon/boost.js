@@ -13,6 +13,7 @@ type Expr<T> = (state: T) => void;
 interface ObservableOptions<T> {
   watch: (fn: Callback<T>) => void;
   unwatch: (fn: Callback<T>) => void;
+  watchAll: (fn: Callback<T>, dontRunImmediately?: boolean) => void;
   setComputed: (key: string, expr: (state: T) => any) => void;
   forceUpdate: () => void;
   assign: (obj: any) => void;
@@ -26,6 +27,7 @@ export type Observable<T = any> = T&ObservableOptions<T>;
 export function observe<T = any>(state: T, parentModel?: Observable) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
+  const watchAllCallbacks = new Set<Callback<T>>();
   let pendingCallback: Callback<T>|undefined = undefined;
   let lastKey = 0;
 
@@ -40,6 +42,12 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     for (const callbacks of callbackMap.values()) {
       if (callbacks.has(callback)) callbacks.delete(callback);
     }
+    watchAllCallbacks.delete(callback);
+  }
+
+  function watchAll(callback: Callback<T>, dontRun?: boolean) {
+    watchAllCallbacks.add(callback);
+    return dontRun ? undefined : callback(proxy, true);
   }
 
   function setComputed(key: string, expr: Expr<T>) {
@@ -60,6 +68,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     if (callbacks) {
       for (const callback of callbacks) callback(state);
     }
+    for (const callback of watchAllCallbacks) callback(state);
   }
 
   function forceUpdate() {
@@ -99,6 +108,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     get(_: T, key: string) {
       if (key === 'watch') return watch;
       if (key === 'unwatch') return unwatch;
+      if (key === 'watchAll') return watchAll;
       if (key === 'setComputed') return setComputed;
       if (key === 'forceUpdate') return forceUpdate;
       if (key === 'assign') return assign;

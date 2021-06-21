@@ -34,6 +34,25 @@ tape('simple observe', (test) => {
   test.end();
 });
 
+tape('watch all', (test) => {
+  const model = observe({a: 1, b: 2});
+  let callbacks = 0;
+
+  const fn = () => callbacks += 1;
+  model.watchAll(fn);
+  test.equal(callbacks, 1);
+
+  model.a = 2;
+  model.a = 2;  // Nothing changed
+  (model as any).c = 3;
+  test.equal(callbacks, 3);
+
+  model.unwatch(fn);
+  model.b = 3;
+  test.equal(callbacks, 3);
+
+  test.end();
+});
 
 tape('nested dependencies', (test) => {
   const model = observe<Model>({a: 1, b: 2});
