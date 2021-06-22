@@ -24,6 +24,29 @@ interface ObservableOptions<T> {
 export type Observable<T = any> = T&ObservableOptions<T>;
 
 
+// Batching: Makes both `assign` and normal mutations much smarter
+
+let batchDepth = 0;
+let batchedCallbacks = new Set<Callback<any>>();
+let batchingStateMap = new Map<Callback<any>, Observable>();
+
+function enqueueCallback(callback: Callback<any>, state: Observable){
+  batchedCallbacks.add(callback);
+  batchingStateMap.set(callback, state);
+}
+
+export function batch(callback: () => void){
+  batchDepth++;
+  callback();
+  batchDepth--;
+  if(batchDepth == 0){
+    for(const callback of batchedCallbacks) callback(batchingStateMap.get(callback));
+    batchedCallbacks.clear();
+    batchingStateMap.clear();
+  }
+}
+
+
 export function observe<T = any>(state: T, parentModel?: Observable) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
@@ -64,8 +87,13 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
   }
 
   function triggerCallbacks(key: string) {
-    for (const callback of callbackMap.get(key) || []) callback(state);
-    for (const callback of watchAllCallbacks) callback(state);
+    if(batchDepth > 0){
+      for (const callback of callbackMap.get(key) || []) enqueueCallback(callback, state);
+      for (const callback of watchAllCallbacks) enqueueCallback(callback, state);
+    } else {
+      for (const callback of callbackMap.get(key) || []) callback(state);
+      for (const callback of watchAllCallbacks) callback(state);
+    }
   }
 
   function forceUpdate() {
@@ -75,9 +103,10 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     for (const callback of watchAllCallbacks) callback(state);
   }
 
-  function assign(changes: Obj<string>) {
-    Object.assign(state, changes);
-    forceUpdate();
+  function assign(changes: Partial<T>) {
+    batch(() => {
+      for(const key in changes) proxy[key] = changes[key];
+    });
   }
 
   function getKey() {
