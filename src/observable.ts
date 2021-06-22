@@ -4,9 +4,6 @@
 // =============================================================================
 
 
-import {Obj} from '@mathigon/core';
-
-
 type Callback<T> = (state: T, initial?: boolean) => void;
 type Expr<T> = (state: T) => void;
 
@@ -27,20 +24,20 @@ export type Observable<T = any> = T&ObservableOptions<T>;
 // Batching: Makes both `assign` and normal mutations much smarter
 
 let batchDepth = 0;
-let batchedCallbacks = new Set<Callback<any>>();
-let batchingStateMap = new Map<Callback<any>, Observable>();
+const batchedCallbacks = new Set<Callback<any>>();
+const batchingStateMap = new Map<Callback<any>, Observable>();
 
-function enqueueCallback(callback: Callback<any>, state: Observable){
+function enqueueCallback(callback: Callback<any>, state: Observable) {
   batchedCallbacks.add(callback);
   batchingStateMap.set(callback, state);
 }
 
-export function batch(callback: () => void){
+export function batch(callback: () => void) {
   batchDepth++;
   callback();
   batchDepth--;
-  if(batchDepth == 0){
-    for(const callback of batchedCallbacks) callback(batchingStateMap.get(callback));
+  if (batchDepth == 0) {
+    for (const callback of batchedCallbacks) callback(batchingStateMap.get(callback));
     batchedCallbacks.clear();
     batchingStateMap.clear();
   }
@@ -87,7 +84,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
   }
 
   function triggerCallbacks(key: string) {
-    if(batchDepth > 0){
+    if (batchDepth > 0) {
       for (const callback of callbackMap.get(key) || []) enqueueCallback(callback, state);
       for (const callback of watchAllCallbacks) enqueueCallback(callback, state);
     } else {
@@ -105,7 +102,11 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
 
   function assign(changes: Partial<T>) {
     batch(() => {
-      for(const key in changes) proxy[key] = changes[key];
+      for (const key in changes) {
+        if (Object.prototype.hasOwnProperty.call(changes, key)) {
+          proxy[key] = changes[key];
+        }
+      }
     });
   }
 

@@ -126,7 +126,7 @@ tape('batched mutation (computed)', (test) => {
   const model = observe({a: 1, b: 2});
   let callbacks = 0;
 
-  model.setComputed("x", () => {
+  model.setComputed('x', () => {
     callbacks++;
     return model.a + model.b;
   });
@@ -150,17 +150,17 @@ tape('batched mutation (computed)', (test) => {
 
 tape('assign', (test) => {
   const model = observe<Model>({a: 1, b: 2});
-  let aCallbacks = 0, bCallbacks = 0, allCallbacks = 0;
+  let aCallbacks = 0; let bCallbacks = 0; let allCallbacks = 0;
 
-  model.watch(({a}, initial) => {
-    if(!initial) aCallbacks++;
+  model.watch(({a: _a}, initial) => {
+    if (!initial) aCallbacks++;
   });
 
-  model.watch(({b}, initial) => {
-    if(!initial) bCallbacks++;
+  model.watch(({b: _b}, initial) => {
+    if (!initial) bCallbacks++;
   });
 
-  model.watchAll(() => allCallbacks++ , true);
+  model.watchAll(() => allCallbacks++, true);
 
   model.a ++;
 
@@ -169,7 +169,7 @@ tape('assign', (test) => {
   test.equal(allCallbacks, 1);
 
   model.assign({
-    a: 3
+    a: 3,
   });
 
   // Setting `a` with assign should call `watchAll` callbacks, and watchers using `a`, but not watchers using `b`
@@ -179,7 +179,7 @@ tape('assign', (test) => {
 
   model.assign({
     a: 3,
-    b: 3
+    b: 3,
   });
 
   // `a` has the same value as before, no need to re-run callbacks
