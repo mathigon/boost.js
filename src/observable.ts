@@ -21,29 +21,26 @@ interface ObservableOptions<T> {
 export type Observable<T = any> = T&ObservableOptions<T>;
 
 
-// Batching: Makes both `assign` and normal mutations much smarter
-
 let batchDepth = 0;
-const batchedCallbacks = new Set<Callback<any>>();
-const batchingStateMap = new Map<Callback<any>, Observable>();
+const batchedCallbacks = new Map<Callback<any>, Observable>();
 
 function enqueueCallback(callback: Callback<any>, state: Observable) {
-  batchedCallbacks.add(callback);
-  batchingStateMap.set(callback, state);
+  batchedCallbacks.set(callback, state);
 }
 
+/** Batch multiple observable changes together into a single callback. */
 export function batch(callback: () => void) {
   batchDepth++;
   callback();
   batchDepth--;
   if (batchDepth == 0) {
-    for (const callback of batchedCallbacks) callback(batchingStateMap.get(callback));
+    for (const [callback, state] of batchedCallbacks.entries()) callback(state);
     batchedCallbacks.clear();
-    batchingStateMap.clear();
   }
 }
 
 
+/** Convert object to an observable Proxy with .watch() callbacks. */
 export function observe<T = any>(state: T, parentModel?: Observable) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
@@ -102,10 +99,8 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
 
   function assign(changes: Partial<T>) {
     batch(() => {
-      for (const key in changes) {
-        if (Object.prototype.hasOwnProperty.call(changes, key)) {
-          proxy[key] = changes[key];
-        }
+      for (const [key, value] of Object.entries(changes)) {
+        proxy[key] = value;
       }
     });
   }
