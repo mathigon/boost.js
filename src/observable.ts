@@ -4,9 +4,6 @@
 // =============================================================================
 
 
-import {Obj} from '@mathigon/core';
-
-
 type Callback<T> = (state: T, initial?: boolean) => void;
 type Expr<T> = (state: T) => void;
 
@@ -24,6 +21,26 @@ interface ObservableOptions<T> {
 export type Observable<T = any> = T&ObservableOptions<T>;
 
 
+let batchDepth = 0;
+const batchedCallbacks = new Map<Callback<any>, Observable>();
+
+function enqueueCallback(callback: Callback<any>, state: Observable) {
+  batchedCallbacks.set(callback, state);
+}
+
+/** Batch multiple observable changes together into a single callback. */
+export function batch(callback: () => void) {
+  batchDepth++;
+  callback();
+  batchDepth--;
+  if (batchDepth == 0) {
+    for (const [callback, state] of batchedCallbacks.entries()) callback(state);
+    batchedCallbacks.clear();
+  }
+}
+
+
+/** Convert object to an observable Proxy with .watch() callbacks. */
 export function observe<T = any>(state: T, parentModel?: Observable) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
@@ -64,8 +81,13 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
   }
 
   function triggerCallbacks(key: string) {
-    for (const callback of callbackMap.get(key) || []) callback(state);
-    for (const callback of watchAllCallbacks) callback(state);
+    if (batchDepth > 0) {
+      for (const callback of callbackMap.get(key) || []) enqueueCallback(callback, state);
+      for (const callback of watchAllCallbacks) enqueueCallback(callback, state);
+    } else {
+      for (const callback of callbackMap.get(key) || []) callback(state);
+      for (const callback of watchAllCallbacks) callback(state);
+    }
   }
 
   function forceUpdate() {
@@ -75,9 +97,12 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     for (const callback of watchAllCallbacks) callback(state);
   }
 
-  function assign(changes: Obj<string>) {
-    Object.assign(state, changes);
-    forceUpdate();
+  function assign(changes: Partial<T>) {
+    batch(() => {
+      for (const [key, value] of Object.entries(changes)) {
+        proxy[key] = value;
+      }
+    });
   }
 
   function getKey() {
