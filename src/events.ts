@@ -220,25 +220,37 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   $el.on('pointerdown', start);
   if (fns.justInside) $el.on('mouseleave', end);
 
+  function accessibilityHandler(e: KeyboardEvent) {
+    if (![37, 38, 39, 40].includes(e.keyCode)) return;
+    if ($el !== Browser.getActiveInput()) return;
+
+    const center = $el.boxCenter;
+    const start = posn({clientX: center.x, clientY: center.y});
+
+    const dx = (e.keyCode === 37) ? -25 : (e.keyCode === 39) ? 25 : 0;
+    const dy = (e.keyCode === 38) ? -25 : (e.keyCode === 40) ? 25 : 0;
+    const end = start.shift(dx, dy);
+
+    if (fns.down) fns.down(start);
+    if (fns.start) fns.start(start);
+    if (fns.move) fns.move(end, start, start);
+    if (fns.end) fns.end(end, start);
+  }
+
   if (fns.accessible) {
     $el.setAttr('tabindex', '0');
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (![37, 38, 39, 40].includes(e.keyCode)) return;
-      if ($el !== Browser.getActiveInput()) return;
-
-      const center = $el.boxCenter;
-      const start = posn({clientX: center.x, clientY: center.y});
-
-      const dx = (e.keyCode === 37) ? -25 : (e.keyCode === 39) ? 25 : 0;
-      const dy = (e.keyCode === 38) ? -25 : (e.keyCode === 40) ? 25 : 0;
-      const end = start.shift(dx, dy);
-
-      if (fns.down) fns.down(start);
-      if (fns.start) fns.start(start);
-      if (fns.move) fns.move(end, start, start);
-      if (fns.end) fns.end(end, start);
-    });
+    document.addEventListener('keydown', accessibilityHandler);
   }
+
+  function remove() {
+    $el.off('pointerdown', start);
+    if (fns.justInside) $el.off('mouseleave', end);
+    if (fns.accessible) {
+      document.removeEventListener('keydown', accessibilityHandler);
+    }
+  }
+
+  return remove;
 }
 
 
