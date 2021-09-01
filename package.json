@@ -40,7 +40,7 @@
     "eslint": "7.32.0",
     "eslint-config-google": "0.14.0",
     "eslint-plugin-import": "2.23.4",
-    "rollup": "2.55.1",
+    "rollup": "2.56.3",
     "tape": "5.3.1",
     "ts-node": "10.1.0",
     "tslib": "2.3.0",
