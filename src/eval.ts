@@ -77,14 +77,16 @@ type AnyNode = ArrayNode|BinaryNode|CallNode|ConditionalNode|IdentifierNode
 // -----------------------------------------------------------------------------
 // Constants
 
-const BINARY_OPS: Obj<(a: any, b: any) => any> = {
+const BINARY_OPS: Obj<(a: unknown, b: unknown) => unknown> = {
   // TODO Operator overloading (e.g. add vectors or complex numbers)
-  '===': (a: any, b: any) => a === b,
-  '!==': (a: any, b: any) => a !== b,
-  '||': (a: any, b: any) => a || b,
-  '&&': (a: any, b: any) => a && b,
-  '==': (a: any, b: any) => a == b, // jshint ignore:line
-  '!=': (a: any, b: any) => a != b, // jshint ignore:line
+  '===': (a: unknown, b: unknown) => a === b,
+  '!==': (a: unknown, b: unknown) => a !== b,
+  '||': (a: unknown, b: unknown) => a || b,
+  '&&': (a: unknown, b: unknown) => a && b,
+  // eslint-disable-next-line eqeqeq
+  '==': (a: unknown, b: unknown) => a == b,
+  // eslint-disable-next-line eqeqeq
+  '!=': (a: unknown, b: unknown) => a != b,
   '<=': (a: any, b: any) => a <= b,
   '>=': (a: any, b: any) => a >= b,
   '**': (a: any, b: any) => a ** b,
@@ -94,13 +96,13 @@ const BINARY_OPS: Obj<(a: any, b: any) => any> = {
   '-': (a: any, b: any) => a - b,
   '*': (a: any, b: any) => a * b,
   '/': (a: any, b: any) => a / b,
-  '%': (a: any, b: any) => a % b,
+  '%': (a: any, b: any) => a % b
 };
 
 const UNARY_OPS: Obj<(a: any) => any> = {
   '-': (a: any) => -a,
   '+': (a: any) => +a,
-  '!': (a: any) => !a,
+  '!': (a: any) => !a
 };
 
 // Binary operations with their precedence
@@ -110,13 +112,13 @@ const BINARY_PRECEDENCE: Obj<number> = {
   '<': 4, '>': 4, '<=': 4, '>=': 4,
   '+': 5, '-': 5,
   '*': 6, '/': 6, '%': 6,
-  '**': 7,  // TODO Exponentiation should be right-to-left.
+  '**': 7  // TODO Exponentiation should be right-to-left.
 };
 
-const LITERALS: Obj<any> = {
+const LITERALS: Obj<boolean|undefined> = {
   'true': true,
   'false': false,
-  'undefined': undefined,
+  'undefined': undefined
 };
 
 const SPACE = /\s/;
@@ -185,7 +187,7 @@ function parseSyntaxTree(expr: string) {
   // Gobbles identifiers and literals (e.g. `foo`, `_value`, `$x1`, `true`).
   function gobbleIdentifier(): LiteralNode|IdentifierNode {
     let name = expr[index];
-    if (!IDENTIFIER_START.test(expr[index])) throwError('Unexpected ' + name);
+    if (!IDENTIFIER_START.test(expr[index])) throwError(`Unexpected ${name}`);
     index += 1;
 
     while (index < length) {
@@ -225,7 +227,7 @@ function parseSyntaxTree(expr: string) {
       }
     }
 
-    if (!closed) throwError('Expected ' + termination);
+    if (!closed) throwError(`Expected ${termination}`);
     return args;
   }
 
@@ -259,7 +261,7 @@ function parseSyntaxTree(expr: string) {
           type: NODE_TYPE.Member,
           object: node!,
           computed: false,
-          property: gobbleIdentifier(),
+          property: gobbleIdentifier()
         };
       } else if (expr[index] === '[') {
         // Array index accessors.
@@ -268,7 +270,7 @@ function parseSyntaxTree(expr: string) {
           type: NODE_TYPE.Member,
           object: node!,
           computed: true,
-          property: gobbleExpression()!,
+          property: gobbleExpression()!
         };
         gobbleSpaces();
         if (expr[index] !== ']') throwError('Unclosed [');
@@ -279,7 +281,7 @@ function parseSyntaxTree(expr: string) {
         node = {
           type: NODE_TYPE.Call,
           args: gobbleArguments(')'),
-          callee: node,
+          callee: node
         };
       }
       gobbleSpaces();
@@ -334,7 +336,7 @@ function parseSyntaxTree(expr: string) {
     if (!biop) return left;
 
     let right = gobbleToken();
-    if (!right) throwError('Expected expression after ' + biop);
+    if (!right) throwError(`Expected expression after ${biop}`);
 
     // If there are multiple binary operators, we have to stack them in the
     // correct order using recursive descent.
@@ -356,7 +358,7 @@ function parseSyntaxTree(expr: string) {
       }
 
       node = gobbleToken();
-      if (!node) throwError('Expected expression after ' + curBiop);
+      if (!node) throwError(`Expected expression after ${curBiop}`);
       stack.push(curBiop, node);
     }
 
@@ -365,7 +367,7 @@ function parseSyntaxTree(expr: string) {
     while (i > 1) {
       node = {
         type: NODE_TYPE.BinaryOp, operator: stack[i - 1] as string,
-        left: stack[i - 2] as AnyNode, right: node,
+        left: stack[i - 2] as AnyNode, right: node
       };
       i -= 2;
     }
@@ -454,7 +456,7 @@ function evaluate(node: AnyNode, context: State, local: State): [any, any] {
     case NODE_TYPE.Member:
       const object = evaluate(node.object, context, local)[0];
       const property = node.computed ? evaluate(node.property, context, local)[0] :
-                       (node.property as IdentifierNode).name;
+        (node.property as IdentifierNode).name;
       return object ? [object[property], object] : [undefined, undefined];
 
     case NODE_TYPE.UnaryOp:
@@ -496,7 +498,7 @@ export function compileString(expr: string): (vars: any) => string {
       if (!(i % 2)) return p;
       const value = fns[i]!(context);
       // Special formatting for negative numbers.
-      return (typeof value === 'number' && value < 0) ? '–' + (-value) : value;
+      return (typeof value === 'number' && value < 0) ? `–${-value}` : value;
     }).join('');
   };
 }

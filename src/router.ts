@@ -68,7 +68,7 @@ async function getTemplate(view: View, params: ViewParams, url: string): Promise
 
 // Don't trigger Router events during the initial Page load.
 let isReady = (document.readyState === 'complete');
-window.addEventListener('load', () => setTimeout(() => isReady = true));
+window.addEventListener('load', () => setTimeout(() => (isReady = true)));
 
 // Prevent scroll restoration on popstate
 if ('scrollRestoration' in window.history) {
@@ -114,9 +114,9 @@ class Router extends EventTarget {
 
   view(url: string, {enter, exit, template}: ViewOptions = {}) {
     const params = (url.match(/:\w+/g) || []).map(x => x.substr(1));
-    const regexStr = url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/') + '\\/?';
+    const regexStr = `${url.replace(/:\w+/g, '([\\w-]+)').replace('/', '\\/')}\\/?`;
     const searchStr = url.includes('?') ? '' : '(\\?.*)?';
-    const regex = new RegExp('^' + regexStr + searchStr + '$', 'i');
+    const regex = new RegExp(`^${regexStr}${searchStr}$`, 'i');
 
     const thisView = {regex, params, enter, exit, template};
     this.views.push(thisView);

@@ -1,7 +1,10 @@
 {
   "name": "@mathigon/boost",
-  "version": "0.6.17",
-  "description": "DOM, Webcomponents, Animations, Events and AJAX Library",
+  "version": "1.0.1",
+  "license": "MIT",
+  "homepage": "https://mathigon.io/boost",
+  "repository": "mathigon/boost.js",
+  "description": "DOM, Webcomponents, Animations, Events and AJAX Library.",
   "keywords": [
     "browser",
     "DOM",
@@ -10,37 +13,34 @@
     "animations",
     "AJAX"
   ],
-  "homepage": "https://mathigon.io/",
-  "license": "MIT",
-  "author": {
-    "name": "Philipp Legner",
-    "email": "dev@mathigon.org",
-    "url": "https://mathigon.org"
+  "engines": {
+    "node": ">=10"
   },
-  "main": "dist/boost.cjs.js",
-  "module": "dist/boost.esm.js",
-  "main:ts": "index.ts",
-  "repository": "mathigon/boost.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "typings": "dist/index.d.ts",
   "scripts": {
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",
-    "prepublishOnly": "npm test && npm run lint && npm run build",
-    "build": "rollup --config",
+    "prepublishOnly": "npm test && npm run lint",
+    "prepare": "npm run build",
+    "cjs": "esbuild src/index.ts --outfile=dist/index.cjs.js --format=cjs --bundle --target=es2016 --sourcemap --external:@mathigon/core,@mathigon/fermat,@mathigon/euclid",
+    "esm": "esbuild src/index.ts --outfile=dist/index.esm.js --format=esm --bundle --target=es2016 --sourcemap --external:@mathigon/core,@mathigon/fermat,@mathigon/euclid",
+    "types": "tsc --project tsconfig-types.json",
+    "build": "npm run cjs && npm run esm && npm run types",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@mathigon/core": "^0.6.4",
-    "@mathigon/euclid": "^0.6.9",
-    "@mathigon/fermat": "^0.6.4"
+    "@mathigon/core": "1.0.1",
+    "@mathigon/euclid": "1.0.1",
+    "@mathigon/fermat": "1.0.1"
   },
   "devDependencies": {
-    "@rollup/plugin-typescript": "8.2.5",
     "@types/tape": "4.13.2",
     "@typescript-eslint/eslint-plugin": "4.30.0",
     "@typescript-eslint/parser": "4.30.0",
+    "esbuild": "0.12.24",
     "eslint": "7.32.0",
-    "eslint-config-google": "0.14.0",
     "eslint-plugin-import": "2.24.2",
-    "rollup": "2.56.3",
     "tape": "5.3.1",
     "ts-node": "10.2.1",
     "tslib": "2.3.1",

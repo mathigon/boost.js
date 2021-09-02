@@ -33,7 +33,7 @@ export function batch(callback: () => void) {
   batchDepth++;
   callback();
   batchDepth--;
-  if (batchDepth == 0) {
+  if (batchDepth === 0) {
     for (const [callback, state] of batchedCallbacks.entries()) callback(state);
     batchedCallbacks.clear();
   }
@@ -107,8 +107,8 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
 
   function getKey() {
     lastKey += 1;
-    while ('_x' + lastKey in state) lastKey += 1;
-    return '_x' + lastKey;
+    while (`_x${lastKey}` in state) lastKey += 1;
+    return `_x${lastKey}`;
   }
 
   function clear() {
@@ -124,7 +124,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
    */
   function inherit(key: string) {
     if (!parentModel) return;
-    parentModel.watch(() => proxy[key] = parentModel[key]);
+    parentModel.watch(() => (proxy[key] = parentModel[key]));
   }
 
   const proxy = new Proxy(state as any, {
@@ -169,7 +169,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
       callbackMap.delete(p);
       computedKeys.delete(p);
       return true;
-    },
+    }
   });
 
   return proxy as Observable<T>;

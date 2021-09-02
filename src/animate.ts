@@ -4,14 +4,14 @@
 // =============================================================================
 
 
-import {defer, delay, total, toCamelCase, Obj} from '@mathigon/core';
+import {defer, delay, Obj, toCamelCase, total} from '@mathigon/core';
 import {ElementView, HTMLView, SVGView} from './elements';
 import {Browser} from './browser';
 
 
 // Prevent animations on page load.
 let isReady = false;
-setTimeout(() => isReady = true);
+setTimeout(() => (isReady = true));
 
 const BOUNCE_IN = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 const BOUNCE_OUT = 'cubic-bezier(0.68, -0.275, 0.825, 0.115)';
@@ -147,8 +147,8 @@ export type AnimationProperties = Obj<AnimationValue|AnimationValue[]>;
 
 
 export function transition($el: ElementView, properties: AnimationProperties,
-    duration = 400, _delay = 0,
-    easing = 'ease-in-out'): AnimationResponse {
+  duration = 400, _delay = 0,
+  easing = 'ease-in-out'): AnimationResponse {
 
   // Don't play animations while the page is loading.
   if (!isReady) {
@@ -191,7 +191,7 @@ export function transition($el: ElementView, properties: AnimationProperties,
   const oldHeight = to.height;
   if (to.height === 'auto') {
     to.height =
-        total($el.children.map($c => ($c as HTMLView).outerHeight)) + 'px';
+        `${total($el.children.map($c => ($c as HTMLView).outerHeight))}px`;
   }
 
   let player: Animation;
@@ -217,11 +217,11 @@ export function transition($el: ElementView, properties: AnimationProperties,
       if ($el._el) Object.keys(properties).forEach(k => $el.css(k, $el.css(k)));
       if (player) player.cancel();
     },
-    promise: deferred.promise,
+    promise: deferred.promise
   };
 
   // Only allow cancelling of animation in next thread.
-  setTimeout(() => $el._data['animation'] = animation);
+  setTimeout(() => ($el._data['animation'] = animation));
   return animation;
 }
 
@@ -234,7 +234,7 @@ export function transition($el: ElementView, properties: AnimationProperties,
 const CSS_MATRIX = /matrix\([0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,[0-9.\-\s]+,([0-9.\-\s]+),([0-9.\-\s]+)\)/;
 
 export function enter($el: ElementView, effect = 'fade', duration = 500,
-    _delay = 0): AnimationResponse {
+  _delay = 0): AnimationResponse {
 
   $el.show();
   if (!isReady) return ResolvedAnimation;
@@ -245,12 +245,12 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
 
   } else if (effect === 'pop') {
     const transform = $el.transform.replace(/scale\([0-9.]*\)/, '')
-        .replace(CSS_MATRIX, 'translate($1px,$2px)');
+      .replace(CSS_MATRIX, 'translate($1px,$2px)');
 
     // TODO Merge into one transition.
     transition($el, {opacity: [0, opacity]}, duration, _delay);
     return transition($el, {
-      transform: [transform + ' scale(0.5)', transform + ' scale(1)'],
+      transform: [`${transform} scale(0.5)`, `${transform} scale(1)`]
     }, duration, _delay, 'bounce-in');
 
   } else if (effect === 'descend') {
@@ -259,11 +259,11 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
 
   } else if (effect.startsWith('draw')) {
     const l = ($el as SVGView).strokeLength;
-    $el.css('stroke-dasharray', l + 'px');
+    $el.css('stroke-dasharray', `${l}px`);
     if (!$el.css('opacity')) $el.css('opacity', 1);
     // Note that Safari can't handle negative dash offsets!
-    const end = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
-    const rules = {'stroke-dashoffset': [l + 'px', end]};
+    const end = (effect === 'draw-reverse') ? `${2 * l}px` : 0;
+    const rules = {'stroke-dashoffset': [`${l}px`, end]};
     const animation = transition($el, rules, duration, _delay, 'linear');
     animation.promise.then(() => $el.css('stroke-dasharray', ''));
     return animation;
@@ -286,7 +286,7 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
 }
 
 export function exit($el: ElementView, effect = 'fade', duration = 400,
-    delay = 0, remove = false): AnimationResponse {
+  delay = 0, remove = false): AnimationResponse {
   if (!$el._el) return ResolvedAnimation;
 
   if (!isReady) {
@@ -305,7 +305,7 @@ export function exit($el: ElementView, effect = 'fade', duration = 400,
 
     transition($el, {opacity: [1, 0]}, duration, delay);
     animation = transition($el, {
-      transform: [transform + ' scale(1)', transform + ' scale(0.5)'],
+      transform: [`${transform} scale(1)`, `${transform} scale(0.5)`]
     }, duration, delay, 'bounce-out');
 
   } else if (effect === 'ascend') {
@@ -315,8 +315,8 @@ export function exit($el: ElementView, effect = 'fade', duration = 400,
   } else if (effect.startsWith('draw')) {
     const l = ($el as SVGView).strokeLength;
     $el.css('stroke-dasharray', l);
-    const start = (effect === 'draw-reverse') ? 2 * l + 'px' : 0;
-    const rules = {'stroke-dashoffset': [start, l + 'px']};
+    const start = (effect === 'draw-reverse') ? `${2 * l}px` : 0;
+    const rules = {'stroke-dashoffset': [start, `${l}px`]};
     animation = transition($el, rules, duration, delay, 'linear');
 
   } else if (effect.startsWith('slide')) {

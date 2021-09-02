@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {throttle, words, safeToJSON, Obj} from '@mathigon/core';
+import {Obj, safeToJSON, throttle, words} from '@mathigon/core';
 import {$, $body, $html} from './elements';
 
 
@@ -36,7 +36,7 @@ export const KEY_CODES: Obj<number> = {
   'right': 39,
   'down': 40,
   'insert': 45,
-  'delete': 46,
+  'delete': 46
 };
 
 export type ResizeEvent = {width: number, height: number};
@@ -98,7 +98,7 @@ class BrowserInstance {
   // ---------------------------------------------------------------------------
   // Loading Events
 
-  private readonly loadQueue: (() => void)[] = [];
+  private readonly loadQueue: Array<() => void> = [];
   private loaded = false;
 
   private afterLoad() {
@@ -161,7 +161,7 @@ class BrowserInstance {
   // Theme
 
   readonly theme: Theme = {name: 'light', isDark: false};
-  private readonly themeChangedCallbacks: ((theme: Theme) => void)[] = [];
+  private readonly themeChangedCallbacks: Array<(theme: Theme) => void> = [];
   private themeOverride = '';
   private darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
 
@@ -248,11 +248,11 @@ class BrowserInstance {
 
   setStorage(key: string, value: any) {
     const keys = (key || '').split('.');
-    const storage = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined);
+    const storage = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined) as any;
     let path = storage;
 
     for (let i = 0; i < keys.length - 1; ++i) {
-      if (path[keys[i]] == undefined) path[keys[i]] = {};
+      if (path[keys[i]] === undefined) path[keys[i]] = {};
       path = path[keys[i]];
     }
 
@@ -261,7 +261,7 @@ class BrowserInstance {
   }
 
   getStorage(key: string) {
-    let path = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined);
+    let path = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined) as any;
     if (!key) return path;
 
     const keys = (key || '').split('.');

@@ -6,7 +6,7 @@
 
 import {delay, Obj, words} from '@mathigon/core';
 import {Point} from '@mathigon/euclid';
-import {SVGParentView, $, $body, ElementView, CanvasView, InputView, SVGView} from './elements';
+import {$, $body, CanvasView, ElementView, InputView, SVGParentView, SVGView} from './elements';
 import {Browser} from './browser';
 
 
@@ -96,7 +96,7 @@ function makeTapEvent($el: ElementView) {
 
   let start: Point|undefined = undefined;
 
-  $el.on('pointerdown', (e: ScreenEvent) => start = pointerPosition(e));
+  $el.on('pointerdown', (e: ScreenEvent) => (start = pointerPosition(e)));
 
   $el.on('pointerup', (e: ScreenEvent) => {
     if (!start) return;
@@ -105,7 +105,7 @@ function makeTapEvent($el: ElementView) {
     start = undefined;
   });
 
-  $el.on('pointercancel', () => start = undefined);
+  $el.on('pointercancel', () => (start = undefined));
 }
 
 function makeClickOutsideEvent($el: ElementView) {
@@ -120,7 +120,7 @@ function makeClickOutsideEvent($el: ElementView) {
     // Elements within shadow roots are opaque, so we check using coordinates.
     const shadowRoot = $el._el.getRootNode?.() as ShadowRoot|undefined;
     const posn = pointerPosition(e);
-    if (shadowRoot?.host) target = shadowRoot.elementFromPoint(posn.x, posn.y);
+    if (shadowRoot?.host) target = (shadowRoot as any).elementFromPoint(posn.x, posn.y);
 
     if (!target || $el._el === target || $el._el.contains(target)) return;
     $el.trigger('clickOutside', e);
@@ -492,15 +492,15 @@ function makePointerPositionEvents($el: ElementView) {
   $el._data['pointerPositionEvents'] = true;
 
   const parent = $el.parent!;
-  let isInside: boolean|undefined = undefined;
+  let isInside: boolean|undefined;
 
-  parent.on('pointerend', () => isInside = undefined);
+  parent.on('pointerend', () => (isInside = undefined));
 
   parent.on('pointermove', (e: ScreenEvent) => {
     const wasInside = isInside;
     const target = getEventTarget(e)!;
     isInside = target.equals($el) || target.hasParent($el);
-    if (wasInside != undefined && isInside && !wasInside) $el.trigger('pointerenter', e);
+    if (wasInside !== undefined && isInside && !wasInside) $el.trigger('pointerenter', e);
     if (!isInside && wasInside) $el.trigger('pointerleave', e);
   });
 }
@@ -513,8 +513,8 @@ function makePointerPositionEvents($el: ElementView) {
 function makeMouseEvent(eventName: string, $el: ElementView) {
   // TODO Support removing events.
 
-  if ($el._data['_' + eventName]) return;
-  $el._data['_' + eventName] = true;
+  if ($el._data[`_${eventName}`]) return;
+  $el._data[`_${eventName}`] = true;
 
   if (pointerSupport) {
     $el.on(eventName.replace('mouse', 'pointer'), (e) => {
@@ -565,14 +565,14 @@ function makeKeyEvent($el: ElementView) {
 const aliases: Obj<string> = {
   scrollwheel: 'DOMMouseScroll mousewheel',
   pointerdown: pointerSupport ? 'pointerdown' :
-               touchSupport ? 'touchstart' : 'mousedown',
+    touchSupport ? 'touchstart' : 'mousedown',
   pointermove: pointerSupport ? 'pointermove' :
-               touchSupport ? 'touchmove' : 'mousemove',
+    touchSupport ? 'touchmove' : 'mousemove',
   pointerup: pointerSupport ? 'pointerup' :
-             touchSupport ? 'touchend' : 'mouseup',
+    touchSupport ? 'touchend' : 'mouseup',
   pointercancel: pointerSupport ? 'pointercancel' : 'touchcancel',
   pointerstop: pointerSupport ? 'pointerup pointercancel' :
-               touchSupport ? 'touchend touchcancel' : 'mouseup',
+    touchSupport ? 'touchend touchcancel' : 'mouseup'
 };
 
 const customEvents: Obj<($el: ElementView, remove: boolean) => void> = {
@@ -590,11 +590,11 @@ const customEvents: Obj<($el: ElementView, remove: boolean) => void> = {
 
   enterViewport: makeIntersectionEvents,
   exitViewport: makeIntersectionEvents,
-  resize: makeResizeEvents,
+  resize: makeResizeEvents
 };
 
 export function bindEvent($el: ElementView, event: string, fn: EventCallback,
-    options?: EventListenerOptions) {
+  options?: EventListenerOptions) {
   if (event in customEvents) {
     customEvents[event]($el, false);
   } else if (event in aliases) {
@@ -607,7 +607,7 @@ export function bindEvent($el: ElementView, event: string, fn: EventCallback,
 }
 
 export function unbindEvent($el: ElementView, event: string,
-    fn?: EventCallback) {
+  fn?: EventCallback) {
 
   if (event in customEvents) {
     if (!$el._events[event] || !$el._events[event].length) {

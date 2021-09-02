@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {Obj, deepExtend, throttle, unique} from '@mathigon/core';
+import {deepExtend, Obj, throttle, unique} from '@mathigon/core';
 
 
 // -----------------------------------------------------------------------------
@@ -25,15 +25,16 @@ export function toQueryString(data: PostData) {
   for (let key of Object.keys(data)) {
     let value = data[key];
     key = encodeURIComponent(key);
+    // eslint-disable-next-line eqeqeq
     if (value == undefined) {
       pairs.push(key);
       continue;
     }
-    value = Array.isArray(value) ? value.join(',') : '' + value;
+    value = Array.isArray(value) ? value.join(',') : `${value}`;
     value = value.replace(/(\r)?\n/g, '\r\n');
     value = encodeURIComponent(value);
     value = value.replace(/%20/g, '+');
-    pairs.push(key + '=' + value);
+    pairs.push(`${key}=${value}`);
   }
 
   return pairs.join('&');
@@ -66,7 +67,7 @@ export async function post(url: string, data?: FormData|PostData) {
   const options = {
     method: 'POST',
     body: isForm ? (data as FormData) : data ? toQueryString(data) : undefined,
-    headers: {'X-CSRF-Token': window.csrfToken || ''} as Record<string, string>,
+    headers: {'X-CSRF-Token': window.csrfToken || ''} as Record<string, string>
   };
 
   if (!isForm) options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -121,10 +122,10 @@ function sendPostData() {
     // in progress, and the data is not lost.
     POST_DATA.delete(url);
     post(url, {data: JSON.stringify(data)})
-        .catch((error) => {
-          console.error('Failed to send POST request:', error);
-          savePostData(url, data);
-        });
+      .catch((error) => {
+        console.error('Failed to send POST request:', error);
+        savePostData(url, data);
+      });
   }
 }
 

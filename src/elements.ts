@@ -4,12 +4,12 @@
 // =============================================================================
 
 
-import {isOneOf, words, applyDefaults, Obj} from '@mathigon/core';
-import {roundTo, isBetween, nearlyEquals, clamp} from '@mathigon/fermat';
-import {Point, Rectangle, SimplePoint, GeoShape, SVGDrawingOptions, drawSVG, drawCanvas, CanvasDrawingOptions} from '@mathigon/euclid';
+import {applyDefaults, isOneOf, Obj, words} from '@mathigon/core';
+import {clamp, isBetween, nearlyEquals, roundTo} from '@mathigon/fermat';
+import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoShape, Point, Rectangle, SimplePoint, SVGDrawingOptions} from '@mathigon/euclid';
 import {loadImage} from './ajax';
 
-import {ease, animate, transition, enter, exit, AnimationProperties, AnimationResponse} from './animate';
+import {animate, AnimationProperties, AnimationResponse, ease, enter, exit, transition} from './animate';
 import {Browser, KEY_CODES} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
@@ -129,7 +129,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   // Required because TS doesn't allow getters and setters with different types.
   set textStr(t: any) {
-    this._el.textContent = '' + t;
+    this._el.textContent = `${t}`;
   }
 
   /** Blurs this DOM element. */
@@ -165,7 +165,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       if ($c instanceof Text) {
         if ($c.textContent?.includes('${')) {
           const expr = compileString($c.textContent);
-          model.watch(() => $c.textContent = expr(model) || '');
+          model.watch(() => ($c.textContent = expr(model) || ''));
         }
       } else if (recursive) {
         $c.bindModel(model);
@@ -204,7 +204,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
     } else if (name === ':html') {
       const expr = compile(value);
-      model.watch(() => this.html = expr(model) || '');
+      model.watch(() => (this.html = expr(model) || ''));
 
     } else if (name === ':draw') {
       const expr = compile(value);
@@ -212,7 +212,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
     } else if (name ===':class') {
       const expr = compile(value);
-      const initialClass = this.attr('class') + ' ';
+      const initialClass = `${this.attr('class')} `;
       model.watch(() => this.setAttr('class', initialClass + expr(model)));
 
     } else if (name === ':bind') {
@@ -372,10 +372,10 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
         return window.getComputedStyle(this._el).getPropertyValue(props);
       } else {
         const keys = Object.keys(props);
-        for (const p of keys) this._el.style.setProperty(p, '' + props[p]);
+        for (const p of keys) this._el.style.setProperty(p, `${props[p]}`);
       }
     } else if (typeof props === 'string') {
-      this._el.style.setProperty(props, '' + value);
+      this._el.style.setProperty(props, `${value}`);
     }
   }
 
@@ -554,12 +554,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Returns an array of all child nodes, including text nodes. */
-  get childNodes(): (ElementView|Text)[] {
+  get childNodes(): Array<ElementView|Text> {
     return Array.from(this._el.childNodes, (node) => {
       if (node instanceof Comment) return undefined;
       if (node instanceof Text) return node;
       return $(node as Element)!;
-    }).filter(x => x) as (ElementView|Text)[];
+    }).filter(x => x) as Array<ElementView|Text>;
   }
 
   /** Detach and re-insert to restart CSS animations. */
@@ -679,7 +679,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * delay and ease function.
    */
   animate(rules: AnimationProperties, duration = 400, delay = 0,
-      easing = 'ease-in-out'): AnimationResponse {
+    easing = 'ease-in-out'): AnimationResponse {
     return transition(this, rules, duration, delay, easing);
   }
 
@@ -706,8 +706,8 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * after the `animationEnd` event.
    */
   effect(className: string) {
-    this.one('animationend', () => this.removeClass('effects-' + className));
-    this.addClass('effects-' + className);
+    this.one('animationend', () => this.removeClass(`effects-${className}`));
+    this.addClass(`effects-${className}`);
   }
 
 
@@ -845,7 +845,7 @@ export class HTMLBaseView<T extends HTMLElement> extends BaseView<T> {
       const box = this._el.getBoundingClientRect();
       return {
         top: box.top - parentBox.top, left: box.left - parentBox.left,
-        bottom: box.bottom - parentBox.top, right: box.right - parentBox.left,
+        bottom: box.bottom - parentBox.top, right: box.right - parentBox.left
       };
     }
   }
@@ -966,13 +966,13 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
 
   /** Sets the list of points for an SVG `<path>` element.c*/
   set points(p: SimplePoint[]) {
-    const d = p.length ? 'M' + p.map(x => x.x + ',' + x.y).join('L') : '';
+    const d = p.length ? `M${p.map(x => `${x.x},${x.y}`).join('L')}` : '';
     this.setAttr('d', d);
   }
 
   /** Appends a new point to an SVG `<path>` element. */
   addPoint(p: SimplePoint) {
-    const d = this.attr('d') + ' L ' + p.x + ',' + p.y;
+    const d = `${this.attr('d')} L ${p.x},${p.y}`;
     this.setAttr('d', d);
   }
 
@@ -1013,7 +1013,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
       arrows: this.attr('arrows'),
       size: (+this.attr('size')) || undefined,
       fill: this.hasClass('fill'),
-      round: this.hasAttr('round'),
+      round: this.hasAttr('round')
     };
     this.setAttr('d', drawSVG(obj, applyDefaults(options, attributes)));
   }
@@ -1079,7 +1079,7 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     // TODO Load external fonts used in the SVG
 
     const serialised = new XMLSerializer().serializeToString($copy._el);
-    const url = 'data:image/svg+xml;utf8,' + encodeURIComponent(serialised);
+    const url = `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
 
     const $canvas = $N('canvas', {width, height}) as CanvasView;
     $canvas.ctx.fillStyle = $html.css('background-color') || 'white';
@@ -1095,10 +1095,10 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     const windowRef = Browser.isIOS ? window.open('', '_blank') : undefined;
 
     this.pngImage(width, height, viewBox).then((href) => {
-      if (windowRef) return windowRef.location.href = href;
+      if (windowRef) return (windowRef.location.href = href);
       const $a = $N('a', {download: fileName, href, target: '_blank'});
       $a._el.dispatchEvent(new MouseEvent('click',
-          {view: window, bubbles: false, cancelable: true}));
+        {view: window, bubbles: false, cancelable: true}));
     });
   }
 }
@@ -1223,16 +1223,16 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     if (isNumber) {
       const min = this.hasAttr('min') ? +this.attr('min') : -Infinity;
       const max = this.hasAttr('max') ? +this.attr('max') : Infinity;
-      this.change((v: string) => model[name] = clamp(+v, min, max));
+      this.change((v: string) => (model[name] = clamp(+v, min, max)));
 
       // Update the value on blur, in case it doesn't match the clamped value.
-      this.on('blur', () => this.value = model[name]);
+      this.on('blur', () => (this.value = model[name]));
 
     } else if (isCheckbox) {
-      this.on('change', () => model[name] = this.checked);
+      this.on('change', () => (model[name] = this.checked));
 
     } else {
-      this.change((v: string) => model[name] = v);
+      this.change((v: string) => (model[name] = v));
     }
 
     model.watch(() => {
@@ -1340,7 +1340,7 @@ export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
     const href = this.pngImage;
     const $a = $N('a', {download: fileName, href, target: '_blank'});
     $a._el.dispatchEvent(new MouseEvent('click',
-        {view: window, bubbles: false, cancelable: true}));
+      {view: window, bubbles: false, cancelable: true}));
   }
 }
 
@@ -1390,7 +1390,7 @@ type QueryResult<T extends Element | string> =
   ElementView | undefined;
 
 type QueryResults<T extends string> =
-  T extends string ? CreateResult<T>[] :
+  T extends string ? Array<CreateResult<T>> :
   ElementView[];
 
 /**
@@ -1398,7 +1398,7 @@ type QueryResults<T extends string> =
  * Element wrapper around a native HTMLElement instance.
  */
 export function $<T extends Element | string>(query?: T,
-    context?: ElementView): QueryResult<T> {
+  context?: ElementView): QueryResult<T> {
   if (!query) return undefined as QueryResult<T>;
 
   const c = context ? context._el : document.documentElement;
@@ -1429,7 +1429,7 @@ export function $<T extends Element | string>(query?: T,
 
 /** Finds all elements that match a specific CSS selector. */
 export function $$<T extends string>(selector: T,
-    context?: ElementView): QueryResults<T> {
+  context?: ElementView): QueryResults<T> {
   const c = context ? context._el : document.documentElement;
   const els = selector ? c.querySelectorAll(selector as string) : [];
   return Array.from(els, el => $(el)!) as QueryResults<T>;
@@ -1437,10 +1437,10 @@ export function $$<T extends string>(selector: T,
 
 /** Creates a new Element instance from a given set of options. */
 export function $N<T extends string>(tag: T, attributes: Obj<any> = {},
-    parent?: ElementView): CreateResult<T> {
+  parent?: ElementView): CreateResult<T> {
 
   const el = !(SVG_TAGS as readonly string[]).includes(tag) ? document.createElement(tag) :
-             document.createElementNS('http://www.w3.org/2000/svg', tag);
+    document.createElementNS('http://www.w3.org/2000/svg', tag);
 
   for (const [key, value] of Object.entries(attributes)) {
     if (value === undefined) continue;

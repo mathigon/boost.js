@@ -77,8 +77,8 @@ abstract class CustomHTMLElement extends HTMLElement {
     // Select all unresolved custom element children
     // TODO improve performance and fix ordering
     const promises = customElementChildren(this)
-        .filter(c => !c.isReady)
-        .map(c => new Promise(res => c.addEventListener('ready', res)));
+      .filter(c => !c.isReady)
+      .map(c => new Promise(res => c.addEventListener('ready', res)));
     await Promise.all(promises);
 
     this._view.ready();

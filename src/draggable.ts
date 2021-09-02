@@ -4,9 +4,9 @@
 // =============================================================================
 
 
-import {EventTarget, applyDefaults} from '@mathigon/core';
+import {applyDefaults, EventTarget} from '@mathigon/core';
 import {Bounds, Point} from '@mathigon/euclid';
-import {SVGParentView, ElementView, $html} from './elements';
+import {$html, ElementView, SVGParentView} from './elements';
 import {Browser} from './browser';
 import {slide} from './events';
 
@@ -39,7 +39,7 @@ export class Draggable extends EventTarget {
   height = 0;
 
   constructor(readonly $el: ElementView, $parent: ElementView,
-      options: DraggableOptions = {}) {
+    options: DraggableOptions = {}) {
     super();
 
     this.options = applyDefaults(options, {moveX: true, moveY: true});
@@ -64,7 +64,7 @@ export class Draggable extends EventTarget {
         this.trigger(last.equals(start) ? 'click' : 'end');
         $html.removeClass('grabbing');
       },
-      accessible: true,
+      accessible: true
     });
 
     Browser.onResize(() => {
@@ -72,7 +72,7 @@ export class Draggable extends EventTarget {
       const oldHeight = this.height;
       this.setDimensions($parent);
       this.setPosition(this.position.x * this.width / oldWidth || 0,
-          this.position.y * this.height / oldHeight || 0);
+        this.position.y * this.height / oldHeight || 0);
     });
   }
 
@@ -91,8 +91,8 @@ export class Draggable extends EventTarget {
     const m = this.options.margin || 0;
 
     let p = new Point(this.options.moveX ? x : 0, this.options.moveY ? y : 0)
-        .clamp(new Bounds(0, this.width, 0, this.height), m)
-        .round(this.options.snap || 1);
+      .clamp(new Bounds(0, this.width, 0, this.height), m)
+      .round(this.options.snap || 1);
 
     if (this.options.round) p = this.options.round(p);
 
@@ -102,8 +102,8 @@ export class Draggable extends EventTarget {
     if (this.options.useTransform) {
       this.$el.translate(p.x, p.y);
     } else {
-      if (this.options.moveX) this.$el.css('left', p.x + 'px');
-      if (this.options.moveY) this.$el.css('top', p.y + 'px');
+      if (this.options.moveX) this.$el.css('left', `${p.x}px`);
+      if (this.options.moveY) this.$el.css('top', `${p.y}px`);
     }
 
     this.trigger('move', p);

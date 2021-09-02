@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import * as tape from 'tape';
+import tape from 'tape';
 import {batch, observe} from '../src/observable';
 
 
@@ -20,7 +20,7 @@ tape('simple observe', (test) => {
   let callbacks = 0;
 
   test.equal(model.a, 1);
-  model.watch((s) => callbacks += s.a);
+  model.watch(s => (callbacks += s.a));
   test.equal(callbacks, 1);
 
   model.a = 2;
@@ -38,7 +38,7 @@ tape('watch all', (test) => {
   const model = observe({a: 1, b: 2});
   let callbacks = 0;
 
-  const fn = () => callbacks += 1;
+  const fn = () => (callbacks += 1);
   model.watchAll(fn);
   test.equal(callbacks, 1);
 
@@ -90,7 +90,7 @@ tape('batched mutation (normal)', (test) => {
   const model = observe({a: 1, b: 2, c: 3});
   let callbacks = 0;
 
-  model.watchAll(() => callbacks += 1, true);
+  model.watchAll(() => (callbacks += 1), true);
 
   test.equal(callbacks, 0);
 
@@ -169,7 +169,7 @@ tape('assign', (test) => {
   test.equal(allCallbacks, 1);
 
   model.assign({
-    a: 3,
+    a: 3
   });
 
   // Setting `a` with assign should call `watchAll` callbacks, and watchers using `a`, but not watchers using `b`
@@ -179,7 +179,7 @@ tape('assign', (test) => {
 
   model.assign({
     a: 3,
-    b: 3,
+    b: 3
   });
 
   // `a` has the same value as before, no need to re-run callbacks

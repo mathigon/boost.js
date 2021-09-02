@@ -7,20 +7,16 @@
     "automerge": true
   }, {
     "packagePatterns": ["^@mathigon"],
-    "schedule": ["at any time"],
     "groupName": "mathigon",
+    "schedule": ["at any time"],
     "automerge": true
   }, {
     "packagePatterns": ["ts-node", "^typescript", "tslib"],
     "groupName": "typescript",
     "automerge": true
   }, {
-    "packagePatterns": ["^@types/"],
-    "groupName": "types",
-    "automerge": true
-  }, {
-    "packagePatterns": ["^rollup", "^@rollup"],
-    "groupName": "rollup",
+    "packagePatterns": ["tape"],
+    "groupName": "tests",
     "automerge": true
   }]
 }
