@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "homepage": "https://mathigon.io/boost",
   "repository": "mathigon/boost.js",
@@ -23,16 +23,16 @@
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",
     "prepublishOnly": "npm test && npm run lint",
     "prepare": "npm run build",
-    "cjs": "esbuild src/index.ts --outfile=dist/index.cjs.js --format=cjs --bundle --target=es2016 --sourcemap --external:@mathigon/core,@mathigon/fermat,@mathigon/euclid",
-    "esm": "esbuild src/index.ts --outfile=dist/index.esm.js --format=esm --bundle --target=es2016 --sourcemap --external:@mathigon/core,@mathigon/fermat,@mathigon/euclid",
+    "cjs": "esbuild src/index.ts --outfile=dist/index.cjs.js --format=cjs --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
+    "esm": "esbuild src/index.ts --outfile=dist/index.esm.js --format=esm --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
     "types": "tsc --project tsconfig-types.json",
     "build": "npm run cjs && npm run esm && npm run types",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@mathigon/core": "1.0.1",
-    "@mathigon/euclid": "1.0.1",
-    "@mathigon/fermat": "1.0.1"
+    "@mathigon/core": "1.0.2",
+    "@mathigon/euclid": "1.0.2",
+    "@mathigon/fermat": "1.0.2"
   },
   "devDependencies": {
     "@types/tape": "4.13.2",
