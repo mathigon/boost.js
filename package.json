@@ -28,9 +28,9 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@mathigon/core": "^0.6.4",
-    "@mathigon/euclid": "^0.6.9",
-    "@mathigon/fermat": "^0.6.4"
+    "@mathigon/core": "^1.0.0",
+    "@mathigon/euclid": "^1.0.0",
+    "@mathigon/fermat": "^1.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "8.2.5",
