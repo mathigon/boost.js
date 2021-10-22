@@ -5,15 +5,16 @@
 
 
 export class AudioPlayer {
-  private player: HTMLAudioElement;
+  private player = new Audio();
 
-  constructor(url: string) {
-    this.player = new Audio(url);
-    this.player.preload = 'auto';
+  constructor(public src: string, public defaultVolume = 1, preload = true) {
+    this.player.src = src;
+    if (preload) this.player.preload = 'auto';
   }
 
-  play() {
+  play(volume?: number) {
     this.player.currentTime = 0;
+    this.player.volume = volume || this.defaultVolume;
     this.player.play();
   }
 }
