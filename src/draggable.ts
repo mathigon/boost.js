@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {applyDefaults, EventTarget} from '@mathigon/core';
+import {EventTarget} from '@mathigon/core';
 import {Bounds, Point} from '@mathigon/euclid';
 import {$html, ElementView, SVGParentView} from './elements';
 import {Browser} from './browser';
@@ -38,11 +38,10 @@ export class Draggable extends EventTarget {
   width = 0;
   height = 0;
 
-  constructor(readonly $el: ElementView, $parent: ElementView,
-    options: DraggableOptions = {}) {
+  constructor(readonly $el: ElementView, $parent: ElementView, options: DraggableOptions = {}) {
     super();
 
-    this.options = applyDefaults(options, {moveX: true, moveY: true});
+    this.options = Object.assign(options, {moveX: true, moveY: true});
     this.setDimensions($parent);
 
     let startPosn: Point;

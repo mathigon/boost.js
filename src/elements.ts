@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {applyDefaults, isOneOf, Obj, words} from '@mathigon/core';
+import {isOneOf, Obj, words} from '@mathigon/core';
 import {clamp, isBetween, nearlyEquals, roundTo} from '@mathigon/fermat';
 import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoShape, Point, Rectangle, SimplePoint, SVGDrawingOptions} from '@mathigon/euclid';
 import {loadImage} from './ajax';
@@ -1015,7 +1015,7 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
       fill: this.hasClass('fill'),
       round: this.hasAttr('round')
     };
-    this.setAttr('d', drawSVG(obj, applyDefaults(options, attributes)));
+    this.setAttr('d', drawSVG(obj, Object.assign(options, attributes)));
   }
 }
 
