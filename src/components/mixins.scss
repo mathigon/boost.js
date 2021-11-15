@@ -1,0 +1,74 @@
+// =============================================================================
+// Boost.js | SCSS Mixins
+// (c) Mathigon
+// =============================================================================
+
+
+@mixin clearfix(){
+  &:before, &:after { display: table; content: " "; clear: both; }
+}
+
+@mixin ellipsis() {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin fillParent(){
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@mixin overflow-scroll() {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+@mixin theme($prop, $light, $dark) {
+  #{$prop}: $light;
+  html[theme="dark"] & { #{$prop}: $dark; }
+}
+
+@mixin bouncy(){
+  // TODO Use $bounce easing mode.
+  &:hover { transform: scale(1.08); }
+  &:active { transform: scale(0.92); }
+}
+
+@mixin arrow($color, $a, $b, $c, $size, $height: $size){
+  background: $color;
+  position: relative;
+
+  &:after {
+    content: "";
+    display: block;
+    position: absolute;
+    #{$a}: 100%;
+    #{$b}: 50%;
+    margin-#{$b}: -$size;
+    border-#{$a}: $height $color solid;
+    border-#{$b}: $size transparent solid;
+    border-#{$c}: $size transparent solid;
+  }
+}
+
+@mixin svg-text-outline($width: 3px, $color: white, $dark-color: $dark-mode){
+  @include theme(stroke, $color, $dark-color);
+  stroke-width: $width;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  // Safari has lots of bugs with paint-order rendering
+  html.is-safari & { stroke: none; }
+}
+
+@mixin no-scrollbar(){
+  &::-webkit-scrollbar,
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-thumb {
+    display: none; width: 0; height: 0; opacity: 0;
+  }
+}

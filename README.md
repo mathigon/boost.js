@@ -40,6 +40,20 @@ import {$, CustomElement, Browser} from '@mathigon/boost'
 ```
 
 
+## Components
+
+Importing the webcomponents `<x-modal>`, `<x-popup>`, `<x-icon>`, `<x-alert>` and `<x-select>` works
+a bit different from other functions exported by this module. Because they are just static classes
+with no side effects, they would usually be removed by tree-shaking. We also want to avoid duplicate
+component declarations, or any globally-running code.
+
+* The __types__ can be imported like all other classes from `@mathigon/boost`.
+* The actual __code__ is not included in the CJS or ESM bundles. needs to be included using
+  something like `import '@mathigon/boost/dist/components.js'`.
+* The SCSS styles can be imported in other SCSS files using
+  `@import node_modules/@mathigon/boost/src/components/components`.
+
+
 ## Contributing
 
 We welcome community contributions: please file any bugs you find or send us pull requests with

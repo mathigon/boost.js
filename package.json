@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "license": "MIT",
   "homepage": "https://mathigon.io/boost",
   "repository": "mathigon/boost.js",
@@ -25,7 +25,7 @@
     "cjs": "esbuild src/index.ts --outfile=dist/index.cjs.js --format=cjs --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
     "esm": "esbuild src/index.ts --outfile=dist/index.esm.js --format=esm --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
     "types": "tsc --project tsconfig-types.json",
-    "build": "npm run cjs && npm run esm && npm run types",
+    "build": "npm run cjs && npm run esm && node build.js && npm run types",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
