@@ -1090,11 +1090,27 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     return $canvas.pngImage;
   }
 
-  downloadImage(fileName: string, width?: number, height?: number, viewBox?: string) {
+  /** Converts an SVG element into a PNG data URI. */
+  async svgImage(width?: number, height?: number, viewBox?: string) {
+    const $copy = this.copy(true, true, SVG_STYLES);
+
+    if (!height) height = width || this.svgHeight;
+    if (!width) width = this.svgWidth;
+    $copy.setAttr('width', width);
+    $copy.setAttr('height', height);
+    $copy.setAttr('viewBox', viewBox || this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
+    $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
+
+    const serialised = new XMLSerializer().serializeToString($copy._el);
+    return `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
+  }
+
+  downloadImage(fileName: string, type: 'png'|'svg' = 'png', width?: number, height?: number, viewBox?: string) {
     // iOS Doesn't allow navigation calls within an async event.
     const windowRef = Browser.isIOS ? window.open('', '_blank') : undefined;
 
-    this.pngImage(width, height, viewBox).then((href) => {
+    const urlMaker = type === 'svg' ? 'svgImage' : 'pngImage';
+    this[urlMaker](width, height, viewBox).then((href) => {
       if (windowRef) return (windowRef.location.href = href);
       const $a = $N('a', {download: fileName, href, target: '_blank'});
       $a._el.dispatchEvent(new MouseEvent('click',
