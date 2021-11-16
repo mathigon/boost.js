@@ -246,10 +246,10 @@ class BrowserInstance {
 
   private localStorage?: Storage;
 
-  setStorage(key: string, value: any) {
+  setStorage(key: string, value: unknown) {
     const keys = (key || '').split('.');
-    const storage = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined) as any;
-    let path = storage;
+    const storage = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined, {});
+    let path: any = storage;
 
     for (let i = 0; i < keys.length - 1; ++i) {
       if (path[keys[i]] === undefined) path[keys[i]] = {};
@@ -261,7 +261,7 @@ class BrowserInstance {
   }
 
   getStorage(key: string) {
-    let path = safeToJSON(this.localStorage?.getItem(STORAGE_KEY) || undefined) as any;
+    let path: any = safeToJSON(this.localStorage?.getItem(STORAGE_KEY), {});
     if (!key) return path;
 
     const keys = (key || '').split('.');
