@@ -29,6 +29,84 @@ interface EventListenerOptions {
   passive?: boolean;
 }
 
+function traverseDOM(node: any, callback: (n: any) => void) {
+  if (node.nodeType !== 1) return;
+  callback(node);
+  node = node.firstChild;
+  while (node) {
+    traverseDOM(node, callback);
+    node = node.nextSibling;
+  }
+}
+
+function cleanNodes(node: any, shouldRemove: (n: any) => boolean) {
+  for (let n = 0; n < node.childNodes.length; n ++) {
+    const child = node.childNodes[n];
+    if (child.nodeType === 1 && shouldRemove(child)) {
+      node.removeChild(child);
+      n--;
+    } else if (child.nodeType === 1) {
+      cleanNodes(child, shouldRemove);
+    }
+  }
+}
+
+function checkInheritance(node: any, condition: (n: any) => boolean) {
+  while (node.parentNode) {
+    if (condition(node)) {
+      return true;
+    }
+    node = node.parentNode;
+  }
+  return false;
+}
+
+const SVG_REMOVED_PROPERTIES = [
+  'touch-action'
+];
+
+const SVG_REMOVED_ATTRIBUTES = [
+  'class',
+  'tabindex',
+  'contenteditable'
+];
+
+// const SVG_REMOVED_ELEMENTS = [
+//   'defs',
+// ]
+
+const SVG_STYLE_DEFAULTS: {[index: string]: string} = {
+  'font-style': 'normal',
+  'font-weight': '400',
+  'letter-spacing': 'normal',
+  'text-decoration': 'none',
+  'display': 'block',
+  'visibility': 'visible',
+  'alignment-baseline': 'auto',
+  'baseline-shift': '0px',
+  'text-anchor': 'start',
+  'clip': 'auto',
+  'clip-path': 'none',
+  'clip-rule': 'nonzero',
+  'mask': 'none',
+  'opacity': '1',
+  'filter': 'none',
+  'fill': 'rgb(0, 0, 0)',
+  'fill-rule': 'nonzero',
+  'marker': 'none',
+  'stroke': 'none',
+  'stroke-dasharray': 'none',
+  'stroke-dashoffset': '0px',
+  'stroke-linecap': 'butt',
+  'stroke-linejoin': 'miter',
+  'stroke-width': '1px',
+  'text-rendering': 'auto',
+  'transform': 'none',
+  'dominant-baseline': 'auto',
+  'transform-origin': '0px 0px',
+  'transform-box': 'view-box',
+  'paint-order': 'normal'
+};
 
 // -----------------------------------------------------------------------------
 // Base Element Class
@@ -874,7 +952,10 @@ const SVG_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
   'marker-start', 'marker-mid', 'marker-end', 'stroke', 'stroke-dasharray',
   'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width',
   'text-rendering', 'transform', 'dominant-baseline', 'transform-origin',
-  'transform-box', 'paint-order'];
+  'transform-box', 'paint-order', 'padding', 'border-color', 'text-align',
+  'white-space', 'min-width', 'max-width', 'line-height', 'height',
+  'border-top', 'border-right', 'border-left', 'border-bottom',
+  'border-width', 'box-sizing', 'background'];
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   readonly type = 'svg';
@@ -1091,7 +1172,7 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     const url = `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
 
     const $canvas = $N('canvas', {width, height}) as CanvasView;
-    $canvas.ctx.fillStyle = $html.css('background-color') || 'white';
+    $canvas.ctx.fillStyle = 'transparent';
     $canvas.ctx.fillRect(0, 0, width, height);
 
     const image = await loadImage(url);
@@ -1099,8 +1180,8 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     return $canvas.pngImage;
   }
 
-  /** Converts an SVG element into a PNG data URI. */
-  async svgImage(width?: number, height?: number, viewBox?: string) {
+  /** Converts an SVG element into a JPEG data URI. */
+  async jpegImage(width?: number, height?: number, viewBox?: string) {
     const $copy = this.copy(true, true, SVG_STYLES);
 
     if (!height) height = width || this.svgHeight;
@@ -1110,16 +1191,104 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     $copy.setAttr('viewBox', viewBox || this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
     $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
 
+    // External images in an SVG are not rendered because of CORS issues. We
+    // first need to individually convert them to data URIs.
+    const $images = $copy.$$('image[href^="http"]');
+    await Promise.all($images.map(async $i => {
+      const img = await loadImage($i.attr('href'));
+      const $canvas = $N('canvas', {width: img.width, height: img.height}) as CanvasView;
+      $canvas.ctx.drawImage(img, 0, 0, img.width, img.height);
+      const dataUri = await $canvas.jpegImage;
+      $i.setAttr('href', dataUri);
+    }));
+
+    // TODO Load external fonts used in the SVG
+
     const serialised = new XMLSerializer().serializeToString($copy._el);
-    return `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
+    const url = `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
+
+    const $canvas = $N('canvas', {width, height}) as CanvasView;
+    $canvas.ctx.fillStyle = 'white';
+    $canvas.ctx.fillRect(0, 0, width, height);
+
+    const image = await loadImage(url);
+    $canvas.ctx.drawImage(image, 0, 0, width, height);
+    return $canvas.jpegImage;
   }
 
-  downloadImage(fileName: string, type: 'png'|'svg' = 'png', width?: number, height?: number, viewBox?: string) {
+  /** Converts an SVG element into an SVG data URI. */
+  async svgImage(width?: number, height?: number, viewBox?: string) {
+    const $copy = this.copy(true, true, SVG_STYLES);
+
+    cleanNodes($copy._el, (node) => {
+      return !!node.getAttribute('hidden') ||
+        node.style.opacity === '0' ||
+        node.style.display === 'none';
+    });
+
+    // Need to run this again after potentially removing child nodes of g elements
+    cleanNodes($copy._el, (node) => {
+      return node.tagName === 'g' && node.childElementCount === 0;
+    });
+
+    // TODO remove stroke on tiles and fix background property on tables in dark mode
+    // TODO handle transforms properly (compass not working)
+    traverseDOM($copy._el, (node: any) => {
+      for (const a of SVG_REMOVED_ATTRIBUTES) {
+        if (node.hasAttribute(a)) {
+          node.removeAttribute(a);
+        }
+      }
+
+      for (const r of SVG_REMOVED_PROPERTIES) {
+        if (Object.prototype.hasOwnProperty.call(node.style, r)) {
+          node.style.removeProperty(r);
+        }
+      }
+
+      for (const d of Object.keys(SVG_STYLE_DEFAULTS)) {
+        if (SVG_STYLE_DEFAULTS[d] === node.style[d]) {
+          node.style.removeProperty(d);
+        }
+      }
+
+      // playing cards are broken if transform-box is removed
+      // tables are broken if border stuff is removed
+      for (const s of SVG_STYLES.filter(s => !['transform-box', 'border-style', 'border-color', 'border', 'border-left', 'border-top', 'border-right', 'border-bottom'].includes(s))) {
+        if (checkInheritance(node, n => node.style[s] === n.parentNode.style?.[s])) {
+          node.style.removeProperty(s);
+        }
+      }
+    });
+
+    if (!height) height = width || this.svgHeight;
+    if (!width) width = this.svgWidth;
+    $copy.setAttr('width', width);
+    $copy.setAttr('height', height);
+    $copy.setAttr('viewBox', viewBox || this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
+    $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
+
+    // TODO Load external fonts used in the SVG
+    //
+    const serialised = new XMLSerializer().serializeToString($copy._el);
+    const url = `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
+    return url;
+  }
+
+  downloadImage(fileName: string, type: 'png'|'svg'|'jpeg', width?: number, height?: number, viewBox?: string) {
     // iOS Doesn't allow navigation calls within an async event.
     const windowRef = Browser.isIOS ? window.open('', '_blank') : undefined;
 
-    const urlMaker = type === 'svg' ? 'svgImage' : 'pngImage';
-    this[urlMaker](width, height, viewBox).then((href) => {
+    const isDarkTheme = Browser.theme.isDark;
+    if (isDarkTheme) Browser.setTheme('light');
+    const urlMaker = {
+      'png': this.pngImage(width, height, viewBox),
+      'svg': this.svgImage(width, height, viewBox),
+      'jpeg': this.jpegImage(width, height, viewBox)
+    }[type];
+
+    if (isDarkTheme) Browser.setTheme('dark');
+    urlMaker.then((href) => {
       if (windowRef) return (windowRef.location.href = href);
       const $a = $N('a', {download: fileName, href, target: '_blank'});
       $a._el.dispatchEvent(new MouseEvent('click',
@@ -1310,9 +1479,14 @@ export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
     return this._el.getContext(c, options);
   }
 
-  /** Converts an Canvas element into a PNG data URI. */
+  /** Converts a Canvas element into a PNG data URI. */
   get pngImage() {
     return this._el.toDataURL('image/png');
+  }
+
+  /** Converts a Canvas element into a JPEG data URI. */
+  get jpegImage() {
+    return this._el.toDataURL('image/jpeg');
   }
 
   /** Returns the intrinsic pixel width of this `<canvas>` element. */
