@@ -60,7 +60,7 @@ export class Modal extends CustomElementView {
     });
 
     // Open modals that are shown on pageload
-    if (this.hasClass('open') && !$openModal) this.open(true);
+    if ((this.hasClass('open') || Browser.getHash() === this.id) && !$openModal) this.open(true);
 
     // Change positioning for modals containing input fields on small screens,
     // to have a better layout when the keyboard panel is shown.
