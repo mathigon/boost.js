@@ -173,8 +173,26 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
-  protected bindVariable(_model: Observable, _name: string) {
+  bindVariable(_model: Observable, _name: string) {
     // Can be implemented by child classes.
+  }
+
+  private $placeholder?: ElementView;
+
+  /** Conditionally hide this element from the DOM (using placeholder comments). */
+  toggleDOM(show = true) {
+    if (show === !!this._el.parentNode) return;
+
+    if (!this.$placeholder) {
+      this.$placeholder = $(document.createComment('') as unknown as Element)!;
+      this.insertBefore(this.$placeholder);
+    }
+
+    if (show) {
+      this.$placeholder.insertBefore(this);
+    } else {
+      this.detach();
+    }
   }
 
   private makeDynamicAttribute(name: string, value: string, model: Observable) {
@@ -191,16 +209,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       // While :show only toggles the visibility of an element, :if actually
       // removes it from the DOM. This is useful for :first/last-child CSS.
       const expr = compile(value);
-      const $placeholder = $(document.createComment('') as unknown as Element)!;
-      this.insertBefore($placeholder);
-      let visible = true;
-      model.watch(() => {
-        const show = !!expr(model);
-        if (show === visible) return;
-        if (show) $placeholder.insertBefore(this);
-        if (!show) this.detach();
-        visible = show;
-      });
+      model.watch(() => this.toggleDOM(!!expr(model)));
 
     } else if (name === ':html') {
       const expr = compile(value);
@@ -1226,7 +1235,7 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     this._el.value = v;
   }
 
-  protected bindVariable(model: Observable, name: string) {
+  bindVariable(model: Observable, name: string) {
     const isNumber = this._el.type === 'number';
     const isCheckbox = this._el.type === 'checkbox';
 

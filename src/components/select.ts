@@ -41,7 +41,7 @@ export class Select extends CustomElementView {
     this.trigger('change', $el);
   }
 
-  protected bindVariable(model: Observable, name: string) {
+  bindVariable(model: Observable, name: string) {
     if (model[name] === undefined) model[name] = this.$active.attr('value');
     this.on('change', ($el: ElementView) => (model[name] = $el.attr('value')));
 
