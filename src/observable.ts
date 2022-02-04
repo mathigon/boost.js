@@ -13,9 +13,10 @@ interface ObservableOptions<T> {
   watchAll: (fn: Callback<T>, dontRunImmediately?: boolean) => void;
   setComputed: (key: string, expr: (state: T) => any) => void;
   forceUpdate: () => void;
-  assign: (obj: any) => void;
+  assign: (obj: Partial<T>, clear?: boolean) => void;
   getKey: () => string;
   clear: () => void;
+  copy: () => T;
 }
 
 export type Observable<T = any> = T&ObservableOptions<T>;
@@ -97,7 +98,8 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     for (const callback of watchAllCallbacks) callback(state);
   }
 
-  function assign(changes: Partial<T>) {
+  function assign(changes: Partial<T>, clear?: boolean) {
+    if (clear) state = {} as T;
     batch(() => {
       for (const [key, value] of Object.entries(changes)) {
         proxy[key] = value;
@@ -116,6 +118,10 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
     callbackMap.clear();
     computedKeys.clear();
     lastKey = 0;
+  }
+
+  function copy() {
+    return Object.assign({}, state);
   }
 
   /**
@@ -137,6 +143,7 @@ export function observe<T = any>(state: T, parentModel?: Observable) {
       if (key === 'assign') return assign;
       if (key === 'getKey') return getKey;
       if (key === 'clear') return clear;
+      if (key === 'copy') return copy;
       if (key === '_internal') return [state, callbackMap];
 
       // A callback is currently being run. We track its dependencies.

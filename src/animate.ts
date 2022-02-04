@@ -190,8 +190,8 @@ export function transition($el: ElementView, properties: AnimationProperties,
   // Special rules for animations to height: auto
   const oldHeight = to.height;
   if (to.height === 'auto') {
-    to.height =
-        `${total($el.children.map($c => ($c as HTMLView).outerHeight))}px`;
+    const children = $el.children.filter(c => c.css('position') !== 'absolute') as HTMLView[];
+    to.height = `${total(children.map($c => $c.outerHeight))}px`;
   }
 
   let player: Animation;
