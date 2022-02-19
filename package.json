@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@mathigon/core": "1.0.7",
-    "@mathigon/euclid": "1.0.7",
+    "@mathigon/euclid": "1.0.8",
     "@mathigon/fermat": "1.0.7"
   },
   "devDependencies": {
