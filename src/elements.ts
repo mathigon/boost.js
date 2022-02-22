@@ -14,7 +14,7 @@ import {Browser, KEY_CODES} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
 import {Observable, observe} from './observable';
-import {parsePath} from './svg';
+import {cleanSVG, copySVGStyles, parsePath} from './svg';
 
 
 declare global {
@@ -599,6 +599,11 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     while (this._el.firstChild) this._el.removeChild(this._el.firstChild);
   }
 
+  /** Creates a copy of this element, and optionally its children. */
+  copy(recursive = true) {
+    return $(this._el.cloneNode(recursive) as Element)!;
+  }
+
 
   // -------------------------------------------------------------------------
   // Events
@@ -718,40 +723,6 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     this.one('animationend', () => this.removeClass(`effects-${className}`));
     this.addClass(`effects-${className}`);
   }
-
-
-  // -------------------------------------------------------------------------
-  // Utilities
-
-  /**
-   * Creates a copy of this element.
-   * @param {boolean=} recursive
-   * @param {boolean=} withStyles Whether to inline all styles.
-   * @param {string[]?} styleKeys A whitelist of all necessary styles.
-   * @returns {Element}
-   */
-  copy(recursive = true, withStyles = true, styleKeys?: string[]) {
-    const $copy = $(this._el.cloneNode(recursive) as Element)!;
-    if (withStyles) $copy.copyInlineStyles(this, recursive, styleKeys);
-    return $copy;
-  }
-
-  private copyInlineStyles($source: ElementView, recursive = true, styleKeys?: string[]) {
-    const style = window.getComputedStyle($source._el);
-    for (const s of styleKeys || Array.from(style)) {
-      this.css(s, style.getPropertyValue(s));
-    }
-
-    if (recursive) {
-      const children = this.children;
-      const sourceChildren = $source.children;
-      for (let i = 0; i < children.length; ++i) {
-        // Don't filter SVG style whitelist inside foreignObject!
-        const keys = children[i].tagName === 'foreignObject' ? undefined : styleKeys;
-        children[i].copyInlineStyles(sourceChildren[i], true, keys);
-      }
-    }
-  }
 }
 
 export type ElementView = BaseView<HTMLElement|SVGElement>;
@@ -865,16 +836,6 @@ export type HTMLView = HTMLBaseView<HTMLElement>;
 
 // -----------------------------------------------------------------------------
 // SVG Elements
-
-// Styles to copy when converting SVG elements to PNG
-const SVG_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
-  'letter-spacing', 'text-decoration', 'color', 'display', 'visibility',
-  'alignment-baseline', 'baseline-shift', 'text-anchor', 'clip', 'clip-path',
-  'clip-rule', 'mask', 'opacity', 'filter', 'fill', 'fill-rule', 'marker',
-  'marker-start', 'marker-mid', 'marker-end', 'stroke', 'stroke-dasharray',
-  'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width',
-  'text-rendering', 'transform', 'dominant-baseline', 'transform-origin',
-  'transform-box', 'paint-order'];
 
 export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   readonly type = 'svg';
@@ -1063,9 +1024,11 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     return $el;
   }
 
-  /** Converts an SVG element into a PNG data URI. */
-  async pngImage(width?: number, height?: number, viewBox?: string) {
-    const $copy = this.copy(true, true, SVG_STYLES);
+  /** Converts an SVG element into a PNG, JPG or SVG data URI. */
+  async image(type: 'png'|'jpg'|'svg', width?: number, height?: number, viewBox?: string) {
+    const $copy = this.copy(true);
+    copySVGStyles(this._el, $copy._el);
+    if (type === 'svg') cleanSVG($copy._el);
 
     if (!height) height = width || this.svgHeight;
     if (!width) width = this.svgWidth;
@@ -1076,50 +1039,48 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
 
     // External images in an SVG are not rendered because of CORS issues. We
     // first need to individually convert them to data URIs.
-    const $images = $copy.$$('image[href^="http"]');
-    await Promise.all($images.map(async $i => {
-      const img = await loadImage($i.attr('href'));
-      const $canvas = $N('canvas', {width: img.width, height: img.height}) as CanvasView;
-      $canvas.ctx.drawImage(img, 0, 0, img.width, img.height);
-      const dataUri = await $canvas.pngImage;
-      $i.setAttr('href', dataUri);
-    }));
+    if (type === 'svg') {
+      const $images = $copy.$$('image[href^="/"]');
+      for (const $i of $images) $i.setAttr('href', `${location.protocol}//${location.host}${$i.attr('href')}`);
+    } else {
+      const $images = $copy.$$('image[href^="http"]');
+      await Promise.all($images.map(async $i => {
+        const img = await loadImage($i.attr('href'));
+        const $canvas = $N('canvas', {width: img.width, height: img.height}) as CanvasView;
+        $canvas.ctx.drawImage(img, 0, 0, img.width, img.height);
+        const dataUri = await $canvas.image('png');
+        $i.setAttr('href', dataUri);
+      }));
+    }
 
     // TODO Load external fonts used in the SVG
 
     const serialised = new XMLSerializer().serializeToString($copy._el);
     const url = `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
+    if (type === 'svg') return url;
 
     const $canvas = $N('canvas', {width, height}) as CanvasView;
-    $canvas.ctx.fillStyle = $html.css('background-color') || 'white';
-    $canvas.ctx.fillRect(0, 0, width, height);
+    if (type === 'jpg') {
+      $canvas.ctx.fillStyle = 'white';
+      $canvas.ctx.fillRect(0, 0, width, height);
+    }
 
     const image = await loadImage(url);
     $canvas.ctx.drawImage(image, 0, 0, width, height);
-    return $canvas.pngImage;
+    return $canvas.image(type);
   }
 
-  /** Converts an SVG element into a PNG data URI. */
-  async svgImage(width?: number, height?: number, viewBox?: string) {
-    const $copy = this.copy(true, true, SVG_STYLES);
-
-    if (!height) height = width || this.svgHeight;
-    if (!width) width = this.svgWidth;
-    $copy.setAttr('width', width);
-    $copy.setAttr('height', height);
-    $copy.setAttr('viewBox', viewBox || this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
-    $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
-
-    const serialised = new XMLSerializer().serializeToString($copy._el);
-    return `data:image/svg+xml;utf8,${encodeURIComponent(serialised)}`;
-  }
-
-  downloadImage(fileName: string, type: 'png'|'svg' = 'png', width?: number, height?: number, viewBox?: string) {
+  downloadImage(fileName: string, width?: number, height?: number, viewBox?: string) {
     // iOS Doesn't allow navigation calls within an async event.
     const windowRef = Browser.isIOS ? window.open('', '_blank') : undefined;
 
-    const urlMaker = type === 'svg' ? 'svgImage' : 'pngImage';
-    this[urlMaker](width, height, viewBox).then((href) => {
+    const isDarkTheme = Browser.theme.isDark;
+    if (isDarkTheme) Browser.setTheme('light');
+    const type = fileName.endsWith('.jpg') ? 'jpg' : fileName.endsWith('.svg') ? 'svg' : 'png';
+    const dataUri = this.image(type, width, height, viewBox);
+    if (isDarkTheme) Browser.setTheme('dark');
+
+    dataUri.then((href) => {
       if (windowRef) return (windowRef.location.href = href);
       const $a = $N('a', {download: fileName, href, target: '_blank'});
       $a._el.dispatchEvent(new MouseEvent('click',
@@ -1310,9 +1271,9 @@ export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
     return this._el.getContext(c, options);
   }
 
-  /** Converts an Canvas element into a PNG data URI. */
-  get pngImage() {
-    return this._el.toDataURL('image/png');
+  /** Converts a Canvas element into a PNG or JPEG data URI. */
+  image(type:'png'|'jpg' = 'png') {
+    return this._el.toDataURL(type === 'png' ? 'image/png' : 'image/jpeg');
   }
 
   /** Returns the intrinsic pixel width of this `<canvas>` element. */
@@ -1362,7 +1323,7 @@ export class CanvasView extends HTMLBaseView<HTMLCanvasElement> {
   }
 
   downloadImage(fileName: string) {
-    const href = this.pngImage;
+    const href = this.image(fileName.endsWith('.jpg') ? 'jpg' : 'png');
     const $a = $N('a', {download: fileName, href, target: '_blank'});
     $a._el.dispatchEvent(new MouseEvent('click',
       {view: window, bubbles: false, cancelable: true}));
