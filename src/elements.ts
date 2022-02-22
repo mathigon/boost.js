@@ -29,6 +29,7 @@ interface EventListenerOptions {
   passive?: boolean;
 }
 
+
 // -----------------------------------------------------------------------------
 // Base Element Class
 
