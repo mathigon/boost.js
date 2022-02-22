@@ -67,3 +67,112 @@ export function parsePath(d: string): Point[] {
   const commands = pathCommands(d);
   return commands.map(c => last(c.points)).filter(p => !!p);
 }
+
+
+// -----------------------------------------------------------------------------
+// Nicer SVG exporting
+
+const COMMON_STYLES = ['font-family', 'font-size', 'font-style', 'font-weight',
+  'letter-spacing', 'text-decoration', 'color', 'display', 'visibility',
+  'alignment-baseline', 'baseline-shift', 'opacity', 'text-anchor', 'clip',
+  'clip-path', 'clip-rule', 'mask', 'filter', 'transform', 'transform-origin',
+  'white-space', 'line-height'];
+
+const SVG_STYLES = ['fill', 'fill-rule', 'marker', 'marker-start', 'marker-mid',
+  'marker-end', 'stroke', 'stroke-dasharray', 'stroke-dashoffset',
+  'stroke-linecap', 'stroke-linejoin', 'stroke-width', 'text-rendering',
+  'dominant-baseline', 'transform-box', 'paint-order'];
+
+const HTML_STYLES = ['padding', 'min-width', 'max-width', 'height',
+  'border-width', 'border-style', 'border-color', 'box-sizing', 'background',
+  'width', 'grid-template-columns', 'text-align'];
+
+const REMOVE_ATTRIBUTES = ['class', 'tabindex', 'contenteditable'];
+
+const DONT_INHERIT = new Set(['opacity', 'transform-box', 'transform-origin', 'border-width', 'border-style', 'border-color']);
+
+const STYLE_DEFAULTS: Record<string, string> = {
+  'font-style': 'normal',
+  'font-weight': '400',
+  'letter-spacing': 'normal',
+  'text-decoration': 'none',
+  'display': 'block',
+  'visibility': 'visible',
+  'alignment-baseline': 'auto',
+  'baseline-shift': '0px',
+  'text-anchor': 'start',
+  'clip': 'auto',
+  'clip-path': 'none',
+  'clip-rule': 'nonzero',
+  'mask': 'none',
+  'opacity': '1',
+  'filter': 'none',
+  'fill': 'rgb(0, 0, 0)',
+  'fill-rule': 'nonzero',
+  'marker': 'none',
+  'stroke': 'none',
+  'stroke-dasharray': 'none',
+  'stroke-dashoffset': '0px',
+  'stroke-linecap': 'butt',
+  'stroke-linejoin': 'miter',
+  'stroke-width': '1px',
+  'text-rendering': 'auto',
+  'transform': 'none',
+  'dominant-baseline': 'auto',
+  'transform-origin': '0px 0px',
+  'transform-box': 'view-box',
+  'paint-order': 'normal'
+};
+
+type El = HTMLElement|SVGElement;
+
+export function cleanSVG(node: El) {
+  if (node.getAttribute('hidden') || node.style.opacity === '0' || node.style.display === 'none') {
+    // The element is hidden, so remove entirely.
+    node.parentNode?.removeChild(node);
+  } else {
+    // Clean all child elements
+    for (const child of Array.from(node.children)) cleanSVG(child as El);
+    if (node.tagName === 'g' && node.childElementCount === 0) {
+      // If there are no more child elements of this group, remove, too.
+      node.parentNode?.removeChild(node);
+    } else {
+      // Otherwise, clean attributes.
+      for (const a of REMOVE_ATTRIBUTES) {
+        if (node.hasAttribute(a)) node.removeAttribute(a);
+      }
+    }
+  }
+}
+
+function inheritedStyle(node: El, prop: string) {
+  let n = node.parentElement;
+  while (n) {
+    const value = n.style.getPropertyValue(prop);
+    if (value) return value;
+    n = n.parentElement;
+  }
+}
+
+export function copySVGStyles(source: El, copy: El, isHTML = false) {
+  const style = window.getComputedStyle(source);
+  copy.removeAttribute('style');  // Clean up previous values.
+
+  const html = isHTML || (source.tagName === 'foreignObject');
+  const properties = [...COMMON_STYLES, ...(html ? HTML_STYLES : SVG_STYLES)];
+
+  // TODO Fix transform-origin and transform-box for compass and playing cards.
+  for (const p of properties) {
+    const value = style.getPropertyValue(p);
+    const inherited = inheritedStyle(copy, p);
+    if (value === STYLE_DEFAULTS[p] && !inherited) continue;  // This property is a default.
+    if (!DONT_INHERIT.has(p) && value === inherited) continue;  // This property is inherited.
+    copy.style.setProperty(p, value);
+  }
+
+  const sourceChildren = source.children;
+  const copyChildren = copy.children;
+  for (let i = 0; i < copyChildren.length; ++i) {
+    copySVGStyles(sourceChildren[i] as El, copyChildren[i] as El, html);
+  }
+}
