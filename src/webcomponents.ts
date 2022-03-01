@@ -112,9 +112,13 @@ export abstract class CustomElementView extends HTMLBaseView<CustomHTMLElement> 
  */
 export function register(tagName: string, options: CustomElementOptions = {}) {
   return function(ElementClass: CustomElementConstructor) {
+    if (window.customElements.get(tagName)) {
+      console.warn(`Trying to declare the custom element ${tagName} twice!`);
+      return;
+    }
+
     // Every class can only be used once as custom element,
     // so we have to make a copy.
-
     class Constructor extends CustomHTMLElement {
       constructor() {
         super();
