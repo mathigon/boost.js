@@ -16,6 +16,12 @@ import {bindEvent, EventCallback, unbindEvent} from './events';
 import {Observable, observe} from './observable';
 import {cleanSVG, copySVGStyles, parsePath} from './svg';
 
+import type {Modal} from './components/modal';
+import type {Alert} from './components/alert';
+import type {IconView} from './components/icon';
+import type {Popup} from './components/popup';
+import type {Select} from './components/select';
+
 
 declare global {
   interface Element {
@@ -1363,6 +1369,11 @@ type CreateResult<T extends string> =
   T extends 'form' ? FormView :
   T extends ('input' | 'select' | 'textarea') ? InputView :
   T extends ('video' | 'audio') ? MediaView :
+  T extends 'x-modal' ? Modal :
+  T extends 'x-popup' ? Popup :
+  T extends 'x-alert' ? Alert :
+  T extends 'x-icon' ? IconView :
+  T extends 'x-select' ? Select :
   // T extends ('html' | 'body') ? WindowView :
   ElementView;
 

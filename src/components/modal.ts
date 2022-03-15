@@ -121,4 +121,8 @@ export class Modal extends CustomElementView {
     if (!noEvent) this.trigger('close');
     if (lastFocusElement) lastFocusElement.focus();
   }
+
+  getOpenModal() {
+    return $openModal;
+  }
 }
