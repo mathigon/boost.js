@@ -21,6 +21,7 @@ export class Alert extends CustomElementView {
   async open(duration = 2000) {
     if ($openAlert === this) return;
     if ($openAlert) await $openAlert.close();
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     $openAlert = this;
     await this.enter('pop', 300).promise;
     this.setAttr('role', 'alert');
