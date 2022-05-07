@@ -89,6 +89,7 @@ export class Modal extends CustomElementView {
     }
 
     this.isOpen = true;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     $openModal = this;
     if (this.$iframe) this.$iframe.setAttr('src', this.$iframe.data.src);
     if (this.$video) this.$video.play();
