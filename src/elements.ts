@@ -1045,11 +1045,10 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
 
     // External images in an SVG are not rendered because of CORS issues. We
     // first need to individually convert them to data URIs.
-    if (type === 'svg') {
-      const $images = $copy.$$('image[href^="/"]');
-      for (const $i of $images) $i.setAttr('href', `${location.protocol}//${location.host}${$i.attr('href')}`);
-    } else {
-      const $images = $copy.$$('image[href^="http"]');
+    const $images = $copy.$$('image[href^="/"]');
+    for (const $i of $images) $i.setAttr('href', `${location.protocol}//${location.host}${$i.attr('href')}`);
+
+    if (type !== 'svg') {
       await Promise.all($images.map(async $i => {
         const img = await loadImage($i.attr('href'));
         const $canvas = $N('canvas', {width: img.width, height: img.height}) as CanvasView;
