@@ -4,7 +4,8 @@
 // =============================================================================
 
 
-import {deepExtend, Obj, throttle, unique} from '@mathigon/core';
+import {cache, deepExtend, Obj, throttle, unique} from '@mathigon/core';
+import {$N} from './elements';
 
 
 // -----------------------------------------------------------------------------
@@ -98,6 +99,13 @@ export function loadImage(url: string, credentials = false): Promise<HTMLImageEl
     img.src = url;
   });
 }
+
+export const loadImageDataURI = cache(async (url: string) => {
+  const img = await loadImage(url);
+  const $canvas = $N('canvas', {width: img.width, height: img.height});
+  $canvas.ctx.drawImage(img, 0, 0, img.width, img.height);
+  return $canvas.image('png');
+});
 
 
 // -----------------------------------------------------------------------------
