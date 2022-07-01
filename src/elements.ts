@@ -7,7 +7,7 @@
 import {isOneOf, Obj, words} from '@mathigon/core';
 import {clamp, isBetween, nearlyEquals, roundTo} from '@mathigon/fermat';
 import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoShape, Point, Rectangle, SimplePoint, SVGDrawingOptions} from '@mathigon/euclid';
-import {loadImage} from './ajax';
+import {loadImage, loadImageDataURI} from './ajax';
 
 import {animate, AnimationProperties, AnimationResponse, ease, enter, exit, transition} from './animate';
 import {Browser, KEY_CODES} from './browser';
@@ -1043,19 +1043,15 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
     $copy.setAttr('viewBox', viewBox || this.attr('viewBox') || `0 0 ${this.svgWidth} ${this.svgHeight}`);
     $copy.setAttr('xmlns', 'http://www.w3.org/2000/svg');
 
-    // External images in an SVG are not rendered because of CORS issues. We
-    // first need to individually convert them to data URIs.
+    const $images = $copy.$$('image');
+
     if (type === 'svg') {
-      const $images = $copy.$$('image[href^="/"]');
-      for (const $i of $images) $i.setAttr('href', `${location.protocol}//${location.host}${$i.attr('href')}`);
+      // Make all embedded URLs absolute.
+      for (const $i of $images) $i.setAttr('href', new URL($i.attr('href'), location.href));
     } else {
-      const $images = $copy.$$('image[href^="http"]');
+      // Convert all embedded images to data URIs, because of CORS issues.
       await Promise.all($images.map(async $i => {
-        const img = await loadImage($i.attr('href'));
-        const $canvas = $N('canvas', {width: img.width, height: img.height}) as CanvasView;
-        $canvas.ctx.drawImage(img, 0, 0, img.width, img.height);
-        const dataUri = await $canvas.image('png');
-        $i.setAttr('href', dataUri);
+        $i.setAttr('href', await loadImageDataURI($i.attr('href')));
       }));
     }
 
