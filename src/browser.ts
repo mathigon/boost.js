@@ -84,7 +84,7 @@ class BrowserInstance {
       this.darkQuery?.addListener(() => this.applyThemeChange());
     }
     const initial = this.getCookie('theme');
-    if (initial) this.setTheme(initial as any);
+    if (initial) setTimeout(() => this.setTheme(initial as any));
 
     try {
       this.localStorage = window.localStorage;
