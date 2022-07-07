@@ -84,7 +84,7 @@ class BrowserInstance {
       this.darkQuery?.addListener(() => this.applyThemeChange());
     }
     const initial = this.getCookie('theme');
-    if (initial) setTimeout(() => this.setTheme(initial as any));
+    if (initial) this.setTheme(initial as any);
 
     try {
       this.localStorage = window.localStorage;
@@ -172,8 +172,8 @@ class BrowserInstance {
     if (isDark === this.theme.isDark) return;
     this.theme.isDark = isDark;
 
-    $html.setAttr('theme', this.themeOverride || (isDark ? 'dark' : 'light'));
     for (const c of this.themeChangedCallbacks) c(this.theme);
+    setTimeout(() => $html.setAttr('theme', this.themeOverride || (isDark ? 'dark' : 'light')));  // Timeout to fix initial load bug
   }
 
   setTheme(name: 'dark'|'light'|'auto') {
