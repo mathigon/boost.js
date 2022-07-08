@@ -13,6 +13,7 @@ import {$body, $N, ElementView} from './elements';
 declare global {
   interface Window {
     ga?: any;  // Google Analytics Object
+    gtag?: any;  // Google Analytics Object
   }
 }
 
