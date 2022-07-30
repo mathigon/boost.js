@@ -207,7 +207,7 @@ export function slide($el: ElementView, fns: SlideEventOptions) {
   }
 
   // Cancel running slide gestures when pressing escape.
-  Browser.onKey('escape', () => {
+  $body.onKey('Escape', () => {
     if (!startPosn) return;
     // Move the element back to the start position.
     if (hasMoved && fns.move) fns.move(startPosn, startPosn, lastPosn!);

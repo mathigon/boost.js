@@ -18,7 +18,7 @@ function tryClose() {
 }
 
 $modalBackground.on('click', tryClose);
-Browser.onKey('escape', tryClose);
+$body.onKey('Escape', tryClose);
 Router.on('change', tryClose);
 
 $modalBackground.on('scrollwheel touchmove', (e: Event) => {
@@ -26,7 +26,7 @@ $modalBackground.on('scrollwheel touchmove', (e: Event) => {
   e.stopPropagation();
 });
 
-Browser.onKey('space up down pagedown pageup', (e: Event) => {
+$body.onKey('Space ArrowUp ArrowDown PageDown PageUp', (e: Event) => {
   if ($openModal) {
     e.preventDefault();
     e.stopPropagation();

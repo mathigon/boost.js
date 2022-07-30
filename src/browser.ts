@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {Obj, safeToJSON, throttle, words} from '@mathigon/core';
+import {Obj, safeToJSON, throttle} from '@mathigon/core';
 import {$, $body, $html} from './elements';
 
 
@@ -16,29 +16,6 @@ declare global {
   }
 }
 
-export const KEY_CODES: Obj<number> = {
-  'backspace': 8,
-  'tab': 9,
-  'enter': 13,
-  'shift': 16,
-  'ctrl': 17,
-  'alt': 18,
-  'pause': 19,
-  'capslock': 20,
-  'escape': 27,
-  'space': 32,
-  'pageup': 33,
-  'pagedown': 34,
-  'end': 35,
-  'home': 36,
-  'left': 37,
-  'up': 38,
-  'right': 39,
-  'down': 40,
-  'insert': 45,
-  'delete': 46
-};
-
 export type ResizeEvent = {width: number, height: number};
 type ResizeCallback = (e: ResizeEvent) => void;
 type KeyboardEventListener = (e: KeyboardEvent, key: string) => void;
@@ -46,9 +23,6 @@ type Theme = {name: 'dark'|'light'|'auto', isDark: boolean};
 
 const STORAGE_KEY = '_M';
 const UA = window.navigator.userAgent.toLowerCase();
-
-const KEY_NAMES: Obj<string> = {};
-for (const [name, id] of Object.entries(KEY_CODES)) KEY_NAMES[id] = name;
 
 const MOBILE_REGEX = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
 const IOS_REGEX = /iphone|ipad|ipod/i;
@@ -293,21 +267,8 @@ class BrowserInstance {
     return active === document.body ? undefined : $(active as HTMLElement);
   }
 
-  /** Binds an event listener that is fired when a key is pressed. */
-  onKey(keys: string, fn: KeyboardEventListener, up = false) {
-    const keyNames = words(keys);
-    const event = up ? 'keyup' : 'keydown';
-
-    document.addEventListener(event, (e) => {
-      const key = KEY_NAMES[e.keyCode] || e.key;
-      if (!keyNames.includes(key)) return;
-
-      const $active = this.getActiveInput();
-      if ($active && $active.is('input, textarea, [contenteditable]')) return;
-      if ($active && ['space', 'enter', 'tab'].includes(key) && $active.is('button, a, [tabindex]')) return;
-
-      fn(e, key);
-    });
+  get formIsActive() {
+    return !!this.getActiveInput()?.is('input, textarea, [contenteditable]');
   }
 }
 
@@ -361,11 +322,26 @@ export function replaceSvgImports() {
 
 
 // -----------------------------------------------------------------------------
-// Fake Accessibility Keyboard Events
+// Accessibility and Keyboard Events
 
-export function bindAccessibilityEvents() {
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.keyCode === KEY_CODES.enter || e.keyCode === KEY_CODES.space) {
+const KEY_FALLBACKS = new Map(Object.entries({
+  ' ': 'Space',
+  'Spacebar': 'Space',
+  'Del': 'Delete',
+  'Esc': 'Escape',
+  'Left': 'ArrowLeft',
+  'Right': 'ArrowRight',
+  'Down': 'ArrowDown',
+  'Up': 'ArrowUp'
+}));
+
+export function keyCode(e: KeyboardEvent) {
+  return KEY_FALLBACKS.get(e.key) || e.key;
+}
+
+export function bindAccessibilityEvents(parent?: HTMLElement) {
+  (parent || document as any).addEventListener('keydown', (e: KeyboardEvent) => {
+    if (keyCode(e) === 'Enter' || keyCode(e) === 'Space') {
       const $active = Browser.getActiveInput();
       // The CodeMirror library adds tabindex attributes on their <textarea> fields.
       if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {

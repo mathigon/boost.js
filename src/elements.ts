@@ -10,7 +10,7 @@ import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoShape, Point, Rectangle, S
 import {loadImage, loadImageDataURI} from './ajax';
 
 import {animate, AnimationProperties, AnimationResponse, ease, enter, exit, transition} from './animate';
-import {Browser, KEY_CODES} from './browser';
+import {Browser, keyCode} from './browser';
 import {compile, compileString} from './eval';
 import {bindEvent, EventCallback, unbindEvent} from './events';
 import {Observable, observe} from './observable';
@@ -662,10 +662,18 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Binds an event listener for a specific key that is pressed while this
    * element is in focus.
    */
-  onKeyDown(keys: string, callback: (e: KeyboardEvent) => void) {
-    const keylist = words(keys).map(k => KEY_CODES[k] || k);
-    this._el.addEventListener('keydown', (e: any) => {
-      if (keylist.indexOf((e as KeyboardEvent).keyCode) >= 0) callback(e);
+  onKey(keys: string, callback: (e: KeyboardEvent, key: string) => void, options?: {meta?: boolean, up?: boolean, skipChecks?: boolean}) {
+    keys = keys.replace('AllArrows', 'ArrowUp ArrowDown ArrowLeft ArrowRight');
+    const keyNames = new Set(words(keys));
+    const event = options?.up ? 'keyup' : 'keydown';
+
+    const target = (this._el === document.body ? document : this._el) as any;
+    target.addEventListener(event, (e: KeyboardEvent) => {
+      const key = keyCode(e);
+      if (options?.meta ? !e.ctrlKey && !e.metaKey : e.ctrlKey || e.metaKey) return;
+      if (!key || !keyNames.has(key)) return;
+      if (!options?.skipChecks && Browser.formIsActive) return;
+      callback(e as KeyboardEvent, key);
     });
   }
 

@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {Browser, CustomElementView, ElementView, register} from '../';
+import {$body, CustomElementView, ElementView, register} from '../';
 
 
 /**
@@ -27,7 +27,7 @@ export class Popup extends CustomElementView {
     this.on('clickOutside', () => this.close());
     for (const $a of this.$bubble.$$('a')) $a.on('click', () => this.close());
 
-    Browser.onKey('escape', () => this.close());
+    $body.onKey('Escape', () => this.close());
   }
 
   toggle() {
