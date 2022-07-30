@@ -106,6 +106,7 @@ export abstract class CustomElementView extends HTMLBaseView<CustomHTMLElement> 
   }
 }
 
+export const CUSTOM_ELEMENTS = new Map<string, CustomElementConstructor>();
 
 /**
  * Decorator for registering a new custom HTML element.
@@ -126,6 +127,7 @@ export function register(tagName: string, options: CustomElementOptions = {}) {
       }
     }
 
+    CUSTOM_ELEMENTS.set(tagName, ElementClass);
     customElementOptions.set(tagName.toUpperCase(), options);
     window.customElements.define(tagName, Constructor);
   };

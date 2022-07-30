@@ -116,7 +116,7 @@ x-modal {
 
   .btn-row { text-align: right; margin: 0; }
   .form-large { margin: 0 -8px -10px; }
-  p:last-child:not(.btn-row) { margin-bottom: 0; }
+  p:last-child:not(.btn-row), ul:last-child { margin-bottom: 0; }
   .form-checkbox { margin: 16px 0; }
   hr { margin: 1.5em 0; }
 
