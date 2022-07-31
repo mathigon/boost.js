@@ -662,7 +662,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Binds an event listener for a specific key that is pressed while this
    * element is in focus.
    */
-  onKey(keys: string, callback: (e: KeyboardEvent, key: string) => void, options?: {meta?: boolean, up?: boolean, skipChecks?: boolean}) {
+  onKey(keys: string, callback: (e: KeyboardEvent, key: string) => void, options?: {meta?: boolean, up?: boolean}) {
     keys = keys.replace('AllArrows', 'ArrowUp ArrowDown ArrowLeft ArrowRight');
     const keyNames = new Set(words(keys));
     const event = options?.up ? 'keyup' : 'keydown';
@@ -672,7 +672,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       const key = keyCode(e);
       if (options?.meta ? !e.ctrlKey && !e.metaKey : e.ctrlKey || e.metaKey) return;
       if (!key || !keyNames.has(key)) return;
-      if (!options?.skipChecks && Browser.formIsActive) return;
+      if (document.activeElement !== this._el && document.activeElement?.shadowRoot?.activeElement !== this._el && Browser.formIsActive) return;
       callback(e as KeyboardEvent, key);
     });
   }

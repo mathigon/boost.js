@@ -542,17 +542,15 @@ function makeKeyEvent($el: ElementView) {
     if (e.metaKey || e.ctrlKey) return;
     if (Browser.isAndroid && e.keyCode === 229) return;
 
-    const char = (e.key || String.fromCharCode(e.which));
-    const key = char.toLowerCase();
+    const key = e.key || String.fromCharCode(e.which);
     const shift = !!e.shiftKey;
-    $el.trigger('key', {code: e.keyCode, key, char, shift});
+    $el.trigger('key', {code: e.keyCode, key, char: key, shift});
   });
 
   if (Browser.isAndroid && $el.type === 'input') {
     $el.on('input', (e) => {
-      const char = e.data[e.data.length - 1];
-      const key = char.toLowerCase();
-      $el.trigger('key', {code: undefined, key, char});
+      const key = e.key || e.data[e.data.length - 1];
+      $el.trigger('key', {code: undefined, key, char: key});
       ($el as InputView).value = '';
     });
   }
