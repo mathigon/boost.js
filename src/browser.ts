@@ -340,8 +340,15 @@ export function keyCode(e: KeyboardEvent) {
 }
 
 export function bindAccessibilityEvents(parent?: HTMLElement) {
+  const KEYS = new Set(['Enter', 'Space']);
+  let isDown = false;
+  document.addEventListener('keyup', (e: KeyboardEvent) => {
+    // Prevent click events being triggered multiple times when holding a key.
+    if (KEYS.has(keyCode(e))) isDown = false;
+  });
   (parent || document as any).addEventListener('keydown', (e: KeyboardEvent) => {
-    if (keyCode(e) === 'Enter' || keyCode(e) === 'Space') {
+    if (!isDown && KEYS.has(keyCode(e))) {
+      isDown = true;
       const $active = Browser.getActiveInput();
       // The CodeMirror library adds tabindex attributes on their <textarea> fields.
       if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {
