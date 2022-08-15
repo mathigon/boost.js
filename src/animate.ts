@@ -170,7 +170,7 @@ export function transition($el: ElementView, properties: AnimationProperties,
   }
 
   // Cancel any previous animations
-  const currentAnimation = $el._data['animation'];
+  const currentAnimation = $el._data.animation;
   if (currentAnimation) (currentAnimation as AnimationResponse).cancel();
 
   const to: Keyframe = {};
@@ -208,20 +208,23 @@ export function transition($el: ElementView, properties: AnimationProperties,
       if (Browser.isSafari) $el.css('transition', oldTransition);
       deferred.resolve();
       player.cancel();  // bit ugly, but needed for Safari...
+      $el._data.animation = undefined;
     };
   }, _delay);
 
   const animation = {
     cancel() {
+      if (cancelled) return;
       cancelled = true;
       if ($el._el) Object.keys(properties).forEach(k => $el.css(k, $el.css(k)));
       if (player) player.cancel();
+      $el._data.animation = undefined;
     },
     promise: deferred.promise
   };
 
   // Only allow cancelling of animation in next thread.
-  setTimeout(() => ($el._data['animation'] = animation));
+  setTimeout(() => ($el._data.animation = animation));
   return animation;
 }
 
@@ -238,7 +241,7 @@ export function enter($el: ElementView, effect = 'fade', duration = 500,
 
   $el.show();
   if (!isReady) return ResolvedAnimation;
-  const opacity = (+$el.css('opacity')!) || 1;
+  const opacity = $el._data.animation ? 1 : (+$el.css('opacity')!) || 1;
 
   if (effect === 'fade') {
     return transition($el, {opacity: [0, opacity]}, duration, _delay);
