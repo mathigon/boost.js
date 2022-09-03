@@ -239,7 +239,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       model.watch(() => this.setAttr(attr, expr(model)));
 
     } else if (value.includes('${')) {
-      const expr = compileString(value);
+      const expr = compileString(value, true);
       model.watch(() => this.setAttr(name, expr(model) || ''));
     }
 

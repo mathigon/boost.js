@@ -486,7 +486,7 @@ const TEMPLATE = /\${([^}]+)}/g;
  * Converts an expression string into an executable JS function. It will replace
  * all `${x}` type expressions and evaluate them based on a context.
  */
-export function compileString(expr: string): (vars: any) => string {
+export function compileString(expr: string, isAttribute = false): (vars: any) => string {
   // This array contains the alternating static and variable parts of the expr.
   // For example, the input expression `Here ${is} some ${text}` would give
   // parts = ['Here ', 'is', ' some ', 'text', ''].
@@ -498,7 +498,7 @@ export function compileString(expr: string): (vars: any) => string {
       if (!(i % 2)) return p;
       const value = fns[i]!(context);
       // Special formatting for negative numbers.
-      return (typeof value === 'number' && value < 0) ? `–${-value}` : value;
+      return (!isAttribute && typeof value === 'number' && value < 0) ? `–${-value}` : value;
     }).join('');
   };
 }
