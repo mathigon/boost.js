@@ -1210,10 +1210,14 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     const isNumber = this._el.type === 'number';
     const isCheckbox = this._el.type === 'checkbox';
 
-    if (name in model) {
-      isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
-    } else if (this.value) {
-      isCheckbox ? (model[name] = this.checked) : (model[name] = this.value);
+    const invert = name.startsWith('!');
+    const inv = (t: boolean) => invert ? !t : t;
+    if (isCheckbox && invert) name = name.slice(1);
+
+    if (model[name] !== undefined) {
+      isCheckbox ? (this.checked = inv(model[name])) : (this.value = model[name]);
+    } else if (isCheckbox ? this.hasAttr('checked') : this.value) {
+      isCheckbox ? (model[name] = inv(this.checked)) : (model[name] = this.value);
     }
 
     if (isNumber) {
@@ -1225,14 +1229,14 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
       this.on('blur', () => (this.value = model[name]));
 
     } else if (isCheckbox) {
-      this.on('change', () => (model[name] = this.checked));
+      this.on('change', () => (model[name] = inv(this.checked)));
 
     } else {
       this.change((v: string) => (model[name] = v));
     }
 
     model.watch(() => {
-      isCheckbox ? (this.checked = model[name]) : (this.value = model[name]);
+      isCheckbox ? (this.checked = inv(model[name])) : (this.value = model[name]);
       this.trigger('model-change', {defaultPrevented: true});
     });
   }
