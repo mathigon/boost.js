@@ -42,7 +42,7 @@ export function batch(callback: () => void) {
 
 
 /** Convert object to an observable Proxy with .watch() callbacks. */
-export function observe<T = any>(state: T, parentModel?: Observable) {
+export function observe<T extends object = any>(state: T, parentModel?: Observable) {
   const callbackMap = new Map<string, Set<Callback<T>>>();
   const computedKeys = new Map<string, Callback<T>>();
   const watchAllCallbacks = new Set<Callback<T>>();
