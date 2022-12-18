@@ -1207,37 +1207,43 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   }
 
   bindVariable(model: Observable, name: string) {
-    const isNumber = this._el.type === 'number';
-    const isCheckbox = this._el.type === 'checkbox';
+    if (this._el.type === 'checkbox') {
+      const invert = name.startsWith('!');
+      const inv = (t: boolean) => invert ? !t : t;
+      if (invert) name = name.slice(1);
 
-    const invert = name.startsWith('!');
-    const inv = (t: boolean) => invert ? !t : t;
-    if (isCheckbox && invert) name = name.slice(1);
+      if (model[name] !== undefined) {
+        this.checked = inv(model[name]);
+      } else if (this.hasAttr('checked')) {
+        model[name] = inv(this.checked);
+      }
 
-    if (model[name] !== undefined) {
-      isCheckbox ? (this.checked = inv(model[name])) : (this.value = model[name]);
-    } else if (isCheckbox ? this.hasAttr('checked') : this.value) {
-      isCheckbox ? (model[name] = inv(this.checked)) : (model[name] = this.value);
+      this.on('change', () => (model[name] = inv(this.checked)));
+      model.watch(() => (this.checked = inv(model[name])));
+      return;
     }
 
-    if (isNumber) {
+    if (this._el.type === 'number') {
       const min = this.hasAttr('min') ? +this.attr('min') : -Infinity;
       const max = this.hasAttr('max') ? +this.attr('max') : Infinity;
-      this.change((v: string) => (model[name] = clamp(+v, min, max)));
-
-      // Update the value on blur, in case it doesn't match the clamped value.
-      this.on('blur', () => (this.value = model[name]));
-
-    } else if (isCheckbox) {
-      this.on('change', () => (model[name] = inv(this.checked)));
-
+      this.change((v: string) => {
+        if (v) model[name] = clamp(+v, min, max);
+      });
     } else {
       this.change((v: string) => (model[name] = v));
     }
 
+    if (model[name] !== undefined) {
+      this.value = model[name];
+    } else if (this.value) {
+      model[name] = this.value;
+    }
+
+    // Update the value on blur, in case it doesn't match the clamped value.
+    this.on('blur', () => (this.value = model[name]));
+
     model.watch(() => {
-      isCheckbox ? (this.checked = inv(model[name])) : (this.value = model[name]);
-      this.trigger('model-change', {defaultPrevented: true});
+      if (document.activeElement !== this._el) this.value = model[name];
     });
   }
 
@@ -1252,10 +1258,11 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   /** Binds a change event listener. */
   change(callback: (val: string) => void) {
     let value = this.value || '';
-    this.on('change keyup input paste model-change', (e) => {
+    this.on('focus', () => (value = this.value));
+    this.on('change keyup input paste', (e) => {
       if (this.value === value) return;
-      value = this.value.trim();
-      if (!e.defaultPrevented) callback(value);
+      value = this.value;
+      callback(value);
     });
   }
 

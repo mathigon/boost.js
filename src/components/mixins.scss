@@ -56,8 +56,9 @@
   }
 }
 
-@mixin svg-text-outline($width: 3px, $color: white, $dark-color: $dark-mode){
-  @include theme(stroke, $color, $dark-color);
+@mixin svg-text-outline($width: 3px, $color: white, $dark-color: black) {
+  // TODO The $dark-color parameter is no longer used but left for backwards compatibility.
+  stroke: $color;
   stroke-width: $width;
   paint-order: stroke;
   stroke-linejoin: round;
