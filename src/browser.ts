@@ -268,7 +268,7 @@ class BrowserInstance {
   }
 
   get formIsActive() {
-    return !!this.getActiveInput()?.is('input, textarea, [contenteditable]');
+    return !!this.getActiveInput()?.is('input, select, textarea, [contenteditable]');
   }
 }
 
