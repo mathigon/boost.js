@@ -993,9 +993,10 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
   draw(obj: GeoShape|undefined, options: SVGDrawingOptions = {}) {
     if (!obj) return this.setAttr('d', '');
     const attributes: SVGDrawingOptions = {};
-    for (const p of ['mark', 'arrows', 'fill', 'round'] as const) {
+    for (const p of ['mark', 'arrows', 'round'] as const) {
       if (this.hasAttr(p)) attributes[p] = this.attr(p) as any;
     }
+    if (this.hasClass('fill')) attributes.fill = 'fill';
     if (this.hasAttr('size')) attributes.size = (+this.attr('size')) || undefined;
     this.setAttr('d', drawSVG(obj, Object.assign(options, attributes)));
   }
