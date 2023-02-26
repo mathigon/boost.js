@@ -54,6 +54,33 @@ tape('watch all', (test) => {
   test.end();
 });
 
+tape('watch all delta', (test) => {
+  const model = observe({a: 1});
+  let currentS = 0;
+  let prevS = 0;
+
+  const fn = (current: any, prev: any) => {
+    currentS = current.a;
+    prevS = prev.a;
+  };
+  model.watchAllDelta(fn);
+
+  model.a = 2;
+  test.equal(currentS, 2);
+  test.equal(prevS, 1);
+
+  model.a = 3;
+  test.equal(currentS, 3);
+  test.equal(prevS, 2);
+
+  model.unwatch(fn);
+  model.a = 0;
+  test.equal(currentS, 3);
+  test.equal(prevS, 2);
+
+  test.end();
+});
+
 tape('nested dependencies', (test) => {
   const model = observe<Model>({a: 1, b: 2});
 
