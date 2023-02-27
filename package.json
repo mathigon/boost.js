@@ -35,7 +35,8 @@
     "esm": "esbuild src/index.ts --outfile=dist/index.esm.js --format=esm --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
     "types": "tsc --project tsconfig-types.json",
     "build": "npm run cjs && npm run esm && node build.js && npm run types",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "install": "if [ ! -d dist ]; then npm run build; fi"
   },
   "dependencies": {
     "@mathigon/core": "1.1.5",
