@@ -12,9 +12,9 @@ import {$body, CustomElementView, ElementView, register} from '../';
  */
 @register('x-popup')
 export class Popup extends CustomElementView {
-  private isOpen = false;
   private animation!: string;
   private $bubble!: ElementView;
+  isOpen = false;
 
   ready() {
     this.animation = this.attr('animation') || 'pop';

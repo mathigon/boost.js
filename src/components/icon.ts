@@ -17,7 +17,7 @@ export class IconView extends CustomElementView {
     // a library like Vue.js.
     if (this.children.length) return;
 
-    const $svg = $N('svg', {viewBox: '0 0 24 24'}, this);
+    const $svg = $N('svg', {viewBox: '0 0 24 24', alt: ''}, this);
     const $use = $N('use', {}, $svg);
 
     const size = +this.attr('size') || 24;
