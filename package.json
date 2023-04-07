@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "license": "MIT",
   "homepage": "https://mathigon.io/boost",
   "repository": "mathigon/boost.js",
@@ -38,9 +38,9 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@mathigon/core": "1.1.6",
-    "@mathigon/euclid": "1.1.9",
-    "@mathigon/fermat": "1.1.6"
+    "@mathigon/core": "1.1.7",
+    "@mathigon/euclid": "1.1.10",
+    "@mathigon/fermat": "1.1.7"
   },
   "devDependencies": {
     "@types/tape": "4.13.4",
