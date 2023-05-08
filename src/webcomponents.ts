@@ -33,16 +33,14 @@ function applyTemplate(el: CustomHTMLElement, template: string) {
   for (const slot of Object.values(slots)) slot.parentNode!.removeChild(slot);
 }
 
-function customElementChildren(el: Element) {
-  const result: CustomHTMLElement[] = [];
+function* customElementChildren(el: Element): Iterable<CustomHTMLElement> {
   for (const c of Array.from(el.children)) {
     if (c.tagName.startsWith('X-')) {
-      result.push(c as CustomHTMLElement);
+      yield c as CustomHTMLElement;
     } else {
-      result.push(...customElementChildren(c));
+      yield* customElementChildren(c);
     }
   }
-  return result;
 }
 
 
@@ -76,10 +74,14 @@ abstract class CustomHTMLElement extends HTMLElement {
 
     // Select all unresolved custom element children
     // TODO improve performance and fix ordering
-    const promises = customElementChildren(this)
-      .filter(c => !c.isReady)
-      .map(c => new Promise(res => c.addEventListener('ready', res)));
-    await Promise.all(promises);
+    const children = [...customElementChildren(this)].filter(c => !c.isReady);
+    if (children.length) {
+      const promises = children.map(c => new Promise(res => c.addEventListener('ready', res)));
+      setTimeout(() => {
+        if (!this.isReady) console.error(`Children of custom element ${this.tagName} not ready after 1s.`);
+      }, 1000);
+      await Promise.all(promises);
+    }
 
     this._view.ready();
     this.dispatchEvent(new CustomEvent('ready'));
