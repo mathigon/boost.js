@@ -35,7 +35,7 @@ function applyTemplate(el: CustomHTMLElement, template: string) {
 
 function* customElementChildren(el: Element): Iterable<CustomHTMLElement> {
   for (const c of Array.from(el.children)) {
-    if (c.tagName.startsWith('X-')) {
+    if (c.tagName.includes('-')) {
       yield c as CustomHTMLElement;
     } else {
       yield* customElementChildren(c);
@@ -74,14 +74,13 @@ abstract class CustomHTMLElement extends HTMLElement {
 
     // Select all unresolved custom element children
     // TODO improve performance and fix ordering
-    const children = [...customElementChildren(this)].filter(c => !c.isReady);
-    if (children.length) {
-      const promises = children.map(c => new Promise(res => c.addEventListener('ready', res)));
-      setTimeout(() => {
-        if (!this.isReady) console.error(`Children of custom element ${this.tagName} not ready after 1s.`);
-      }, 1000);
-      await Promise.all(promises);
-    }
+    const promises = [...customElementChildren(this)]
+      .filter(c => !c.isReady)
+      .map(c => new Promise(res => c.addEventListener('ready', res)));
+    setTimeout(() => {
+      if (!this.isReady) console.error(`Children of custom element ${this.tagName} not ready after 1s.`);
+    }, 1000);
+    await Promise.all(promises);
 
     this._view.ready();
     this.dispatchEvent(new CustomEvent('ready'));
