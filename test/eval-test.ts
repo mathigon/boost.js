@@ -22,6 +22,15 @@ tape('simple expressions', (test) => {
   test.end();
 });
 
+tape('scientific notation', (test) => {
+  test.equal(compile('1 + 1e1 + 1')(), 12);
+  test.equal(compile('1 + .7e+2 + 1')(), 72);
+  test.equal(compile('1 + 1.7E-1 + 1')(), 2.17);
+
+  test.equal(compile('1+e1')({e1: 2}), 3);
+
+  test.end();
+});
 
 tape('arrays and properties', (test) => {
   test.equal(compile('a[1]')({a: [2, 3, 4]}), 3);

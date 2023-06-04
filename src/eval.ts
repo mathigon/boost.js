@@ -144,20 +144,12 @@ function parseSyntaxTree(expr: string) {
 
   // Gobble a simple numeric literals (e.g. `12`, `3.4`, `.5`).
   function gobbleNumericLiteral(): LiteralNode {
-    let number = '';
-
-    while (DIGIT.test(expr[index])) number += expr[index++];
-    if (expr[index] === '.') {
-      number += expr[index++];
-      while (DIGIT.test(expr[index])) number += expr[index++];
-    }
+    const number = expr.slice(index).match(/^\d*(\.\d)?([eE][+-]?\d+)?/)?.[0] || '';
+    index += number.length;
 
     const char = expr[index];
-    if (char && IDENTIFIER_START.test(char)) {
-      const name = number + expr[index];
-      throwError(`Variable names cannot start with a number (${name})`);
-    } else if (char === '.') {
-      throwError('Unexpected period');
+    if (char && (IDENTIFIER_START.test(char) || char === '.')) {
+      throwError(`Unexpected character (${number + char})`);
     }
 
     return {type: NODE_TYPE.Literal, value: parseFloat(number)};
