@@ -19,13 +19,16 @@ tape('simple expressions', (test) => {
   test.equal(compile('a')({a: 5}), 5);
   test.equal(compile('abc')({abc: 5}), 5);
 
+  test.equal(compile('(p+0.25)*2')({p: 0.25}), 1);
+  test.equal(compile('20.574  -0.574')(), 20);
+
   test.end();
 });
 
 tape('scientific notation', (test) => {
   test.equal(compile('1 + 1e1 + 1')(), 12);
-  test.equal(compile('1 + .7e+2 + 1')(), 72);
-  test.equal(compile('1 + 1.7E-1 + 1')(), 2.17);
+  test.equal(compile('1 + .72e+2 + 1')(), 74);
+  test.equal(compile('1 + 11.78E-1 + 1')(), 3.178);
 
   test.equal(compile('1+e1')({e1: 2}), 3);
 

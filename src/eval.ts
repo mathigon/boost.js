@@ -144,7 +144,7 @@ function parseSyntaxTree(expr: string) {
 
   // Gobble a simple numeric literals (e.g. `12`, `3.4`, `.5`).
   function gobbleNumericLiteral(): LiteralNode {
-    const number = expr.slice(index).match(/^\d*(\.\d)?([eE][+-]?\d+)?/)?.[0] || '';
+    const number = expr.slice(index).match(/^\d*(\.\d+)?([eE][+-]?\d+)?/)?.[0] || '';
     index += number.length;
 
     const char = expr[index];
