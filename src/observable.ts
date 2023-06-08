@@ -14,6 +14,7 @@ interface ObservableOptions<T> {
   setComputed: (key: string, expr: (state: T) => any) => void;
   forceUpdate: () => void;
   assign: (obj: Partial<T>, clear?: boolean) => void;
+  getChanges: () => [Partial<T>, Partial<T>];
   getKey: () => string;
   clear: () => void;
   copy: () => T;
@@ -102,6 +103,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
     if (clear) state = {} as T;
     batch(() => {
       for (const [key, value] of Object.entries(changes)) {
+        if (!(key in previous)) (previous as any)[key] = (state as any)[key];
         proxy[key] = value;
       }
     });
@@ -124,6 +126,18 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
     return Object.assign({}, state);
   }
 
+  let previous: Partial<T> = {};
+  function getChanges() {
+    const changes: [Partial<T>, Partial<T>] = [{}, {}];
+    for (const k of Object.keys(previous)) {
+      if ((previous as any)[k] === (state as any)[k]) continue;
+      (changes[0] as any)[k] = (previous as any)[k];
+      (changes[1] as any)[k] = (state as any)[k];
+    }
+    previous = {};
+    return changes;
+  }
+
   /**
    * Allow this model to "inherit" properties from a parent model, and update
    * it when the parent model changes.
@@ -140,6 +154,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
       if (key === 'watchAll') return watchAll;
       if (key === 'setComputed') return setComputed;
       if (key === 'forceUpdate') return forceUpdate;
+      if (key === 'getChanges') return getChanges;
       if (key === 'assign') return assign;
       if (key === 'getKey') return getKey;
       if (key === 'clear') return clear;
@@ -158,6 +173,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
 
     set(_: T, key: string, value: any) {
       if ((state as any)[key] === value) return true;
+      if (!(key in previous)) (previous as any)[key] = (state as any)[key];
       (state as any)[key] = value;
 
       // Clear a value that was previously computed.
