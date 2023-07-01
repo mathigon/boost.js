@@ -695,7 +695,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Returns a promise that is resolved when an event is triggered. */
   onPromise(event: string, resolveImmediately = false) {
     if (resolveImmediately) return Promise.resolve();
-    return new Promise<void>((resolve) => this.one('solve', () => resolve()));
+    return new Promise<void>((resolve) => this.one(event, () => resolve()));
   }
 
 
