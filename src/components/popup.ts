@@ -23,14 +23,14 @@ export class Popup extends CustomElementView {
     this.$bubble.hide();
 
     const $target = this.$('.popup-target')!;
-    $target.on('click', () => this.toggle());
+    $target.on('click', () => this.toggleOpen());
     this.on('clickOutside', () => this.close());
     for (const $a of this.$bubble.$$('a')) $a.on('click', () => this.close());
 
     $body.onKey('Escape', () => this.close());
   }
 
-  toggle() {
+  toggleOpen() {
     if (this.isOpen) {
       this.close();
     } else {
@@ -46,6 +46,7 @@ export class Popup extends CustomElementView {
     this.$bubble.enter(this.animation, 150);
     this.$bubble.setAttr('role', 'dialog');
     this.$bubble.focus();
+    this.trigger('open');
   }
 
   close() {
@@ -55,5 +56,6 @@ export class Popup extends CustomElementView {
     this.removeClass('active');
     this.$bubble.exit(this.animation, 150);
     this.$bubble.removeAttr('role');
+    this.trigger('close');
   }
 }
