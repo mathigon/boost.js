@@ -116,7 +116,7 @@ function makeClickOutsideEvent($el: ElementView) {
 
   $body.on('pointerdown', (e: ScreenEvent) => {
     // The .composedPath method ensures that this still works in shadow DOM.
-    let target = (e.composedPath()[0] || e.target) as Node|null;
+    const target = (e.composedPath()[0] || e.target) as Node|null;
     if (!target || $el._el === target || $el._el.contains(target)) return;
     $el.trigger('clickOutside', e);
   });
