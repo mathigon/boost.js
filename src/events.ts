@@ -115,13 +115,8 @@ function makeClickOutsideEvent($el: ElementView) {
   $el._data['clickOutsideEvent'] = true;
 
   $body.on('pointerdown', (e: ScreenEvent) => {
-    let target = e.target as Node|null;
-
-    // Elements within shadow roots are opaque, so we check using coordinates.
-    const shadowRoot = $el._el.getRootNode?.() as ShadowRoot|undefined;
-    const posn = pointerPosition(e);
-    if (shadowRoot?.host) target = (shadowRoot as any).elementFromPoint(posn.x, posn.y);
-
+    // The .composedPath method ensures that this still works in shadow DOM.
+    let target = (e.composedPath()[0] || e.target) as Node|null;
     if (!target || $el._el === target || $el._el.contains(target)) return;
     $el.trigger('clickOutside', e);
   });
