@@ -12,7 +12,7 @@ import {defer} from '@mathigon/core';
  * thread(). Note that `fn` has to be a single function with no external
  * references or bindings, so that it can be stringified using .toString().
  */
-export function functionToWorker(fn: () => any) {
+export function functionToWorker(fn: () => unknown) {
   const content = `onmessage = e => postMessage((${fn.toString()})(e.data))`;
   const blob = new Blob([content], {type: 'application/javascript'});
   return URL.createObjectURL(blob);
@@ -23,7 +23,7 @@ export function functionToWorker(fn: () => any) {
  * Creates a new web worker, posts it a serializable data object, and returns
  * when the worker responds (or after a fixed timeout).
  */
-export function thread<T = any>(url: string|URL, data: any, timeout = 5000) {
+export function thread<T = unknown>(url: string|URL, data: unknown, timeout = 5000) {
   const deferred = defer<T>();
   const worker = new Worker(url);
 

@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-type PostData = Obj<any>;
+type PostData = Obj<string|number|boolean|string[]|number[]|boolean[]>;
 
 /** Converts a JSON object to an HTML query string. */
 export function toQueryString(data: PostData) {
