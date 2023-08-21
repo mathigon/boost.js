@@ -54,7 +54,8 @@ export function animate(callback: AnimationCallback, duration?: number): Animati
   };
 
   function getFrame() {
-    if (running && (!duration || lastTime <= duration)) {
+    if (!running) return;
+    if (!duration || lastTime <= duration) {
       window.requestAnimationFrame(getFrame);
     }
 
