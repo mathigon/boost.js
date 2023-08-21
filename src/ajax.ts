@@ -115,7 +115,7 @@ const POST_DATA = new Map<string, PostData>();
 
 function savePostData(url: string, data: PostData) {
   if (POST_DATA.has(url)) {
-    deepExtend(POST_DATA.get(url), data, (a, b) => unique(a.concat(b)));
+    deepExtend(POST_DATA.get(url)!, data, (a, b) => unique(a.concat(b)));
   } else {
     POST_DATA.set(url, data);
   }
