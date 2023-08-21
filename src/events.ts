@@ -458,7 +458,7 @@ function makeIntersectionEvents($el: ElementView) {
 
 function makeResizeEvents($el: ElementView, remove = false) {
   if (remove) {
-    if ($el._data['resizeObserver']) $el._data['resizeObserver'].disconnect();
+    if ($el._data['resizeObserver']) ($el._data['resizeObserver'] as ResizeObserver).disconnect();
     $el._data['resizeObserver'] = undefined;
   }
 

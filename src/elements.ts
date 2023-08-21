@@ -6,7 +6,7 @@
 
 import {isOneOf, Obj, words} from '@mathigon/core';
 import {clamp, isBetween, nearlyEquals, roundTo} from '@mathigon/fermat';
-import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoShape, Point, Rectangle, SimplePoint, SVGDrawingOptions} from '@mathigon/euclid';
+import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoElement, GeoShape, Point, Rectangle, SimplePoint, SVGDrawingOptions} from '@mathigon/euclid';
 import {loadImage, loadImageDataURI} from './ajax';
 
 import {animate, AnimationProperties, AnimationResponse, ease, enter, exit, transition} from './animate';
@@ -40,7 +40,7 @@ interface EventListenerOptions {
 // Base Element Class
 
 export abstract class BaseView<T extends HTMLElement|SVGElement> {
-  readonly _data: Obj<any> = {};
+  readonly _data: Obj<unknown> = {};
   readonly _events: Obj<EventCallback[]> = {};
   readonly type: string = 'default';
   model?: Observable;
@@ -100,11 +100,11 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this._el.hasAttribute(attr);
   }
 
-  setAttr(attr: string, value: any) {
+  setAttr(attr: string, value: unknown) {
     if (value === undefined) {
       this.removeAttr(attr);
     } else {
-      this._el.setAttribute(attr, value.toString());
+      this._el.setAttribute(attr, `${value}`);
     }
   }
 
@@ -134,7 +134,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   // Required because TS doesn't allow getters and setters with different types.
-  set textStr(t: any) {
+  set textStr(t: unknown) {
     this._el.textContent = `${t}`;
   }
 
@@ -355,10 +355,10 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     const startPosition = this.scrollTop;
     const distance = pos - startPosition;
 
-    if (this._data['scrollAnimation']) this._data['scrollAnimation'].cancel();
+    if (this._data.scrollAnimation) (this._data.scrollAnimation as Animation).cancel();
     // TODO Also cancel animation after manual scroll events.
 
-    this._data['scrollAnimation'] = animate(t => {
+    this._data.scrollAnimation = animate(t => {
       const y = startPosition + distance * ease(easing, t);
       this.scrollTop = y;
       this.trigger('scroll', {top: y});
@@ -630,7 +630,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   /** Binds a one-time event listener on this element. */
   one(events: string, callback: EventCallback, options?: EventListenerOptions) {
-    const callbackWrap = (e: Event) => {
+    const callbackWrap = (e: unknown) => {
       this.off(events, callbackWrap);
       callback(e);
     };
@@ -651,7 +651,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Triggers a specific event on this element. */
-  trigger(events: string, args: any = {}) {
+  trigger(events: string, args: unknown = {}) {
     for (const e of words(events)) {
       if (!this._events[e]) return;
       for (const fn of this._events[e]) fn.call(this, args);
@@ -667,7 +667,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     const keyNames = new Set(words(keys));
     const event = options?.up ? 'keyup' : 'keydown';
 
-    const target = (this._el === document.body ? document : this._el) as any;
+    const target = (this._el === document.body ? document : this._el) as HTMLElement;
     target.addEventListener(event, (e: KeyboardEvent) => {
       const key = keyCode(e);
       if (options?.meta ? !e.ctrlKey && !e.metaKey : e.ctrlKey || e.metaKey) return;
@@ -1031,7 +1031,7 @@ export class SVGParentView extends SVGBaseView<SVGSVGElement> {
   }
 
   /** Create a new `<path>` element child and draw a geometry object onto it. */
-  drawPath(obj: GeoShape, attributes: Obj<any> = {}, options: SVGDrawingOptions = {}) {
+  drawPath(obj: GeoShape, attributes: Obj<unknown> = {}, options: SVGDrawingOptions = {}) {
     const $el = $N('path', attributes, this) as SVGView;
     $el.draw(obj, options);
     return $el;
@@ -1258,7 +1258,7 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
   change(callback: (val: string) => void) {
     let value = this.value || '';
     this.on('focus', () => (value = this.value));
-    this.on('change keyup input paste', (e) => {
+    this.on('change keyup input paste', () => {
       if (this.value === value) return;
       value = this.value;
       callback(value);
@@ -1447,7 +1447,7 @@ export function $$<T extends string>(selector: T,
 }
 
 /** Creates a new Element instance from a given set of options. */
-export function $N<T extends string>(tag: T, attributes: Obj<any> = {},
+export function $N<T extends string>(tag: T, attributes: Obj<unknown> = {},
   parent?: ElementView): CreateResult<T> {
 
   const el = !(SVG_TAGS as readonly string[]).includes(tag) ? document.createElement(tag) :
@@ -1456,15 +1456,15 @@ export function $N<T extends string>(tag: T, attributes: Obj<any> = {},
   for (const [key, value] of Object.entries(attributes)) {
     if (value === undefined) continue;
     if (key === 'id') {
-      el.id = value;
+      el.id = value as string;
     } else if (key === 'html') {
-      el.innerHTML = value;
+      el.innerHTML = value as string;
     } else if (key === 'text') {
-      el.textContent = value;
+      el.textContent = value as string;
     } else if (key === 'path') {
-      el.setAttribute('d', drawSVG(value));
+      el.setAttribute('d', drawSVG(value as GeoElement));
     } else {
-      el.setAttribute(key, value);
+      el.setAttribute(key, value as string);
     }
   }
 

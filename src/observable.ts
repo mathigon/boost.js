@@ -11,7 +11,7 @@ interface ObservableOptions<T> {
   watch: (fn: Callback<T>) => void;
   unwatch: (fn: Callback<T>) => void;
   watchAll: (fn: Callback<T>, dontRunImmediately?: boolean) => void;
-  setComputed: (key: string, expr: (state: T) => any) => void;
+  setComputed: (key: string, expr: (state: T) => unknown) => void;
   forceUpdate: () => void;
   assign: (obj: Partial<T>, clear?: boolean) => void;
   getChanges: () => [Partial<T>, Partial<T>];

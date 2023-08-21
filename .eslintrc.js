@@ -72,6 +72,7 @@ module.exports = {
     'yield-star-spacing': ['error', 'after'],
     '@typescript-eslint/no-unused-vars': ['warn', {'varsIgnorePattern': '^_', 'argsIgnorePattern': '^_'}],
     '@typescript-eslint/array-type': ['error', {'default': 'array-simple'}],
-    '@typescript-eslint/explicit-module-boundary-types': 'off'
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn'
   }
 };

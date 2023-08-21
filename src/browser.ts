@@ -11,14 +11,13 @@ import {$, $body, $html} from './elements';
 declare global {
   interface Window {
     BoostBrowser?: BrowserInstance;
-    Touch: any;
-    chrome: any;
+    Touch: unknown;
+    chrome: unknown;
   }
 }
 
 export type ResizeEvent = {width: number, height: number};
 type ResizeCallback = (e: ResizeEvent) => void;
-type KeyboardEventListener = (e: KeyboardEvent, key: string) => void;
 type Theme = {name: 'dark'|'light'|'auto', isDark: boolean};
 
 const STORAGE_KEY = '_M';
@@ -58,7 +57,7 @@ class BrowserInstance {
       this.darkQuery?.addListener(() => this.applyThemeChange());
     }
     const initial = this.getCookie('theme');
-    if (initial) this.setTheme(initial as any);
+    if (initial) this.setTheme(initial as 'dark'|'light'|'auto');
 
     try {
       this.localStorage = window.localStorage;
@@ -204,7 +203,7 @@ class BrowserInstance {
     return v ? v[2] : undefined;
   }
 
-  setCookie(name: string, value: any, maxAge = 60 * 60 * 24 * 365) {
+  setCookie(name: string, value: unknown, maxAge = 60 * 60 * 24 * 365) {
     // Cookies are also set for all subdomains. Remove locale subdomains.
     const domain = window.location.hostname.replace(/^[a-z]{2}\./, '');
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};domain=${domain}`;
