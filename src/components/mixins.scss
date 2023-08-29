@@ -63,7 +63,7 @@
   paint-order: stroke;
   stroke-linejoin: round;
   // Safari has lots of bugs with paint-order rendering
-  html.is-safari & { stroke: none; }
+  .is-safari & { stroke: none; }
 }
 
 @mixin no-scrollbar(){
