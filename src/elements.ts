@@ -597,7 +597,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Removes this element. */
   remove() {
     const unsubscibe = (node: ElementView) => {
-      node.offAll.call(node);
+      node.offAll();
 
       node._mutationObserver?.disconnect();
 
@@ -606,7 +606,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       }
 
       // hack to avoid TS notification
-      // about settings undefined to readonly properties
+      // about setting undefined value to readonly properties
       delete (node as any)._el;
       delete (node as any)._data;
       delete (node as any)._events;
