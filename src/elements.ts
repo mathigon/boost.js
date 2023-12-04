@@ -607,7 +607,6 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
       // hack to avoid TS notification
       // about setting undefined value to readonly properties
-      delete (node as any)._el;
       delete (node as any)._data;
       delete (node as any)._events;
 
@@ -734,8 +733,6 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Bind an listener when element attribute changed
    */
   onAttr(name: string, callback: (value: string, initial?: boolean) => void) {
-    // TODO Reuse existing observers, remove events, disconnect when deleting.
-
     if (!this._mutationObserver) {
       this._mutationObserver = new MutationObserver((mutations) => {
         for (const m of mutations) {
