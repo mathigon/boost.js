@@ -30,6 +30,7 @@
   },
   "scripts": {
     "test": "ts-node node_modules/tape/bin/tape test/**/*.ts",
+    "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint && npm run build",
     "cjs": "esbuild src/index.ts --outfile=dist/index.cjs.js --format=cjs --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
     "esm": "esbuild src/index.ts --outfile=dist/index.esm.js --format=esm --bundle --target=es2016 --sourcemap --external:@mathigon/core --external:@mathigon/fermat --external:@mathigon/euclid",
