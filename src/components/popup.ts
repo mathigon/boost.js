@@ -46,6 +46,7 @@ export class Popup extends CustomElementView {
     this.$bubble.enter(this.animation, 150);
     this.$bubble.setAttr('role', 'dialog');
     this.$bubble.focus();
+    this.$('.focus-init')?.focus();
     this.trigger('open');
   }
 
