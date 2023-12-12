@@ -4,6 +4,7 @@
 // =============================================================================
 
 
+import {last} from '@mathigon/core';
 import {$$, $body, $N, AnimationResponse, Browser, CustomElementView, ElementView, MediaView, register, Router} from '../';
 
 
@@ -71,7 +72,33 @@ export class Modal extends CustomElementView {
 
     // Used for Modal.confirm()
     for (const $btn of this.$$('.btn')) $btn.on('click', () => this.trigger('btn-click', $btn));
+
+    /*
+    this.on('focusout', e => {
+      console.log(e);
+      if (this.isOpen) this.initFocus();
+    });
+    */
   }
+
+  private initFocus(reverse = false) {
+    (reverse ?
+      last(this.$$('input, a, button, textarea, [tabindex="0"]')) :
+      this.$('input, a, button, textarea, [tabindex="0"]')
+    )?.focus();
+  }
+
+  private focusoutHook = ({relatedTarget}: FocusEvent) => {
+    if (!(relatedTarget instanceof Element)) return;
+
+    const externalElementPosition = this._el.compareDocumentPosition(relatedTarget);
+
+    if (externalElementPosition & Node.DOCUMENT_POSITION_CONTAINED_BY) return;
+
+    if (externalElementPosition & Node.DOCUMENT_POSITION_FOLLOWING) this.initFocus();
+    else if (externalElementPosition & Node.DOCUMENT_POSITION_PRECEDING) this.initFocus(true);
+    else console.log('TODO');
+  };
 
   open(noAnimation = false) {
     if (this.isOpen) return;
@@ -104,8 +131,9 @@ export class Modal extends CustomElementView {
     this.trigger('open');
 
     lastFocusElement = document.activeElement as HTMLElement;
-    const $focus = this.$('input, a, button, textarea, [tabindex="0"]');
-    if ($focus) $focus.focus();
+    this.initFocus();
+
+    this.on('focusout', this.focusoutHook);
 
     window.ga?.('send', 'event', 'Modal', this.id);
     window.gtag?.('event', 'modal', {action: this.id});
@@ -113,6 +141,9 @@ export class Modal extends CustomElementView {
 
   close(keepBg = false, noEvent = false) {
     if (!this.isOpen) return;
+
+    this.off('focusout', this.focusoutHook);
+
     this.isOpen = false;
     this.removeAttr('role');
     $openModal = undefined;
