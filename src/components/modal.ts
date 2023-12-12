@@ -26,7 +26,7 @@ $modalBackground.on('scrollwheel touchmove', (e: Event) => {
   e.stopPropagation();
 });
 
-$body.onKey('Space ArrowUp ArrowDown PageDown PageUp', (e: Event) => {
+$body.onKey('Space ArrowUp ArrowDown PageDown PageUp Tab', (e: Event) => {
   if ($openModal) {
     e.preventDefault();
     e.stopPropagation();
