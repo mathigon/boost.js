@@ -594,30 +594,31 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
+  /** Removes listeners and model data from el */
+  private unsubscribe() {
+    this.model?.clear();
+    this._mutationObserver?.disconnect();
+    this.offAll();
+
+    for (const child of this.children) {
+      child.unsubscribe();
+    }
+
+    // hack to avoid TS notification
+    // about setting undefined value to readonly properties
+    delete this._el._view;
+    delete (this as any)._data;
+    delete (this as any)._events;
+
+    // remove mutation observer instances
+    delete (this as any)._mutationObserver;
+    delete (this as any)._mutationObserverCallbacks;
+  }
+
   /** Removes this element. */
   remove() {
-    const unsubscibe = (node: ElementView) => {
-      node.offAll();
-
-      node._mutationObserver?.disconnect();
-
-      for (const child of node.children) {
-        unsubscibe(child);
-      }
-
-      // hack to avoid TS notification
-      // about setting undefined value to readonly properties
-      delete (node as any)._data;
-      delete (node as any)._events;
-
-      // remove mutation observer instances
-      delete (node as any)._mutationObserver;
-      delete (node as any)._mutationObserverCallbacks;
-    };
-
-    this.model?.clear();
     this.detach();
-    unsubscibe(this);
+    this.unsubscribe();
   }
 
   /** Removes all children of this element. */
@@ -663,12 +664,9 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    */
   off(events: string, callback?: EventCallback) {
     for (const e of words(events)) {
-      if (e in this._events) {
-        this._events[e] = callback ? this._events[e].filter(fn => fn !== callback) : [];
-      }
-
+      if (!(e in this._events) || callback) unbindEvent(this, e, callback);
       if (callback) {
-        unbindEvent(this, e, callback);
+        this._events[e] = this._events[e].filter(fn => fn !== callback);
       } else {
         for (const eventsCallback of this._events[e]) unbindEvent(this, e, eventsCallback);
       }
@@ -676,19 +674,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /**
-   * Removes all events from given html element.
-   */
-  private offAllEventsFromNode(node: ElementView) {
-    Object.entries(node._events).forEach(([eventName, callbacks]) => {
-      callbacks.forEach((callback) => this.off(eventName, callback));
-    });
-  }
-
-  /**
    * Removes all event listeners from this element
    */
   offAll() {
-    this.offAllEventsFromNode(this);
+    Object.entries(this._events || {}).forEach(([eventName, callbacks]) => {
+      callbacks.forEach((callback) => this.off(eventName, callback));
+    });
   }
 
   /** Triggers a specific event on this element. */
