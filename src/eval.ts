@@ -431,7 +431,7 @@ function evaluate(node: AnyNode, context: State, local: State): [any, any] {
       const [fn, self] = evaluate(node.callee, context, local);
 
       // XSS / sandbox escape mitigation:
-      if(fn == Function || fn == eval) return EMPTY;
+      if (fn === Function || fn === eval) return EMPTY;
 
       const args = node.args.map((n) => evaluate(n, context, local)[0]);
       if (args.some(v => v === undefined) || typeof fn !== 'function') return EMPTY;
