@@ -1,5 +1,7 @@
 # Boost.ts
 
+> 🚨 Vulnerabilities found in `compile` and `evaluate`, these functions should not be used until this notice is removed after further testing!
+
 [![Build Status](https://github.com/mathigon/boost.js/workflows/CI%20Tests/badge.svg)](https://github.com/mathigon/boost.js/actions?query=workflow%3A%22CI+Tests%22)
 [![npm](https://img.shields.io/npm/v/@mathigon/boost.svg)](https://www.npmjs.com/package/@mathigon/boost)
 [![npm](https://img.shields.io/github/license/mathigon/boost.js.svg)](https://github.com/mathigon/boost.js/blob/master/LICENSE)

@@ -403,6 +403,8 @@ function parseSyntaxTree(expr: string) {
 const EMPTY: [undefined, undefined] = [undefined, undefined];
 type State = Record<string, unknown>;
 
+const FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'];
+
 /**
  * Returns [value, this]. We need to keep track of the `this` value so that
  * we can correctly set the context for object member method calls. Unlike
@@ -429,6 +431,10 @@ function evaluate(node: AnyNode, context: State, local: State): [any, any] {
     case NODE_TYPE.Call:
       // Note: we evaluate arguments even if fn is undefined.
       const [fn, self] = evaluate(node.callee, context, local);
+
+      // XSS / sandbox escape mitigation:
+      if (fn === Function || fn === eval) return EMPTY;
+
       const args = node.args.map((n) => evaluate(n, context, local)[0]);
       if (args.some(v => v === undefined) || typeof fn !== 'function') return EMPTY;
       return [fn.apply(self, args), undefined];
@@ -440,6 +446,7 @@ function evaluate(node: AnyNode, context: State, local: State): [any, any] {
       return evaluate(node.test, context, local)[0] ? consequent : alternate;
 
     case NODE_TYPE.Identifier:
+      if (FORBIDDEN_KEYS.includes(node.name)) return EMPTY;
       return [local[node.name] || context[node.name], undefined];
 
     case NODE_TYPE.Literal:
@@ -449,6 +456,7 @@ function evaluate(node: AnyNode, context: State, local: State): [any, any] {
       const object = evaluate(node.object, context, local)[0];
       const property = node.computed ? evaluate(node.property, context, local)[0] :
         (node.property as IdentifierNode).name;
+      if (FORBIDDEN_KEYS.includes(property)) return EMPTY;
       return object ? [object[property], object] : [undefined, undefined];
 
     case NODE_TYPE.UnaryOp:

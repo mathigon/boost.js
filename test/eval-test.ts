@@ -71,3 +71,18 @@ tape('undefined keys', (test) => {
   test.equal(compile('!x')({}), true);
   test.end();
 });
+
+
+tape('xss', (test) => {
+
+  // No eval
+  test.equal(compile('x[\'__proto__\'][\'constructor\'](\'return 10\')()')({x: () => {}}), undefined);
+  test.equal(compile(`x('1')`)({x: eval}), undefined);
+  test.equal(compile(`x('1')`)({x: Function}), undefined);
+
+  // No constructor or prototype
+  test.equal(compile(`x['constructor']`)({x: () => {}}), undefined);
+  test.equal(compile(`x['__proto__']`)({x: () => {}}), undefined);
+
+  test.end();
+});
