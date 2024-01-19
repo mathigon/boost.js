@@ -71,3 +71,9 @@ tape('undefined keys', (test) => {
   test.equal(compile('!x')({}), true);
   test.end();
 });
+
+
+tape('xss', (test) => {
+  test.equal(compile("x['__proto__']['constructor']('return 10')()")({x: () => {}}), undefined);
+  test.end();
+});

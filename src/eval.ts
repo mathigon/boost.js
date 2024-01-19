@@ -429,6 +429,10 @@ function evaluate(node: AnyNode, context: State, local: State): [any, any] {
     case NODE_TYPE.Call:
       // Note: we evaluate arguments even if fn is undefined.
       const [fn, self] = evaluate(node.callee, context, local);
+
+      // XSS / sandbox escape mitigation:
+      if(fn == Function || fn == eval) return EMPTY;
+
       const args = node.args.map((n) => evaluate(n, context, local)[0]);
       if (args.some(v => v === undefined) || typeof fn !== 'function') return EMPTY;
       return [fn.apply(self, args), undefined];
