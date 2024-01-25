@@ -664,12 +664,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    */
   off(events: string, callback?: EventCallback) {
     for (const e of words(events)) {
-      if (!(e in this._events) || callback) unbindEvent(this, e, callback);
       if (callback) {
         this._events[e] = this._events[e].filter(fn => fn !== callback);
-      } else {
-        for (const eventsCallback of this._events[e]) unbindEvent(this, e, eventsCallback);
+        unbindEvent(this, e, callback);
+        continue;
       }
+      for (const eventsCallback of this._events[e]) unbindEvent(this, e, eventsCallback);
     }
   }
 
@@ -677,7 +677,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Removes all event listeners from this element
    */
   offAll() {
-    Object.entries(this._events || {}).forEach(([eventName, callbacks]) => {
+    Object.entries(this._events).forEach(([eventName, callbacks]) => {
       callbacks.forEach((callback) => this.off(eventName, callback));
     });
   }
@@ -710,14 +710,8 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     const target = (this._el === document.body ? document : this._el) as HTMLElement;
     target.addEventListener(event, eventFunction);
 
-    if (event in this._events) {
-      this._events[event].push(eventFunction);
-    } else {
-      Object.assign(
-        this._events,
-        {[event]: [eventFunction]}
-      );
-    }
+    if (!(event in this._events)) this._events[event] = [];
+    this._events[event].push(eventFunction);
   }
 
   /**
@@ -737,11 +731,8 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       this._mutationObserver.observe(this._el, {attributes: true});
     }
 
-    if (name in this._mutationObserverCallbacks) {
-      this._mutationObserverCallbacks[name].push(callback);
-    } else {
-      this._mutationObserverCallbacks[name] = [callback];
-    }
+    if (!(name in this._mutationObserverCallbacks)) this._mutationObserverCallbacks[name] = [];
+    this._mutationObserverCallbacks[name].push(callback);
 
     callback(this.attr(name), true);
   }
