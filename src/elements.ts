@@ -606,7 +606,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
     // hack to avoid TS notification
     // about setting undefined value to readonly properties
-    delete this._el._view;
+    delete (this as any)._el;
     delete (this as any)._data;
     delete (this as any)._events;
 
