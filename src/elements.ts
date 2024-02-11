@@ -5,6 +5,7 @@
 
 
 import {isOneOf, Obj, words} from '@mathigon/core';
+import {TransformMatrix} from '@mathigon/euclid/src';
 import {clamp, isBetween, nearlyEquals, roundTo} from '@mathigon/fermat';
 import {CanvasDrawingOptions, drawCanvas, drawSVG, GeoElement, GeoShape, Point, Rectangle, SimplePoint, SVGDrawingOptions} from '@mathigon/euclid';
 import {loadImage, loadImageDataURI} from './ajax';
@@ -399,7 +400,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     return this.css('transform')!.replace('none', '');
   }
 
-  get transformMatrix() {
+  get transformMatrix(): TransformMatrix {
     const transform = this.transform;
     if (!transform) return [[1, 0, 0], [0, 1, 0]];
 
@@ -962,8 +963,8 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
 
   /** Finds the center of an SVG `<circle>` element. */
   get center() {
-    const x = +this.attr(this.tagName === 'TEXT' ? 'x' : 'cx');
-    const y = +this.attr(this.tagName === 'TEXT' ? 'y' : 'cy');
+    const x = +this.attr(this.tagName === 'TEXT' ? 'x' : 'cx') || 0;
+    const y = +this.attr(this.tagName === 'TEXT' ? 'y' : 'cy') || 0;
     return new Point(x, y);
   }
 

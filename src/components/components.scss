@@ -59,8 +59,7 @@ x-icon {
 .modal-background {
   position: fixed;
   z-index: 400;
-  top: 44px;
-  left: 0; right: 0; bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(black, 80%);
   display: none;
   transition: background .4s;
