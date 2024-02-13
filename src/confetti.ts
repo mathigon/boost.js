@@ -64,8 +64,8 @@ class Particle {
 const style = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999';
 let $confetti: CanvasView|undefined = undefined;
 
-export function confetti(duration = 2000, maxParticles = 150) {
-  if (!$confetti) $confetti = $N('canvas', {style}, $body) as CanvasView;
+export function confetti(duration = 2000, maxParticles = 150, $parent = $body) {
+  if (!$confetti) $confetti = $N('canvas', {style}, $parent) as CanvasView;
   $confetti.setAttr('width', Browser.width);
   $confetti.setAttr('height', Browser.height);
   $confetti.show();
