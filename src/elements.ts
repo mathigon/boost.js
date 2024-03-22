@@ -85,7 +85,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   /** Toggles multiple space-separated class names based on a condition. */
-  setClass(className: string, condition: boolean) {
+  setClass(className: string, condition: boolean|undefined) {
     if (condition) {
       this.addClass(className);
     } else {
