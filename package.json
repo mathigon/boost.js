@@ -1,6 +1,6 @@
 {
   "name": "@mathigon/boost",
-  "version": "1.2.23",
+  "version": "1.2.24",
   "license": "MIT",
   "homepage": "https://mathigon.io/boost",
   "repository": "mathigon/boost.js",
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@mathigon/core": "1.1.17",
-    "@mathigon/euclid": "1.1.20",
+    "@mathigon/euclid": "1.1.21",
     "@mathigon/fermat": "1.1.16"
   },
   "devDependencies": {
