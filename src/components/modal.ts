@@ -4,6 +4,7 @@
 // =============================================================================
 
 
+import {last} from '@mathigon/core';
 import {$$, $body, $N, AnimationResponse, Browser, CustomElementView, ElementView, MediaView, register, Router} from '../';
 
 
@@ -18,7 +19,11 @@ function tryClose() {
 }
 
 $modalBackground.on('click', tryClose);
-$body.onKey('Escape', tryClose);
+$body.onKey('Escape', (e: Event) => {
+  e.preventDefault();
+  e.stopPropagation();
+  tryClose();
+});
 Router.on('change', tryClose);
 
 $modalBackground.on('scrollwheel touchmove', (e: Event) => {
@@ -41,12 +46,16 @@ $body.onKey('Space ArrowUp ArrowDown PageDown PageUp', (e: Event) => {
 @register('x-modal')
 export class Modal extends CustomElementView {
   private isOpen = false;
+  private $title?: ElementView;
+  private $focus: ElementView[] = [];
   private $iframe?: ElementView;
   private $video?: MediaView;
+  private $outside: ElementView[] = [];
   canClose = true;
 
   ready() {
     this.canClose = !this.hasAttr('no-close');
+    this.$title = this.$('h2');
     this.$iframe = this.$('iframe[data-src]')!;
     this.$video = this.$('video') as MediaView|undefined;
 
@@ -71,6 +80,26 @@ export class Modal extends CustomElementView {
 
     // Used for Modal.confirm()
     for (const $btn of this.$$('.btn')) $btn.on('click', () => this.trigger('btn-click', $btn));
+
+    // a11y
+    this.setAttr('role', 'dialog');
+    this.setAttr('aria-modal', 'true');
+    this.setAttr('aria-labelledby', 'modal-title');
+    this.$outside.push($body.$('header')!, $body.$('main')!);
+    this.$focus = this.$$('input, a, button, textarea, [tabindex="0"]');
+    this.onKey('Tab', (e: KeyboardEvent) => {
+      if (this.isOpen) {
+        if (e.shiftKey) {
+          if (e.target === this.$focus[0]._el) {
+            e.preventDefault();
+            last(this.$focus).focus();
+          }
+        } else if (e.target === last(this.$focus)._el) {
+          e.preventDefault();
+          this.$focus[0].focus();
+        }
+      }
+    });
   }
 
   open(noAnimation = false) {
@@ -100,12 +129,17 @@ export class Modal extends CustomElementView {
       this.enter('pop', 250).promise.then(() => this.css('transform', ''));
     }
 
-    this.setAttr('role', 'dialog');
+    // a11y
+    if (this.$title) this.$title.setAttr('id', 'modal-title');
+    for (const $e of this.$outside) {
+      $e.setAttr('inert', true);
+      $e.setAttr('aria-hidden', true);
+    }
+
     this.trigger('open');
 
     lastFocusElement = document.activeElement as HTMLElement;
-    const $focus = this.$('input, a, button, textarea, [tabindex="0"]');
-    if ($focus) $focus.focus();
+    if (this.$focus[0]) this.$focus[0].focus();
 
     window.ga?.('send', 'event', 'Modal', this.id);
     window.gtag?.('event', 'modal', {action: this.id});
@@ -114,11 +148,17 @@ export class Modal extends CustomElementView {
   close(keepBg = false, noEvent = false) {
     if (!this.isOpen) return;
     this.isOpen = false;
-    this.removeAttr('role');
     $openModal = undefined;
 
     if (this.$iframe) this.$iframe.setAttr('src', '');
     if (this.$video) this.$video.pause();
+
+    // a11y
+    if (this.$title) this.$title.setAttr('id', '');
+    for (const $e of this.$outside) {
+      $e.removeAttr('inert');
+      $e.removeAttr('aria-hidden');
+    }
 
     if (!keepBg) backgroundAnimation = $modalBackground.exit('fade', 250);
     this.exit('pop', 250).promise.then(() => this.css('transform', ''));
