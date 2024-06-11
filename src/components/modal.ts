@@ -82,6 +82,7 @@ export class Modal extends CustomElementView {
     for (const $btn of this.$$('.btn')) $btn.on('click', () => this.trigger('btn-click', $btn));
 
     // a11y
+    this.setAttr('tabindex', -1);
     this.setAttr('role', 'dialog');
     this.setAttr('aria-modal', 'true');
     this.setAttr('aria-labelledby', 'modal-title');
@@ -139,7 +140,8 @@ export class Modal extends CustomElementView {
     this.trigger('open');
 
     lastFocusElement = document.activeElement as HTMLElement;
-    if (this.$focus[0]) this.$focus[0].focus();
+    this.focus();
+    // if (this.$focus[0]) this.$focus[0].focus();
 
     window.ga?.('send', 'event', 'Modal', this.id);
     window.gtag?.('event', 'modal', {action: this.id});
