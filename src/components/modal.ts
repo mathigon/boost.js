@@ -141,7 +141,6 @@ export class Modal extends CustomElementView {
 
     lastFocusElement = document.activeElement as HTMLElement;
     this.focus();
-    // if (this.$focus[0]) this.$focus[0].focus();
 
     window.ga?.('send', 'event', 'Modal', this.id);
     window.gtag?.('event', 'modal', {action: this.id});
