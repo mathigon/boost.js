@@ -14,6 +14,8 @@ let backgroundAnimation: AnimationResponse|undefined;
 let $openModal: Modal|undefined = undefined;
 let lastFocusElement: HTMLElement|undefined = undefined;
 
+const TITLE_ID = 'boost-modal-title';
+
 function tryClose() {
   if ($openModal && $openModal.canClose) $openModal.close();
 }
@@ -46,7 +48,6 @@ $body.onKey('Space ArrowUp ArrowDown PageDown PageUp', (e: Event) => {
 @register('x-modal')
 export class Modal extends CustomElementView {
   private isOpen = false;
-  private $title?: ElementView;
   private $focus: ElementView[] = [];
   private $iframe?: ElementView;
   private $video?: MediaView;
@@ -85,9 +86,9 @@ export class Modal extends CustomElementView {
     this.setAttr('tabindex', -1);
     this.setAttr('role', 'dialog');
     this.setAttr('aria-modal', 'true');
-    this.setAttr('aria-labelledby', 'modal-title');
     this.$outside.push($body.$('header')!, $body.$('main')!);
     this.$focus = this.$$('input, a, button, textarea, [tabindex="0"]');
+    this.setAttr('aria-labelledby', TITLE_ID);
     this.onKey('Tab', (e: KeyboardEvent) => {
       if (this.isOpen) {
         if (e.shiftKey) {
@@ -131,11 +132,11 @@ export class Modal extends CustomElementView {
     }
 
     // a11y
-    if (this.$title) this.$title.setAttr('id', 'modal-title');
     for (const $e of this.$outside) {
       $e.setAttr('inert', true);
       $e.setAttr('aria-hidden', true);
     }
+    this.$('h2')?.setAttr('id', TITLE_ID);
 
     this.trigger('open');
 
@@ -155,11 +156,11 @@ export class Modal extends CustomElementView {
     if (this.$video) this.$video.pause();
 
     // a11y
-    if (this.$title) this.$title.setAttr('id', '');
     for (const $e of this.$outside) {
       $e.removeAttr('inert');
       $e.removeAttr('aria-hidden');
     }
+    this.$(`#${TITLE_ID}`)?.removeAttr('id');
 
     if (!keepBg) backgroundAnimation = $modalBackground.exit('fade', 250);
     this.exit('pop', 250).promise.then(() => this.css('transform', ''));
