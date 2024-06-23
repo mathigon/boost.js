@@ -51,12 +51,10 @@ export class Modal extends CustomElementView {
   private $focus: ElementView[] = [];
   private $iframe?: ElementView;
   private $video?: MediaView;
-  private $outside: ElementView[] = [];
   canClose = true;
 
   ready() {
     this.canClose = !this.hasAttr('no-close');
-    this.$title = this.$('h2');
     this.$iframe = this.$('iframe[data-src]')!;
     this.$video = this.$('video') as MediaView|undefined;
 
@@ -86,7 +84,6 @@ export class Modal extends CustomElementView {
     this.setAttr('tabindex', -1);
     this.setAttr('role', 'dialog');
     this.setAttr('aria-modal', 'true');
-    this.$outside.push($body.$('header')!, $body.$('main')!);
     this.$focus = this.$$('input, a, button, textarea, [tabindex="0"]');
     this.setAttr('aria-labelledby', TITLE_ID);
     this.onKey('Tab', (e: KeyboardEvent) => {
@@ -132,16 +129,11 @@ export class Modal extends CustomElementView {
     }
 
     // a11y
-    for (const $e of this.$outside) {
-      $e.setAttr('inert', true);
-      $e.setAttr('aria-hidden', true);
-    }
     this.$('h2')?.setAttr('id', TITLE_ID);
+    lastFocusElement = document.activeElement as HTMLElement;
+    (this.$('input:not([type=hidden]), textarea') || this).focus();
 
     this.trigger('open');
-
-    lastFocusElement = document.activeElement as HTMLElement;
-    this.focus();
 
     window.ga?.('send', 'event', 'Modal', this.id);
     window.gtag?.('event', 'modal', {action: this.id});
@@ -156,10 +148,6 @@ export class Modal extends CustomElementView {
     if (this.$video) this.$video.pause();
 
     // a11y
-    for (const $e of this.$outside) {
-      $e.removeAttr('inert');
-      $e.removeAttr('aria-hidden');
-    }
     this.$(`#${TITLE_ID}`)?.removeAttr('id');
 
     if (!keepBg) backgroundAnimation = $modalBackground.exit('fade', 250);
