@@ -84,6 +84,11 @@ export function getEventTarget(event: ScreenEvent) {
   return $(document.elementFromPoint(posn.x, posn.y) || undefined);
 }
 
+export function stopEvent(event: Event) {
+  event.stopPropagation();
+  event.preventDefault();
+}
+
 
 // -----------------------------------------------------------------------------
 // Click Events
