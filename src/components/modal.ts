@@ -48,7 +48,6 @@ $body.onKey('Space ArrowUp ArrowDown PageDown PageUp', (e: Event) => {
 @register('x-modal')
 export class Modal extends CustomElementView {
   private isOpen = false;
-  private $focus: ElementView[] = [];
   private $iframe?: ElementView;
   private $video?: MediaView;
   canClose = true;
@@ -84,19 +83,16 @@ export class Modal extends CustomElementView {
     this.setAttr('tabindex', -1);
     this.setAttr('role', 'dialog');
     this.setAttr('aria-modal', 'true');
-    this.$focus = this.$$('input, a, button, textarea, [tabindex="0"]');
     this.setAttr('aria-labelledby', TITLE_ID);
     this.onKey('Tab', (e: KeyboardEvent) => {
-      if (this.isOpen) {
-        if (e.shiftKey) {
-          if (e.target === this.$focus[0]._el) {
-            e.preventDefault();
-            last(this.$focus).focus();
-          }
-        } else if (e.target === last(this.$focus)._el) {
-          e.preventDefault();
-          this.$focus[0].focus();
-        }
+      if (!this.isOpen) return;
+      const $focus = this.$$('input:not([type=hidden]), a, button, textarea, [tabindex=0]');
+      if (e.shiftKey && e.target === $focus[0]._el) {
+        e.preventDefault();
+        last($focus).focus();
+      } else if (!e.shiftKey && e.target === last($focus)._el) {
+        e.preventDefault();
+        $focus[0].focus();
       }
     });
   }
