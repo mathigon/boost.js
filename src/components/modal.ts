@@ -5,7 +5,7 @@
 
 
 import {last} from '@mathigon/core';
-import {$$, $body, $N, AnimationResponse, Browser, CustomElementView, ElementView, MediaView, register, Router} from '../';
+import {$$, $body, $N, AnimationResponse, Browser, CustomElementView, ElementView, MediaView, register, Router, stopEvent} from '../';
 
 
 const $modalBackground = $N('div', {class: 'modal-background'}, $body);
@@ -22,22 +22,15 @@ function tryClose() {
 
 $modalBackground.on('click', tryClose);
 $body.onKey('Escape', (e: Event) => {
-  e.preventDefault();
-  e.stopPropagation();
+  stopEvent(e);
   tryClose();
 });
 Router.on('change', tryClose);
 
-$modalBackground.on('scrollwheel touchmove', (e: Event) => {
-  e.preventDefault();
-  e.stopPropagation();
-});
+$modalBackground.on('scrollwheel touchmove', stopEvent);
 
 $body.onKey('Space ArrowUp ArrowDown PageDown PageUp', (e: Event) => {
-  if ($openModal) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
+  if ($openModal) stopEvent(e);
 });
 
 // -----------------------------------------------------------------------------
