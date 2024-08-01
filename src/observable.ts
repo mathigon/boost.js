@@ -9,6 +9,7 @@ type Expr<T> = (state: T) => void;
 
 interface ObservableOptions<T> {
   watch: (fn: Callback<T>) => void;
+  watchKeys: (keys: string, fn: Callback<T>) => void;
   unwatch: (fn: Callback<T>) => void;
   watchAll: (fn: Callback<T>, dontRunImmediately?: boolean) => void;
   setComputed: (key: string, expr: (state: T) => unknown) => void;
@@ -55,6 +56,14 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
     const result = callback(proxy, true);
     pendingCallback = undefined;
     return result;
+  }
+
+  function watchKeys(keys: string, fn: Callback<T>) {
+    for (const key of keys.split(' ')) {
+      if (!callbackMap.has(key)) callbackMap.set(key, new Set());
+      callbackMap.get(key)!.add(fn);
+    }
+    return fn(proxy, true);
   }
 
   function unwatch(callback: Callback<T>) {
@@ -150,6 +159,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
   const proxy = new Proxy(state as any, {
     get(_: T, key: string) {
       if (key === 'watch') return watch;
+      if (key === 'watchKeys') return watchKeys;
       if (key === 'unwatch') return unwatch;
       if (key === 'watchAll') return watchAll;
       if (key === 'setComputed') return setComputed;

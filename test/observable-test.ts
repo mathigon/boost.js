@@ -54,6 +54,22 @@ tape('watch all', (test) => {
   test.end();
 });
 
+tape('watch keys', (test) => {
+  const model = observe<Model>({a: 1, b: 2});
+
+  let changes = 0;
+  model.watchKeys('a', () => (changes += 1));
+  test.equal(changes, 1);
+
+  model.a += 1;  // this triggers the callback
+  test.equal(changes, 2);
+
+  model.b += 1;  // this doesn't trigger the callback
+  test.equal(changes, 2);
+
+  test.end();
+});
+
 tape('nested dependencies', (test) => {
   const model = observe<Model>({a: 1, b: 2});
 
