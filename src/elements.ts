@@ -583,7 +583,12 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     const n = this.next;
     const p = this.parent;
     this.detach();
-    n ? n.insertBefore(this) : p!.append(this);
+
+    if (n) {
+      n.insertBefore(this);
+    } else {
+      p!.append(this);
+    }
   }
 
   /** Detaches an element from the DOM. */

@@ -92,7 +92,8 @@ class BrowserInstance {
 
   /** Forces a re-paint. This is useful when updating transition properties. */
   redraw() {
-    document.body.offsetHeight; /* jshint ignore:line */
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    document.body.offsetHeight;
   }
 
 
