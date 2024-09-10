@@ -353,10 +353,7 @@ export function bindAccessibilityEvents(parent?: HTMLElement) {
       // The CodeMirror library adds tabindex attributes on their <textarea> fields.
       if ($active && $active.hasAttr('tabindex') && $active.tagName !== 'TEXTAREA') {
         e.preventDefault();
-        $active.trigger('pointerdown', e);
-        $active.trigger('pointerstop', e);
-        $body.trigger('pointerstop', e);
-        $active.trigger('click', e);
+        $active.trigger('click', new MouseEvent('click'));
       }
     }
   });
