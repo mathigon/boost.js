@@ -79,7 +79,7 @@ export class Modal extends CustomElementView {
     this.setAttr('aria-labelledby', TITLE_ID);
     this.onKey('Tab', (e: KeyboardEvent) => {
       if (!this.isOpen) return;
-      const $focus = this.$$('input:not([type=hidden]), a, button, textarea, [tabindex=0]');
+      const $focus = this.$$('input:not([type="hidden"]), a, button, textarea, [tabindex="0"]');
       if (e.shiftKey && e.target === $focus[0]._el) {
         e.preventDefault();
         last($focus).focus();
