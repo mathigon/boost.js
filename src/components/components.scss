@@ -4,6 +4,7 @@
 // =============================================================================
 
 
+@use 'sass:color';
 @import './mixins';
 
 $success: #22ab24 !default;
@@ -35,9 +36,9 @@ x-alert {
   width: max-content;
 
   x-icon { margin: -2px 6px 20px -4px; float: left; }
-  &.error { background: darken($error, 5%); }
-  &.warn { background: darken($warn, 5%); }
-  &.success { background: darken($success, 5%); }
+  &.error { background: color.adjust($error, $lightness: -5%); }
+  &.warn { background: color.adjust($warn, $lightness: -5%); }
+  &.success { background: color.adjust($success, $lightness: -5%); }
 }
 
 // Icons -----------------------------------------------------------------------
