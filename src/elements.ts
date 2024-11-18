@@ -43,6 +43,8 @@ interface EventListenerOptions {
 export abstract class BaseView<T extends HTMLElement|SVGElement> {
   readonly _data: Obj<unknown> = {};
   readonly _events: Obj<EventCallback[]> = {};
+  _mutationObserver: MutationObserver|undefined;
+  private readonly _mutationObserverCallbacks: Obj<EventCallback[]> = {};
   readonly type: string = 'default';
   model?: Observable;
 
@@ -598,12 +600,31 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     }
   }
 
+  /** Removes listeners and model data from el */
+  private unsubscribe() {
+    this.model?.clear();
+    this._mutationObserver?.disconnect();
+    this.offAll();
+
+    for (const child of this.children) {
+      child.unsubscribe();
+    }
+
+    // hack to avoid TS notification
+    // about setting undefined value to readonly properties
+    delete (this as any)._el;
+    delete (this as any)._data;
+    delete (this as any)._events;
+
+    // remove mutation observer instances
+    delete (this as any)._mutationObserver;
+    delete (this as any)._mutationObserverCallbacks;
+  }
+
   /** Removes this element. */
   remove() {
     this.detach();
-    // TODO Remove event listeners (including children)
-    // TODO Remove model bindings (including children)
-    // this._el = this._data = this._events = undefined;
+    this.unsubscribe();
   }
 
   /** Removes all children of this element. */
@@ -649,11 +670,22 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    */
   off(events: string, callback?: EventCallback) {
     for (const e of words(events)) {
-      if (e in this._events) {
-        this._events[e] = callback ? this._events[e].filter(fn => fn !== callback) : [];
+      if (callback) {
+        this._events[e] = this._events[e].filter(fn => fn !== callback);
+        unbindEvent(this, e, callback);
+        continue;
       }
-      unbindEvent(this, e, callback);
+      for (const eventsCallback of this._events[e]) unbindEvent(this, e, eventsCallback);
     }
+  }
+
+  /**
+   * Removes all event listeners from this element
+   */
+  offAll() {
+    Object.entries(this._events).forEach(([eventName, callbacks]) => {
+      callbacks.forEach((callback) => this.off(eventName, callback));
+    });
   }
 
   /** Triggers a specific event on this element. */
@@ -673,28 +705,41 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
     const keyNames = new Set(words(keys));
     const event = options?.up ? 'keyup' : 'keydown';
 
-    const target = (this._el === document.body ? document : this._el) as HTMLElement;
-    target.addEventListener(event, (e: KeyboardEvent) => {
+    const eventFunction = (e: KeyboardEvent) => {
       const key = keyCode(e);
       if (options?.meta ? !e.ctrlKey && !e.metaKey : e.ctrlKey || e.metaKey) return;
       if (!key || !keyNames.has(key)) return;
       if (document.activeElement !== this._el && document.activeElement?.shadowRoot?.activeElement !== this._el && Browser.formIsActive) return;
       callback(e as KeyboardEvent, key);
-    });
+    };
+
+    const target = (this._el === document.body ? document : this._el) as HTMLElement;
+    target.addEventListener(event, eventFunction);
+
+    if (!(event in this._events)) this._events[event] = [];
+    this._events[event].push(eventFunction);
   }
 
+  /**
+   * Bind an listener when element attribute changed
+   */
   onAttr(name: string, callback: (value: string, initial?: boolean) => void) {
-    // TODO Reuse existing observers, remove events, disconnect when deleting.
-
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (m.type === 'attributes' && m.attributeName === name) {
-          callback(this.attr(name));
+    if (!this._mutationObserver) {
+      this._mutationObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === 'attributes' && m.attributeName === name) {
+            for (const attributeCallback of this._mutationObserverCallbacks[name]) {
+              attributeCallback(this.attr(name));
+            }
+          }
         }
-      }
-    });
+      });
+      this._mutationObserver.observe(this._el, {attributes: true});
+    }
 
-    observer.observe(this._el, {attributes: true});
+    if (!(name in this._mutationObserverCallbacks)) this._mutationObserverCallbacks[name] = [];
+    this._mutationObserverCallbacks[name].push(callback);
+
     callback(this.attr(name), true);
   }
 
@@ -1146,7 +1191,7 @@ export class WindowView extends HTMLBaseView<HTMLHtmlElement|HTMLBodyElement> {
   }
 
   get scrollTop() {
-    return window.pageYOffset;
+    return window.scrollY;
   }
 
   set scrollTop(y) {
@@ -1155,7 +1200,7 @@ export class WindowView extends HTMLBaseView<HTMLHtmlElement|HTMLBodyElement> {
   }
 
   get scrollLeft() {
-    return window.pageXOffset;
+    return window.scrollX;
   }
 
   set scrollLeft(x) {
