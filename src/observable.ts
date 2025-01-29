@@ -37,8 +37,10 @@ export function batch(callback: () => void) {
   callback();
   batchDepth--;
   if (batchDepth === 0) {
-    for (const [callback, state] of batchedCallbacks.entries()) callback(state);
-    batchedCallbacks.clear();
+    for (const [callback, state] of batchedCallbacks.entries()) {
+      batchedCallbacks.delete(callback);
+      callback(state);
+    }
   }
 }
 
