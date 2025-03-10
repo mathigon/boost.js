@@ -905,12 +905,13 @@ export class SVGBaseView<T extends SVGGraphicsElement> extends BaseView<T> {
     return matrix as [[number, number, number], [number, number, number]];
   }
 
-  setTransform(posn?: SimplePoint, angle = 0, scale = 1) {
+  setTransform(posn?: SimplePoint, angle = 0, scale = 1, rotCenter?: SimplePoint) {
     // TODO Safari only supports transform-origin and transform-box for CSS
     // transforms, not the [transform=] attribute:
     // https://stackoverflow.com/questions/61272308/
+    const center = rotCenter ?? {x: 0, y: 0};
     const t1 = posn ? `translate(${roundTo(posn.x, 0.1)} ${roundTo(posn.y, 0.1)})` : '';
-    const t2 = nearlyEquals(angle, 0) ? '' : `rotate(${angle * 180 / Math.PI})`;
+    const t2 = nearlyEquals(angle, 0) ? '' : `rotate(${angle * 180 / Math.PI}, ${center.x} , ${center.y})`;
     const t3 = nearlyEquals(scale, 1) ? '' : `scale(${scale})`;
     this.setAttr('transform', [t1, t2, t3].join(' '));
   }
