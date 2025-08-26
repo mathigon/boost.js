@@ -130,6 +130,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
     state = {} as T;
     callbackMap.clear();
     computedKeys.clear();
+    watchAllCallbacks.clear();
     lastKey = 0;
   }
 
