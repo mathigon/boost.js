@@ -1248,6 +1248,14 @@ export class InputView extends HTMLBaseView<InputFieldElement> {
     (this._el as HTMLInputElement).checked = value;
   }
 
+  get readonly() {
+    return (this._el as HTMLInputElement).readOnly;
+  }
+
+  set readonly(value: boolean) {
+    (this._el as HTMLInputElement).readOnly = value;
+  }
+
   get value() {
     return this._el.value;
   }
