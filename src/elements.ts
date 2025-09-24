@@ -55,7 +55,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   }
 
   get _el() {
-    if (this.isDeleted) console.error('Trying to access a deleted element.');
+    if (this.isDeleted) console.error('Trying to access a deleted element:', this);
     return this.__el;
   }
 
