@@ -47,10 +47,16 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   private readonly _mutationObserverCallbacks: Obj<EventCallback[]> = {};
   readonly type: string = 'default';
   model?: Observable;
+  isDeleted?: boolean;
 
-  constructor(readonly _el: T) {
+  constructor(readonly __el: T) {
     // Store a reference to this element within the native browser DOM.
-    _el._view = this;
+    __el._view = this;
+  }
+
+  get _el() {
+    if (this.isDeleted) console.error('Trying to access a deleted element:', this);
+    return this.__el;
   }
 
   get id() {
@@ -602,6 +608,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
   /** Removes listeners and model data from el */
   private unsubscribe() {
+    this.isDeleted = true;
     this.model?.clear();
     this._mutationObserver?.disconnect();
     this.offAll();
@@ -610,6 +617,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       child.unsubscribe();
     }
 
+    /* Disabled temporarily
     // hack to avoid TS notification
     // about setting undefined value to readonly properties
     delete (this as any)._el;
@@ -618,7 +626,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
 
     // remove mutation observer instances
     delete (this as any)._mutationObserver;
-    delete (this as any)._mutationObserverCallbacks;
+    delete (this as any)._mutationObserverCallbacks; */
   }
 
   /** Removes this element. */
