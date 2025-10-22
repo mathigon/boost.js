@@ -94,7 +94,7 @@ export class Modal extends CustomElementView {
   /**
    * Attaches a click listener to an element with data-modal attribute, if there isn't one already.
    */
-  attachListener($button: any) {
+  attachListener($button: ElementView) {
     if (elementsWithModalListeners.has($button._el)) return;
 
     $button.on('click', () => this.open());
@@ -104,7 +104,7 @@ export class Modal extends CustomElementView {
   /**
    * Removes the click listener from an element
    */
-  removeListener($button: any) {
+  removeListener($button: ElementView) {
     if (!elementsWithModalListeners.has($button._el)) return;
 
     $button.off('click');
