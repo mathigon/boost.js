@@ -101,6 +101,16 @@ export class Modal extends CustomElementView {
     elementsWithModalListeners.add($button._el);
   }
 
+  /**
+   * Removes the click listener from an element
+   */
+  removeListener($button: any) {
+    if (!elementsWithModalListeners.has($button._el)) return;
+
+    $button.off('click');
+    elementsWithModalListeners.delete($button._el);
+  }
+
   open(noAnimation = false) {
     if (this.isOpen) return;
 

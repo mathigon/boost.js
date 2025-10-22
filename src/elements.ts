@@ -199,15 +199,26 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       this.$placeholder.insertBefore(this);
       this.reattachModalListenersInSubtree();
     } else {
+      this.removeModalListenersInSubtree();
       this.detach();
     }
   }
 
-  /**
-   * Re-attaches modal listeners to `this` element and its descendants with data-modal attributes when they become visible via :if.
-   * Ensures that `data-modal` still works on elements which are initially hidden.
-   */
   private reattachModalListenersInSubtree() {
+    this.updateModalListenersInSubtree((modal, el) => modal.attachListener?.(el));
+  }
+
+  private removeModalListenersInSubtree() {
+    this.updateModalListenersInSubtree((modal, el) => modal.removeListener?.(el));
+  }
+
+  /**
+   * Updates modal listeners for `this` element and its descendants with data-modal attributes.
+   * Used when elements are shown/hidden via :if to attach/remove listeners
+   */
+  private updateModalListenersInSubtree(
+    operation: (modal: Modal, element: ElementView) => void
+  ) {
     const modalElements: ElementView[] = this.hasAttr('data-modal') ? [this] : [];
     const childElementsWithModalAttrs = this.$$('[data-modal]');
     modalElements.push(...childElementsWithModalAttrs);
@@ -217,9 +228,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
       if (!modalId) continue;
 
       const $modal = $(`x-modal#${modalId}`) as Modal;
-      if ($modal && typeof $modal.open === 'function') {
-        $modal.attachListener($el);
-      }
+      if ($modal) operation($modal, $el);
     }
   }
 
