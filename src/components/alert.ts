@@ -9,6 +9,10 @@ import {$body, $N, CustomElementView, register, HTMLView} from '../';
 let $openAlert: Alert|undefined;
 let $alertParent = $N('div', {class: 'snackbar'}, $body);
 
+/**
+ * Sets the container element where new alerts will be appended.
+ * @param parent - The HTMLView element to use as the alert container
+ */
 export function setAlertParent(parent: HTMLView) {
   $alertParent = parent;
 }
