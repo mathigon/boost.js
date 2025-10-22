@@ -4,10 +4,14 @@
 // =============================================================================
 
 
-import {$body, $N, CustomElementView, register} from '../';
+import {$body, $N, CustomElementView, register, HTMLView} from '../';
 
 let $openAlert: Alert|undefined;
-const $alertParent = $N('div', {class: 'snackbar'}, $body);
+let $alertParent = $N('div', {class: 'snackbar'}, $body);
+
+export function setAlertParent(parent: HTMLView) {
+  $alertParent = parent;
+}
 
 
 @register('x-alert')
