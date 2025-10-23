@@ -4,7 +4,7 @@
 // =============================================================================
 
 
-import {$body, $N, CustomElementView, register, HTMLView} from '../';
+import {$body, $N, CustomElementView, HTMLView, register} from '../';
 
 let $openAlert: Alert|undefined;
 let $alertParent = $N('div', {class: 'snackbar'}, $body);
