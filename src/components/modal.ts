@@ -15,6 +15,7 @@ let $openModal: Modal|undefined = undefined;
 let lastFocusElement: HTMLElement|undefined = undefined;
 
 const TITLE_ID = 'boost-modal-title';
+const elementsWithModalListeners = new WeakSet();
 
 function tryClose() {
   if ($openModal && $openModal.canClose) $openModal.close();
@@ -51,12 +52,12 @@ export class Modal extends CustomElementView {
     this.$video = this.$('video') as MediaView|undefined;
 
     const $buttons = $$(`[data-modal=${this.id}]`);
-    for (const $b of $buttons) $b.on('click', () => this.open());
+    for (const $b of $buttons) this.attachListener($b);
 
     // Look for new modals to open, after browser navigation.
     Router.on('afterChange', ({$viewport}) => {
       const $buttons = $viewport.$$(`[data-modal=${this.id}]`);
-      for (const $b of $buttons) $b.on('click', () => this.open());
+      for (const $b of $buttons) this.attachListener($b);
     });
 
     // Open modals that are shown on pageload
@@ -88,6 +89,26 @@ export class Modal extends CustomElementView {
         $focus[0].focus();
       }
     });
+  }
+
+  /**
+   * Attaches a click listener to an element with data-modal attribute, if there isn't one already.
+   */
+  attachListener($button: ElementView) {
+    if (elementsWithModalListeners.has($button._el)) return;
+
+    $button.on('click', () => this.open());
+    elementsWithModalListeners.add($button._el);
+  }
+
+  /**
+   * Removes the click listener from an element
+   */
+  removeListener($button: ElementView) {
+    if (!elementsWithModalListeners.has($button._el)) return;
+
+    $button.off('click');
+    elementsWithModalListeners.delete($button._el);
   }
 
   open(noAnimation = false) {
