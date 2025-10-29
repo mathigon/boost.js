@@ -19,6 +19,7 @@ export * from './svg';
 export * from './thread';
 export * from './webcomponents';
 
+export {setAlertParent} from './components/alert';
 export type {Alert} from './components/alert';
 export type {IconView} from './components/icon';
 export type {Modal} from './components/modal';
