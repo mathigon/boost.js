@@ -651,10 +651,6 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   remove() {
     this.detach();
     this.unsubscribe();
-
-    // TODO Remove event listeners (including children)
-    // TODO Remove model bindings (including children)
-    // this._el = this._data = this._events = undefined;
   }
 
   /** Removes all children of this element. */
