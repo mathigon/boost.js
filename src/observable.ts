@@ -3,6 +3,8 @@
 // (c) Mathigon
 // =============================================================================
 
+import {Browser} from './browser';
+
 
 type Callback<T> = (state: T, initial?: boolean) => void;
 type Expr<T> = (state: T) => void;
@@ -111,7 +113,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
   }
 
   function assign(changes: Partial<T>, clear?: boolean) {
-    if (clear) state = {} as T;
+    if (clear && !Browser.isSafari) state = {} as T;
     batch(() => {
       for (const [key, value] of Object.entries(changes)) {
         if (!(key in previous)) (previous as any)[key] = (state as any)[key];
@@ -127,10 +129,10 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
   }
 
   function clear() {
-    state = {} as T;
     callbackMap.clear();
     computedKeys.clear();
     watchAllCallbacks.clear();
+    if (!Browser.isSafari) state = {} as T;
     lastKey = 0;
   }
 
