@@ -716,7 +716,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
    * Removes all event listeners from this element
    */
   offAll() {
-    Object.entries(this._events).forEach(([eventName, callbacks]) => {
+    Object.entries(this._events || {}).forEach(([eventName, callbacks]) => {
       callbacks.forEach((callback) => this.off(eventName, callback));
     });
   }

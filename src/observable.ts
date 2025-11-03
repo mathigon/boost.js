@@ -113,7 +113,7 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
   }
 
   function assign(changes: Partial<T>, clear?: boolean) {
-    if (clear && !Browser.isSafari) state = {} as T;
+    if (clear) state = {} as T;
     batch(() => {
       for (const [key, value] of Object.entries(changes)) {
         if (!(key in previous)) (previous as any)[key] = (state as any)[key];
@@ -129,10 +129,10 @@ export function observe<T extends object = any>(state: T, parentModel?: Observab
   }
 
   function clear() {
+    state = {} as T;
     callbackMap.clear();
     computedKeys.clear();
     watchAllCallbacks.clear();
-    if (!Browser.isSafari) state = {} as T;
     lastKey = 0;
   }
 
