@@ -634,6 +634,7 @@ export abstract class BaseView<T extends HTMLElement|SVGElement> {
   /** Removes listeners and model data from el */
   private unsubscribe() {
     this.isDeleted = true;
+    // this causes elements freeze in Safari so we skip proxy model clearing there
     if (!Browser.isSafari) this.model?.clear();
     this._mutationObserver?.disconnect();
     this.offAll();
