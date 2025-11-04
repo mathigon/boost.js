@@ -3,9 +3,7 @@
 // (c) Mathigon
 // =============================================================================
 
-
 import {$body, CustomElementView, ElementView, register} from '../';
-
 
 /**
  * Popup component that reveals its `.popup-body` child when clicked.
@@ -13,6 +11,7 @@ import {$body, CustomElementView, ElementView, register} from '../';
 @register('x-popup')
 export class Popup extends CustomElementView {
   private animation!: string;
+  private $target!: ElementView;
   private $bubble!: ElementView;
   isOpen = false;
 
@@ -22,8 +21,8 @@ export class Popup extends CustomElementView {
     this.$bubble = this.$('.popup-body')!;
     this.$bubble.hide();
 
-    const $target = this.$('.popup-target')!;
-    $target.on('click', () => this.toggleOpen());
+    this.$target = this.$('.popup-target')!;
+    this.$target.on('click', () => this.toggleOpen());
     this.on('clickOutside', () => this.close());
     for (const $a of this.$bubble.$$('a')) $a.on('click', () => this.close());
 
@@ -42,6 +41,8 @@ export class Popup extends CustomElementView {
     if (this.isOpen) return;
     this.isOpen = true;
 
+    this.$target.setAttr('aria-expanded', true);
+
     this.addClass('active');
     this.$bubble.enter(this.animation, 150);
     this.$bubble.setAttr('role', 'dialog');
@@ -53,9 +54,12 @@ export class Popup extends CustomElementView {
     if (!this.isOpen) return;
     this.isOpen = false;
 
+    this.$target.setAttr('aria-expanded', false);
+
     this.removeClass('active');
     this.$bubble.exit(this.animation, 150);
     this.$bubble.removeAttr('role');
     this.trigger('close');
+    this.$target.focus();
   }
 }
