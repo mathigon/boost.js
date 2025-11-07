@@ -3,6 +3,8 @@
 // (c) Mathigon
 // =============================================================================
 
+import {Browser} from './browser';
+
 
 type Callback<T> = (state: T, initial?: boolean) => void;
 type Expr<T> = (state: T) => void;
